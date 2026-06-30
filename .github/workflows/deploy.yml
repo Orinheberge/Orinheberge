@@ -3,7 +3,7 @@ name: Deploy to Production
 on:
   push:
     branches:
-      - master
+      - main
 
 jobs:
   deploy:
@@ -40,6 +40,7 @@ jobs:
           chmod -R 755 /var/www/orinheberge
           chmod -R 775 /var/www/orinheberge/inc/uploads/
           for svc in nginx apache2 php8.4-fpm php8.3-fpm php8.2-fpm php8.1-fpm php-fpm; do
-              systemctl is-active --quiet "$svc" 2>/dev/null && systemctl reload "$svc" && echo "✅ $svc rechargé"
+              systemctl is-active --quiet "$svc" 2>/dev/null && systemctl reload "$svc" && echo "✅ $svc rechargé" || true
           done
+          exit 0
           REMOTE
