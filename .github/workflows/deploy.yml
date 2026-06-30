@@ -1,0 +1,35 @@
+name: Deploy to Ubuntu Server
+
+on:
+  push:
+    branches:
+      - main   # Change en "master" si ton branch principal s'appelle master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: 5.48.143.126
+          username: root
+          password: ${{ secrets.SSH_PASSWORD }}
+          script: |
+            echo "📦 Mise à jour du code..."
+            cd /var/www/html
+            git pull origin main
+
+            echo "🔧 Composer install..."
+            composer install --no-dev --optimize-autoloader --no-interaction
+
+            echo "🔒 Permissions..."
+            chown -R www-data:www-data /var/www/html
+            chmod -R 755 /var/www/html
+            chmod -R 775 /var/www/html/inc/uploads/
+
+            echo "✅ Déploiement terminé !"
