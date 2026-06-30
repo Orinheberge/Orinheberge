@@ -18,11 +18,11 @@ jobs:
         with:
           host: 5.48.143.126
           username: root
-          password: ${{ secrets.SSH_PASSWORD }}
+          password: ${{ secrets.SSH_PASSWORD }
           script: |
             echo "📦 Mise à jour du code..."
             cd /var/www/html
-            git pull origin main
+            git pull https://neyrix_mc:${{ secrets.GH_TOKEN }}@github.com/Orinheberge/Orinheberge.git main
 
             echo "🔧 Composer install..."
             composer install --no-dev --optimize-autoloader --no-interaction
