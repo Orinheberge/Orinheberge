@@ -1,19 +1,19 @@
 <?php return array(
     'root' => array(
         'name' => 'orinstone/orinheberge',
-        'pretty_version' => '1.0.0+no-version-set',
-        'version' => '1.0.0.0',
-        'reference' => null,
+        'pretty_version' => 'dev-main',
+        'version' => 'dev-main',
+        'reference' => '2746d89c13b33d1f92ec44e4c9ba48f36ed67668',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
-        'dev' => true,
+        'dev' => false,
     ),
     'versions' => array(
         'orinstone/orinheberge' => array(
-            'pretty_version' => '1.0.0+no-version-set',
-            'version' => '1.0.0.0',
-            'reference' => null,
+            'pretty_version' => 'dev-main',
+            'version' => 'dev-main',
+            'reference' => '2746d89c13b33d1f92ec44e4c9ba48f36ed67668',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

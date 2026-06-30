@@ -8,7 +8,7 @@
 SERVER_IP="5.48.143.126"
 SERVER_USER="root"
 SERVER_PASS="1504"
-REMOTE_PATH="/var/www/html"
+REMOTE_PATH="/var/www/orinheberge"
 LOCAL_PATH="$(git rev-parse --show-toplevel)"
 
 echo ""
@@ -48,7 +48,7 @@ composer install --no-dev --optimize-autoloader --no-interaction
 chown -R www-data:www-data "$REMOTE_PATH"
 chmod -R 755 "$REMOTE_PATH"
 chmod -R 775 "$REMOTE_PATH/inc/uploads/"
-for svc in nginx apache2 php8.4-fpm php8.3-fpm php8.2-fpm php8.1-fpm php-fpm; do
+for svc in nginx apache2 php8.5-fpm php8.4-fpm php8.3-fpm php8.2-fpm php8.1-fpm php-fpm; do
     systemctl is-active --quiet "\$svc" 2>/dev/null && systemctl reload "\$svc" && echo "✅ \$svc rechargé"
 done
 REMOTE
