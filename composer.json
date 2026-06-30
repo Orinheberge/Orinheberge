@@ -1,0 +1,41 @@
+{
+
+    "name": "orinstone/orinheberge",
+
+    "description": "Configuration du site orinheberge",
+
+    "type": "project",
+
+    "license": "MIT",
+
+    "require": {
+
+        "php": ">=8.5"
+
+    },
+
+    "autoload": {
+
+        "psr-4": {
+
+            "App\\": "src/"
+
+        }
+
+    },
+
+    "authors": [
+
+        {
+
+            "name": "Orinstone Team"
+
+        }
+
+    ],
+
+    "minimum-stability": "stable",
+
+    "prefer-stable": true
+
+}

@@ -1,0 +1,46 @@
+{
+  "short_name": "OrinHeberge",
+  "name": "OrinHeberge — OrinStone Studio",
+  "description": "Infrastructure et solutions d'hébergement haute performance par OrinStone Studio.",
+  "icons": [
+    {
+      "src": "https://heberge.orinstone.deepstone.fr/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/png"
+    },
+    {
+      "src": "https://heberge.orinstone.deepstone.fr/favicon.ico",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://heberge.orinstone.deepstone.fr/favicon.ico",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+	   {
+      "src": "https://heberge.orinstone.deepstone.fr/favicon.png",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/png"
+    },
+    {
+      "src": "https://heberge.orinstone.deepstone.fr/favicon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://heberge.orinstone.deepstone.fr/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#020617",
+  "theme_color": "#0b0f19",
+  "display": "standalone",
+  "orientation": "portrait-primary"
+}
