@@ -419,4 +419,72 @@ return [
         "cpu" => 1400
     ],
 
+    // =========================================================
+    // FiveM — Free / Basic / Medium / Premium
+    // =========================================================
+    "fivemfree" => [
+        "name" => "FiveM Free",
+        "price" => 0,
+        "node" => 2,
+        "nest" => 5,
+        "egg" => 15,
+        "image" => "ghcr.io/pterodactyl/games:fivem",
+        "startup" => "bash /home/container/run.sh",
+        "env" => [
+            "TXADMIN_PORT" => "40120",
+            "FIVEM_VERSION" => "latest"
+        ],
+        "ram" => 3072,
+        "disk" => 15000,
+        "cpu" => 300
+    ],
+    "fivembasic" => [
+        "name" => "FiveM Basic",
+        "price" => 2.99,
+        "node" => 2,
+        "nest" => 5,
+        "egg" => 15,
+        "image" => "ghcr.io/pterodactyl/games:fivem",
+        "startup" => "bash /home/container/run.sh",
+        "env" => [
+            "TXADMIN_PORT" => "40120",
+            "FIVEM_VERSION" => "latest"
+        ],
+        "ram" => 4096,
+        "disk" => 20000,
+        "cpu" => 400
+    ],
+    "fivemmedium" => [
+        "name" => "FiveM Medium",
+        "price" => 6.99,
+        "node" => 2,
+        "nest" => 5,
+        "egg" => 15,
+        "image" => "ghcr.io/pterodactyl/games:fivem",
+        "startup" => "bash /home/container/run.sh",
+        "env" => [
+            "TXADMIN_PORT" => "40120",
+            "FIVEM_VERSION" => "latest"
+        ],
+        "ram" => 8192,
+        "disk" => 50000,
+        "cpu" => 800
+    ],
+    "fivem" => [
+        "name" => "FiveM Premium",
+        "price" => 19.99,
+        "node" => 2,
+        "nest" => 5,
+        "egg" => 15,
+        "image" => "ghcr.io/pterodactyl/games:fivem",
+        "startup" => "bash /home/container/run.sh",
+        "env" => [
+            "TXADMIN_PORT" => "40120",
+            "FIVEM_VERSION" => "latest"
+        ],
+        "ram" => 16384,
+        "disk" => 100000,
+        "cpu" => 1500
+    ],
+
 ];

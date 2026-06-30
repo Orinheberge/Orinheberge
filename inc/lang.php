@@ -165,6 +165,16 @@ $translations = [
     'offer.node_premium.name' => ['fr' => 'NodeJS Pro',      'en' => 'NodeJS Pro'],
     'offer.node_premium.desc' => ['fr' => 'Réactivité maximale pour vos applications Node.js les plus exigeantes.', 'en' => 'Maximum responsiveness for your most demanding Node.js applications.'],
 
+    // FiveM
+    'offer.fivem_free.name'    => ['fr' => 'FiveM Free',      'en' => 'FiveM Free'],
+    'offer.fivem_free.desc'    => ['fr' => 'Lancez votre serveur GTA RP FiveM gratuitement avec txAdmin inclus.', 'en' => 'Launch your FiveM GTA RP server for free with txAdmin included.'],
+    'offer.fivem_basic.name'   => ['fr' => 'FiveM Basic',     'en' => 'FiveM Basic'],
+    'offer.fivem_basic.desc'   => ['fr' => 'Parfait pour un petit serveur FiveM privé entre amis.', 'en' => 'Perfect for a small private FiveM server between friends.'],
+    'offer.fivem_medium.name'  => ['fr' => 'FiveM Medium',    'en' => 'FiveM Medium'],
+    'offer.fivem_medium.desc'  => ['fr' => 'Un serveur FiveM communautaire stable avec ressources dédiées.', 'en' => 'A stable FiveM community server with dedicated resources.'],
+    'offer.fivem_premium.name' => ['fr' => 'FiveM Pro',       'en' => 'FiveM Pro'],
+    'offer.fivem_premium.desc' => ['fr' => 'Pour les grands serveurs RP FiveM avec nombreux scripts et joueurs.', 'en' => 'For large FiveM RP servers with many scripts and players.'],
+
     // Java
     'offer.java_free.name'    => ['fr' => 'Java Free',       'en' => 'Java Free'],
     'offer.java_free.desc'    => ['fr' => 'Idéal pour héberger vos bots Discord, apps asynchrones ou APIs en Java.', 'en' => 'Ideal for hosting your Discord bots, async apps or Java APIs.'],
