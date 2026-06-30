@@ -8,35 +8,34 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
-/*
-|--------------------------------------------------------------------------
-| CONFIGURATION
-|--------------------------------------------------------------------------
-*/
-
-$discord_webhook_url = "https://discord.com/api/webhooks/1505677242527649872/jFoANIv3OKNtGMib4bViJ79ltRDsf0LJviq59yXwW5hrqZ0uTyU1Yx3nV88yy6rG2eA4";
-$stripe_secret_key   = "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";
-$stripe_public_key   = "pk_live_51TYsYg2f2egcuUT4obSIMXsBBAVpzw0Gk18niYNgWQ5vhvV8nX5aAI6nZqEZ12RfHg1nmP2qjczVfPuX8Eb0ePzk00qDqtPro2";
-$paypalme_username   = "metal544002009";
-
-require_once __DIR__ . '/lib/panel/panel.php';
+// ─── Config centrale depuis BDD ──────────────────────────────
+require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/db.php';
 require_once __DIR__ . '/lib/stripe/stripe.php';
 require_once __DIR__ . '/lib/paypal/paypal.php';
 require_once __DIR__ . '/lib/promo/promo.php';
 require_once __DIR__ . '/webhook/discord.php';
 
-$pdo = new PDO(
-    "mysql:host=localhost;dbname=s43_orinheberge;charset=utf8mb4",
-    "root", "1504",
-    [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC]
-);
+// ─── Clés extensions depuis BDD ──────────────────────────────
+$ext_settings_raw = $pdo->query("
+    SELECT e.slug, es.key, es.value
+    FROM extension_settings es
+    JOIN extensions e ON e.id = es.extension_id
+")->fetchAll();
+$ext_cfg = [];
+foreach ($ext_settings_raw as $r) $ext_cfg[$r['slug']][$r['key']] = $r['value'];
 
-$offers = require __DIR__ . '/config/offre/offers.php';
+$stripe_secret_key = $ext_cfg['stripe']['secret_key'] ?? '';
+$stripe_public_key = $ext_cfg['stripe']['public_key'] ?? '';
+$paypalme_username = $ext_cfg['paypal']['username']   ?? 'metal544002009';
+$discord_webhook_url = $ext_cfg['discord']['webhook_url'] ?? '';
 
+// ─── Produit depuis BDD ──────────────────────────────────────
 $type = strtolower(trim($_GET['plan'] ?? $_GET['type'] ?? ''));
 if ($type === '') die("Aucune offre spécifiée.");
-if (!isset($offers[$type])) die("Offre invalide : " . htmlspecialchars($type, ENT_QUOTES, 'UTF-8'));
-$offer = $offers[$type];
+
+$offer = getProductBySlug($pdo, $type);
+if (!$offer) die("Offre invalide ou inactive : " . htmlspecialchars($type, ENT_QUOTES, 'UTF-8'));
+if ($offer['type'] !== 'paid') die("Cette offre n'est pas une offre payante.");
 
 $stmt = $pdo->prepare("SELECT * FROM users WHERE id=?");
 $stmt->execute([$_SESSION['user_id']]);
@@ -101,11 +100,11 @@ if (isset($_GET['session_id'])) {
         die("❌ Paiement non confirmé. Statut : " . htmlspecialchars($session['payment_status'] ?? 'inconnu', ENT_QUOTES, 'UTF-8'));
     }
 
-    $panelUser = getOrCreatePanelUser($panel_url, $headers, $user, $pdo);
+    $panelUser = getOrCreatePanelUser($panel_url, $headers_admin, $user, $pdo);
     $pass      = $panelUser['pass'];
     if ($pass) $_SESSION['panel_password'] = $pass;
 
-    $srv      = createPanelServer($panel_url, $headers, $offer, $panelUser['id']);
+    $srv      = createPanelServer($panel_url, $headers_admin, $offer, $panelUser['id']);
     $order_id = strtoupper(substr(md5(uniqid('', true)), 0, 8));
     $next_pay = date("Y-m-01", strtotime("+1 month"));
 
