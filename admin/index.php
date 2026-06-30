@@ -163,117 +163,219 @@ $is_logged_in = true;
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OrinHeberge | Admin Panel</title>
+    <title>OrinHeberge — Admin Panel</title>
     <link rel="icon" type="image/png" href="/favicon.ico">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        body { background: #0b0f19; scroll-behavior: smooth; }
-        .glass { background: rgba(255,255,255,0.04); backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,0.08); }
-        .gradient-text { background: linear-gradient(90deg, #f43f5e, #f97316); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        #mobileMenu { display: none; } #mobileMenu.active { display: block; }
-        .tab-active { background: rgba(244,63,94,0.15); border-color: rgba(244,63,94,0.4); color: #f43f5e; }
-        .tab-inactive { background: rgba(255,255,255,0.04); color: #9ca3af; }
-        .tab-inactive:hover { background: rgba(255,255,255,0.08); color: #e5e7eb; }
-        tr:hover td { background: rgba(255,255,255,0.02); }
-        input, textarea, select { background: rgba(255,255,255,0.05) !important; border: 1px solid rgba(255,255,255,0.1) !important; color: #e5e7eb !important; }
-        input:focus, textarea:focus, select:focus { outline: none !important; border-color: rgba(244,63,94,0.5) !important; }
+        :root{--sidebar:240px;}
+        *{box-sizing:border-box;}
+        body{background:#0d0f14;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;min-height:100vh;}
+        .sidebar{position:fixed;top:0;left:0;width:var(--sidebar);height:100vh;background:#111318;border-right:1px solid rgba(255,255,255,.06);display:flex;flex-direction:column;z-index:40;overflow-y:auto;}
+        .sidebar-logo{padding:1.5rem 1.25rem 1rem;border-bottom:1px solid rgba(255,255,255,.05);}
+        .sidebar-nav{padding:.75rem .75rem;flex:1;}
+        .nav-item{display:flex;align-items:center;gap:.75rem;padding:.625rem .875rem;border-radius:.625rem;font-size:.82rem;font-weight:500;color:#6b7280;transition:all .15s;text-decoration:none;margin-bottom:.15rem;border:1px solid transparent;}
+        .nav-item:hover{background:rgba(255,255,255,.04);color:#d1d5db;}
+        .nav-item.active{background:rgba(244,63,94,.08);color:#f43f5e;border-color:rgba(244,63,94,.15);}
+        .nav-item .icon{width:1.1rem;text-align:center;font-size:.85rem;flex-shrink:0;}
+        .nav-section{font-size:.65rem;font-weight:700;letter-spacing:.1em;color:#374151;text-transform:uppercase;padding:.75rem .875rem .35rem;}
+        .nav-separator{height:1px;background:rgba(255,255,255,.05);margin:.5rem .75rem;}
+        .sidebar-footer{padding:.875rem 1rem;border-top:1px solid rgba(255,255,255,.05);}
+        .main-content{margin-left:var(--sidebar);min-height:100vh;display:flex;flex-direction:column;}
+        .topbar{background:#111318;border-bottom:1px solid rgba(255,255,255,.06);padding:.875rem 1.75rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:30;}
+        .content{padding:1.75rem;flex:1;}
+        .card{background:#161a22;border:1px solid rgba(255,255,255,.07);border-radius:.875rem;}
+        .stat-card{background:linear-gradient(135deg,#161a22,#1a1f2a);border:1px solid rgba(255,255,255,.07);border-radius:.875rem;padding:1.25rem;}
+        .badge{display:inline-flex;align-items:center;gap:.35rem;padding:.2rem .65rem;border-radius:9999px;font-size:.72rem;font-weight:600;}
+        .badge-green{background:rgba(34,197,94,.1);color:#22c55e;border:1px solid rgba(34,197,94,.2);}
+        .badge-orange{background:rgba(249,115,22,.1);color:#f97316;border:1px solid rgba(249,115,22,.2);}
+        .badge-red{background:rgba(239,68,68,.1);color:#ef4444;border:1px solid rgba(239,68,68,.2);}
+        .badge-gray{background:rgba(107,114,128,.1);color:#9ca3af;border:1px solid rgba(107,114,128,.2);}
+        .badge-blue{background:rgba(56,189,248,.1);color:#38bdf8;border:1px solid rgba(56,189,248,.2);}
+        .badge-rose{background:rgba(244,63,94,.1);color:#f43f5e;border:1px solid rgba(244,63,94,.2);}
+        table{width:100%;border-collapse:collapse;}
+        th{text-align:left;padding:.625rem 1rem;font-size:.7rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#4b5563;border-bottom:1px solid rgba(255,255,255,.05);}
+        td{padding:.875rem 1rem;font-size:.83rem;border-bottom:1px solid rgba(255,255,255,.04);}
+        tr:last-child td{border-bottom:none;}
+        tr:hover td{background:rgba(255,255,255,.015);}
+        input,textarea,select{background:#1e2330 !important;border:1px solid rgba(255,255,255,.08) !important;color:#e2e8f0 !important;border-radius:.625rem;padding:.6rem .875rem;font-size:.83rem;width:100%;outline:none;transition:border-color .15s;}
+        input:focus,textarea:focus,select:focus{border-color:rgba(244,63,94,.4) !important;}
+        .btn-action{display:inline-flex;align-items:center;gap:.35rem;padding:.3rem .75rem;border-radius:.5rem;font-size:.75rem;font-weight:600;transition:all .15s;border:1px solid transparent;cursor:pointer;}
+        .btn-red{background:rgba(239,68,68,.1);color:#ef4444;border-color:rgba(239,68,68,.2);}
+        .btn-red:hover{background:rgba(239,68,68,.2);}
+        .btn-orange{background:rgba(249,115,22,.1);color:#f97316;border-color:rgba(249,115,22,.2);}
+        .btn-orange:hover{background:rgba(249,115,22,.2);}
+        .btn-blue{background:rgba(56,189,248,.1);color:#38bdf8;border-color:rgba(56,189,248,.2);}
+        .btn-blue:hover{background:rgba(56,189,248,.2);}
+        .btn-sky{background:rgba(14,165,233,.1);color:#0ea5e9;border-color:rgba(14,165,233,.2);}
+        .btn-sky:hover{background:rgba(14,165,233,.2);}
+        .mobile-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:39;}
+        @media(max-width:768px){
+            .sidebar{transform:translateX(-100%);transition:transform .25s;}
+            .sidebar.open{transform:translateX(0);}
+            .mobile-overlay.open{display:block;}
+            .main-content{margin-left:0;}
+            .topbar,.content{padding:.875rem 1rem;}
+        }
     </style>
     <script>
-        function toggleMenu() { document.getElementById('mobileMenu').classList.toggle('active'); }
-        function confirmDel(msg) { return confirm('⚠️ ' + msg + '\nCette action est irréversible.'); }
-        function openEmail(email) {
-            document.getElementById('modal-email').classList.remove('hidden');
-            document.getElementById('email-to').value = email;
-        }
-        function closeEmail() { document.getElementById('modal-email').classList.add('hidden'); }
+        function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('overlay').classList.toggle('open');}
+        function confirmDel(msg){return confirm('⚠️ '+msg+'\nCette action est irréversible.');}
+        function openEmail(email){document.getElementById('modal-email').classList.remove('hidden');document.getElementById('email-to').value=email;}
+        function closeEmail(){document.getElementById('modal-email').classList.add('hidden');}
     </script>
 </head>
-<body class="text-gray-200 font-sans min-h-screen flex flex-col antialiased">
+<body>
 
-<?php $active_nav = ''; include $_SERVER['DOCUMENT_ROOT'] . '/inc/navbar.php'; ?>
+<div id="overlay" class="mobile-overlay" onclick="toggleSidebar()"></div>
 
 <!-- Modal Email -->
-<div id="modal-email" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-    <div class="glass rounded-3xl p-8 w-full max-w-lg">
-        <div class="flex justify-between items-center mb-6">
-            <h2 class="text-xl font-black text-white flex items-center gap-2"><i class="fas fa-envelope text-sky-400"></i> Envoyer un email</h2>
-            <button onclick="closeEmail()" class="text-gray-400 hover:text-white text-2xl leading-none">&times;</button>
+<div id="modal-email" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" style="backdrop-filter:blur(8px)">
+    <div class="card w-full max-w-lg p-7">
+        <div class="flex justify-between items-center mb-5">
+            <h2 class="text-base font-bold text-white flex items-center gap-2"><i class="fas fa-envelope text-sky-400 text-sm"></i> Envoyer un email</h2>
+            <button onclick="closeEmail()" class="text-gray-500 hover:text-white text-xl leading-none">&times;</button>
         </div>
-        <form method="POST" action="/admin/">
+        <form method="POST" action="/admin/" class="space-y-4">
             <input type="hidden" name="action" value="send_email">
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-xs text-gray-400 mb-1 font-semibold uppercase tracking-wide">Destinataire</label>
-                    <input type="email" name="email_to" id="email-to" required class="w-full rounded-xl px-4 py-2.5 text-sm">
-                </div>
-                <div>
-                    <label class="block text-xs text-gray-400 mb-1 font-semibold uppercase tracking-wide">Sujet</label>
-                    <input type="text" name="email_subject" required placeholder="Objet de l'email..." class="w-full rounded-xl px-4 py-2.5 text-sm">
-                </div>
-                <div>
-                    <label class="block text-xs text-gray-400 mb-1 font-semibold uppercase tracking-wide">Message</label>
-                    <textarea name="email_body" rows="5" required placeholder="Votre message ici..." class="w-full rounded-xl px-4 py-2.5 text-sm resize-none"></textarea>
-                </div>
-            </div>
-            <div class="flex gap-3 mt-6">
-                <button type="submit" class="flex-1 bg-sky-600 hover:bg-sky-500 font-bold py-3 rounded-xl text-sm transition"><i class="fas fa-paper-plane mr-2"></i>Envoyer</button>
-                <button type="button" onclick="closeEmail()" class="flex-1 glass hover:bg-white/10 font-bold py-3 rounded-xl text-sm transition">Annuler</button>
+            <div><label class="block text-xs text-gray-500 mb-1 font-semibold uppercase tracking-wide">Destinataire</label><input type="email" name="email_to" id="email-to" required></div>
+            <div><label class="block text-xs text-gray-500 mb-1 font-semibold uppercase tracking-wide">Sujet</label><input type="text" name="email_subject" required placeholder="Objet..."></div>
+            <div><label class="block text-xs text-gray-500 mb-1 font-semibold uppercase tracking-wide">Message</label><textarea name="email_body" rows="4" required placeholder="Votre message..." style="resize:none"></textarea></div>
+            <div class="flex gap-3 pt-1">
+                <button type="submit" class="flex-1 bg-sky-600 hover:bg-sky-500 text-white font-bold py-2.5 rounded-lg text-sm transition"><i class="fas fa-paper-plane mr-1.5"></i>Envoyer</button>
+                <button type="button" onclick="closeEmail()" class="flex-1 font-bold py-2.5 rounded-lg text-sm transition text-gray-400 hover:text-white" style="background:rgba(255,255,255,.05)">Annuler</button>
             </div>
         </form>
     </div>
 </div>
 
-<main class="flex-grow max-w-[1600px] mx-auto w-full px-4 sm:px-6 py-8">
-
-    <!-- Header -->
-    <div class="mb-8">
-        <div class="flex items-center gap-3 mb-2">
-            <div class="w-10 h-10 bg-rose-500/20 rounded-xl flex items-center justify-center shrink-0">
-                <i class="fas fa-shield-alt text-rose-400"></i>
+<!-- ══ SIDEBAR ══ -->
+<aside id="sidebar" class="sidebar">
+    <div class="sidebar-logo">
+        <a href="/" class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg bg-rose-500/20 flex items-center justify-center">
+                <i class="fas fa-shield-alt text-rose-400 text-sm"></i>
             </div>
-            <h1 class="text-4xl font-black gradient-text">Admin Panel</h1>
-        </div>
-        <p class="text-gray-400 text-sm ml-13">Gérez les clients, serveurs et communications.</p>
-    </div>
-
-    <?php if ($flash): echo "<div class='mb-6'>$flash</div>"; endif; ?>
-
-    <!-- Stats -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <div class="glass p-5 rounded-2xl flex items-center gap-4">
-            <div class="w-10 h-10 bg-sky-500/15 rounded-xl flex items-center justify-center shrink-0"><i class="fas fa-users text-sky-400"></i></div>
-            <div><div class="text-2xl font-black text-white"><?php echo count($all_users); ?></div><div class="text-xs text-gray-400">Clients</div></div>
-        </div>
-        <div class="glass p-5 rounded-2xl flex items-center gap-4">
-            <div class="w-10 h-10 bg-green-500/15 rounded-xl flex items-center justify-center shrink-0"><i class="fas fa-server text-green-400"></i></div>
-            <div><div class="text-2xl font-black text-white"><?php echo count($all_servers); ?></div><div class="text-xs text-gray-400">Serveurs totaux</div></div>
-        </div>
-        <div class="glass p-5 rounded-2xl flex items-center gap-4">
-            <div class="w-10 h-10 bg-yellow-500/15 rounded-xl flex items-center justify-center shrink-0"><i class="fas fa-euro-sign text-yellow-400"></i></div>
-            <div><div class="text-2xl font-black text-white"><?php echo number_format((float)$total_revenue, 2, ',', ' '); ?>€</div><div class="text-xs text-gray-400">Revenus</div></div>
-        </div>
-        <div class="glass p-5 rounded-2xl flex items-center gap-4">
-            <div class="w-10 h-10 bg-purple-500/15 rounded-xl flex items-center justify-center shrink-0"><i class="fas fa-headset text-purple-400"></i></div>
-            <div><div class="text-2xl font-black text-white"><?php echo $open_tickets; ?></div><div class="text-xs text-gray-400">Tickets ouverts</div></div>
-        </div>
-    </div>
-
-    <!-- Tabs navigation -->
-    <div class="flex flex-wrap gap-2 mb-6">
-        <a href="/admin/?view=clients" class="px-5 py-2.5 rounded-full text-sm font-bold border transition <?php echo $view === 'clients' ? 'tab-active border-rose-500/40' : 'tab-inactive border-white/10'; ?>">
-            <i class="fas fa-users mr-1"></i> Clients
-        </a>
-        <a href="/admin/?view=servers" class="px-5 py-2.5 rounded-full text-sm font-bold border transition <?php echo $view === 'servers' ? 'tab-active border-rose-500/40' : 'tab-inactive border-white/10'; ?>">
-            <i class="fas fa-server mr-1"></i> Serveurs
-        </a>
-        <a href="/admin/?view=email" class="px-5 py-2.5 rounded-full text-sm font-bold border transition <?php echo $view === 'email' ? 'tab-active border-rose-500/40' : 'tab-inactive border-white/10'; ?>">
-            <i class="fas fa-envelope mr-1"></i> Email
-        </a>
-        <a href="/admin/?view=settings" class="px-5 py-2.5 rounded-full text-sm font-bold border transition <?php echo $view === 'settings' ? 'tab-active border-rose-500/40' : 'tab-inactive border-white/10'; ?>">
-            <i class="fas fa-sliders-h mr-1"></i> Paramètres
+            <div>
+                <span class="font-black text-white text-sm tracking-tight block leading-tight">OrinHeberge</span>
+                <span class="text-[10px] text-rose-400 font-semibold">Admin Panel</span>
+            </div>
         </a>
     </div>
+
+    <nav class="sidebar-nav">
+        <div class="nav-section">Dashboard</div>
+        <a href="/admin/" class="nav-item <?php echo $view === 'overview' ? 'active' : ''; ?>">
+            <i class="fas fa-chart-bar icon"></i> Vue d'ensemble
+        </a>
+
+        <div class="nav-separator"></div>
+        <div class="nav-section">Gestion</div>
+        <a href="/admin/?view=clients" class="nav-item <?php echo $view === 'clients' ? 'active' : ''; ?>">
+            <i class="fas fa-users icon"></i> Clients
+            <span class="ml-auto text-[10px] bg-white/5 text-gray-500 px-1.5 py-0.5 rounded-full"><?php echo count($all_users); ?></span>
+        </a>
+        <a href="/admin/?view=servers" class="nav-item <?php echo $view === 'servers' ? 'active' : ''; ?>">
+            <i class="fas fa-server icon"></i> Serveurs
+            <span class="ml-auto text-[10px] bg-white/5 text-gray-500 px-1.5 py-0.5 rounded-full"><?php echo count($all_servers); ?></span>
+        </a>
+        <a href="/support/admin_tickets/" class="nav-item">
+            <i class="fas fa-ticket-alt icon"></i> Tickets
+            <?php if ($open_tickets > 0): ?>
+            <span class="ml-auto text-[10px] bg-rose-500/15 text-rose-400 border border-rose-500/20 px-1.5 py-0.5 rounded-full font-bold"><?php echo $open_tickets; ?></span>
+            <?php endif; ?>
+        </a>
+        <a href="/admin/?view=email" class="nav-item <?php echo $view === 'email' ? 'active' : ''; ?>">
+            <i class="fas fa-envelope icon"></i> Emails
+        </a>
+
+        <div class="nav-separator"></div>
+        <div class="nav-section">Configuration</div>
+        <a href="/admin/?view=settings" class="nav-item <?php echo $view === 'settings' ? 'active' : ''; ?>">
+            <i class="fas fa-sliders-h icon"></i> Paramètres
+        </a>
+
+        <div class="nav-separator"></div>
+        <div class="nav-section">Espace Client</div>
+        <a href="/client/" class="nav-item">
+            <i class="fas fa-home icon"></i> Mon tableau de bord
+        </a>
+        <a href="/client/servers/" class="nav-item">
+            <i class="fas fa-server icon"></i> Mes serveurs
+        </a>
+    </nav>
+
+    <div class="sidebar-footer">
+        <a href="/profil/" class="flex items-center gap-2.5 mb-2">
+            <?php if (!empty($admin['avatar']) && file_exists($_SERVER['DOCUMENT_ROOT'].'/'.$admin['avatar'])): ?>
+                <img src="/<?php echo htmlspecialchars($admin['avatar']); ?>" class="w-8 h-8 rounded-full object-cover border border-white/10">
+            <?php else: ?>
+                <div class="w-8 h-8 rounded-full bg-rose-500/20 flex items-center justify-center text-rose-400 text-xs font-bold border border-rose-500/20">
+                    <?php echo strtoupper(substr($admin['pseudo'] ?: $admin['firstname'], 0, 1)); ?>
+                </div>
+            <?php endif; ?>
+            <div class="flex-1 min-w-0">
+                <div class="text-xs font-semibold text-white truncate"><?php echo htmlspecialchars($admin['pseudo'] ?: $admin['firstname']); ?></div>
+                <div class="text-[10px] text-rose-400 font-semibold">Administrateur</div>
+            </div>
+        </a>
+        <a href="/logout/" class="nav-item" style="color:#ef4444;">
+            <i class="fas fa-sign-out-alt icon"></i> Déconnexion
+        </a>
+    </div>
+</aside>
+
+<!-- ══ MAIN ══ -->
+<div class="main-content">
+
+    <!-- Topbar -->
+    <div class="topbar">
+        <div class="flex items-center gap-3">
+            <button onclick="toggleSidebar()" class="md:hidden text-gray-400 hover:text-white text-lg w-8"><i class="fas fa-bars"></i></button>
+            <div>
+                <div class="text-sm font-bold text-white">
+                    <?php $titles = ['clients'=>'Clients','servers'=>'Serveurs','email'=>'Emails','settings'=>'Paramètres']; echo $titles[$view] ?? 'Vue d\'ensemble'; ?>
+                </div>
+                <div class="text-xs text-gray-500">Administration OrinHeberge</div>
+            </div>
+        </div>
+        <div class="flex items-center gap-3">
+            <a href="/client/" class="hidden sm:flex items-center gap-2 text-gray-400 hover:text-white text-xs font-semibold transition px-3 py-1.5 rounded-lg hover:bg-white/5">
+                <i class="fas fa-arrow-left text-[10px]"></i> Espace client
+            </a>
+            <div class="w-8 h-8 rounded-full bg-rose-500/20 flex items-center justify-center text-rose-400 text-xs font-bold border border-rose-500/20 shrink-0">
+                <?php echo strtoupper(substr($admin['pseudo'] ?: $admin['firstname'], 0, 1)); ?>
+            </div>
+        </div>
+    </div>
+
+    <div class="content">
+        <?php if ($flash): echo "<div class='mb-5 p-4 rounded-xl text-sm font-medium' style='background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);color:#22c55e;'>$flash</div>"; endif; ?>
+
+        <!-- Stats toujours visibles -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div class="stat-card">
+                <div class="flex items-center justify-between mb-3"><span class="text-xs text-gray-500 font-medium">Clients</span><div class="w-7 h-7 rounded-lg bg-sky-500/15 flex items-center justify-center"><i class="fas fa-users text-sky-400 text-xs"></i></div></div>
+                <div class="text-2xl font-black text-white"><?php echo count($all_users); ?></div>
+                <div class="text-xs text-gray-500 mt-1">Comptes enregistrés</div>
+            </div>
+            <div class="stat-card">
+                <div class="flex items-center justify-between mb-3"><span class="text-xs text-gray-500 font-medium">Serveurs</span><div class="w-7 h-7 rounded-lg bg-green-500/15 flex items-center justify-center"><i class="fas fa-server text-green-400 text-xs"></i></div></div>
+                <div class="text-2xl font-black text-white"><?php echo count($all_servers); ?></div>
+                <div class="text-xs text-gray-500 mt-1">Total déployés</div>
+            </div>
+            <div class="stat-card">
+                <div class="flex items-center justify-between mb-3"><span class="text-xs text-gray-500 font-medium">Revenus</span><div class="w-7 h-7 rounded-lg bg-yellow-500/15 flex items-center justify-center"><i class="fas fa-euro-sign text-yellow-400 text-xs"></i></div></div>
+                <div class="text-2xl font-black text-white"><?php echo number_format((float)$total_revenue,2,',',''); ?>€</div>
+                <div class="text-xs text-gray-500 mt-1">Commandes payées</div>
+            </div>
+            <a href="/support/admin_tickets/" class="stat-card hover:border-rose-500/30 transition block">
+                <div class="flex items-center justify-between mb-3"><span class="text-xs text-gray-500 font-medium">Tickets</span><div class="w-7 h-7 rounded-lg bg-rose-500/15 flex items-center justify-center"><i class="fas fa-headset text-rose-400 text-xs"></i></div></div>
+                <div class="text-2xl font-black text-white"><?php echo $open_tickets; ?></div>
+                <div class="text-xs text-rose-400 mt-1">Voir les tickets →</div>
+            </a>
+        </div>
+
 
     <!-- ═══════════════════════════════════════════════════
          VUE CLIENTS
