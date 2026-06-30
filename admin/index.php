@@ -672,15 +672,7 @@ $is_logged_in = true;
 
     <?php endif; ?>
 
-</main>
-
-<?php include $_SERVER['DOCUMENT_ROOT'] . '/inc/footer.php'; ?>
-
-<div class="fixed bottom-6 right-6 z-50">
-    <a href="/discord/" target="_blank" class="bg-[#5865F2] hover:bg-[#4752C4] transition text-white px-5 py-4 rounded-full font-bold flex items-center gap-2 shadow-2xl hover:scale-105 transform duration-200">
-        <i class="fab fa-discord text-xl"></i>
-        <span class="hidden sm:inline text-sm">Support Discord</span>
-    </a>
-</div>
+    </div><!-- /content -->
+</div><!-- /main-content -->
 </body>
 </html>
