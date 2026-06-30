@@ -265,8 +265,26 @@ $is_logged_in = true;
 
     <nav class="sidebar-nav">
         <div class="nav-section">Dashboard</div>
-        <a href="/admin/" class="nav-item <?php echo $view === 'overview' ? 'active' : ''; ?>">
+        <a href="/admin/" class="nav-item <?php echo $view === 'overview' || $view === 'clients' ? 'active' : ''; ?>">
             <i class="fas fa-chart-bar icon"></i> Vue d'ensemble
+        </a>
+
+        <div class="nav-separator"></div>
+        <div class="nav-section">Infrastructure</div>
+        <a href="/admin/nodes/" class="nav-item">
+            <i class="fas fa-network-wired icon"></i> Nodes
+        </a>
+        <a href="/admin/eggs/" class="nav-item">
+            <i class="fas fa-egg icon"></i> Eggs
+        </a>
+
+        <div class="nav-separator"></div>
+        <div class="nav-section">Boutique</div>
+        <a href="/admin/products/" class="nav-item">
+            <i class="fas fa-box icon"></i> Produits
+        </a>
+        <a href="/admin/extensions/" class="nav-item">
+            <i class="fas fa-puzzle-piece icon"></i> Extensions
         </a>
 
         <div class="nav-separator"></div>
