@@ -190,13 +190,22 @@ $is_admin = (bool)($stmt3->fetchColumn());
         <div class="nav-separator"></div>
         <div class="nav-section">Administration</div>
         <a href="/admin/" class="nav-item" style="color:#f43f5e;border-color:rgba(244,63,94,.1);">
-            <i class="fas fa-shield-alt icon"></i> Admin Panel
+            <i class="fas fa-shield-alt icon"></i> Vue d'ensemble
+        </a>
+        <a href="/admin/nodes/" class="nav-item">
+            <i class="fas fa-network-wired icon"></i> Nodes
+        </a>
+        <a href="/admin/eggs/" class="nav-item">
+            <i class="fas fa-egg icon"></i> Eggs
+        </a>
+        <a href="/admin/products/" class="nav-item">
+            <i class="fas fa-box icon"></i> Produits
+        </a>
+        <a href="/admin/extensions/" class="nav-item">
+            <i class="fas fa-puzzle-piece icon"></i> Extensions
         </a>
         <a href="/admin/?view=clients" class="nav-item">
             <i class="fas fa-users icon"></i> Clients
-        </a>
-        <a href="/admin/?view=servers" class="nav-item">
-            <i class="fas fa-server icon"></i> Serveurs
         </a>
         <a href="/support/admin_tickets/" class="nav-item">
             <i class="fas fa-ticket-alt icon"></i> Tickets
