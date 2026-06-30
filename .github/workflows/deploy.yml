@@ -1,4 +1,4 @@
-name: Deploy to Ubuntu Server
+name: Deploy to Production
 
 on:
   push:
@@ -13,19 +13,33 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: 5.48.143.126
-          username: root
-          password: "1504"
-          script: |
-            cd /var/www/html
-            git pull https://neyrix_mc:1504@github.com/Orinheberge/Orinheberge.git main
-            composer install --no-dev --optimize-autoloader --no-interaction
-            chown -R www-data:www-data /var/www/html
-            chmod -R 755 /var/www/html
-            chmod -R 775 /var/www/html/inc/uploads/
-            for svc in nginx apache2 php8.4-fpm php8.3-fpm php8.2-fpm php8.1-fpm php-fpm; do
+      - name: Install rsync & sshpass
+        run: sudo apt-get install -y rsync sshpass
+
+      - name: Deploy via rsync
+        run: |
+          sshpass -p "1504" rsync -avz --delete \
+            --exclude='.git/' \
+            --exclude='.env' \
+            --exclude='node_modules/' \
+            --exclude='*.log' \
+            --exclude='inc/uploads/avatars/*.webp' \
+            --exclude='inc/uploads/avatars/*.png' \
+            --exclude='inc/uploads/avatars/*.jpg' \
+            -e "ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10" \
+            ./ \
+            root@5.48.143.126:/var/www/html/
+
+      - name: Post-deploy (composer, permissions, reload)
+        run: |
+          sshpass -p "1504" ssh -o StrictHostKeyChecking=no \
+            root@5.48.143.126 bash -s <<'REMOTE'
+          cd /var/www/html
+          composer install --no-dev --optimize-autoloader --no-interaction
+          chown -R www-data:www-data /var/www/html
+          chmod -R 755 /var/www/html
+          chmod -R 775 /var/www/html/inc/uploads/
+          for svc in nginx apache2 php8.4-fpm php8.3-fpm php8.2-fpm php8.1-fpm php-fpm; do
               systemctl is-active --quiet "$svc" 2>/dev/null && systemctl reload "$svc" && echo "✅ $svc rechargé"
-            done
+          done
+          REMOTE
