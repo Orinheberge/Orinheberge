@@ -15,7 +15,6 @@ echo ""
 echo "🚀 Déploiement vers $SERVER_USER@$SERVER_IP:$REMOTE_PATH ..."
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-# ── Vérifier que sshpass est installé ─────────────────────────────────────────
 if ! command -v sshpass &> /dev/null; then
     echo "❌ sshpass n'est pas installé."
     echo "   Git Bash / WSL  : sudo apt install sshpass"
@@ -23,7 +22,6 @@ if ! command -v sshpass &> /dev/null; then
     exit 1
 fi
 
-# ── Sync des fichiers via rsync ────────────────────────────────────────────────
 sshpass -p "$SERVER_PASS" rsync -avz --delete \
     --exclude='.git/' \
     --exclude='.env' \
@@ -41,48 +39,18 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# ── Composer install sur le serveur ───────────────────────────────────────────
 echo ""
-echo "📦 Lancement de composer install sur le serveur..."
+echo "📦 Composer, permissions et reload des services..."
 
-sshpass -p "$SERVER_PASS" ssh -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" \
-    "cd $REMOTE_PATH && composer install --no-dev --optimize-autoloader --no-interaction 2>&1"
-
-if [ $? -ne 0 ]; then
-    echo "⚠️  composer install a échoué (composer installé sur le serveur ?)"
-fi
-
-# ── Correction des permissions ─────────────────────────────────────────────────
-echo ""
-echo "🔒 Correction des permissions..."
-
-sshpass -p "$SERVER_PASS" ssh -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" \
-    "chown -R www-data:www-data $REMOTE_PATH && chmod -R 755 $REMOTE_PATH && chmod -R 775 $REMOTE_PATH/inc/uploads/"
-
-# ── Rechargement nginx / apache / php-fpm ──────────────────────────────────────
-echo ""
-echo "🔄 Rechargement des services web..."
-
-sshpass -p "$SERVER_PASS" ssh -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" bash <<'REMOTE'
-reload_if_active() {
-    local svc="$1"
-    if systemctl is-active --quiet "$svc" 2>/dev/null; then
-        if systemctl reload "$svc" 2>/dev/null; then
-            echo "✅ $svc rechargé"
-        elif systemctl restart "$svc" 2>/dev/null; then
-            echo "✅ $svc redémarré (reload impossible)"
-        else
-            echo "⚠️  Échec reload/restart de $svc"
-        fi
-    fi
-}
-
-reload_if_active nginx
-reload_if_active apache2
-
-while read -r fpm_svc; do
-    [ -n "$fpm_svc" ] && reload_if_active "${fpm_svc%.service}"
-done < <(systemctl list-units --type=service --all 'php*-fpm.service' --no-legend 2>/dev/null | awk '{print $1}')
+sshpass -p "$SERVER_PASS" ssh -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" bash -s <<REMOTE
+cd "$REMOTE_PATH"
+composer install --no-dev --optimize-autoloader --no-interaction
+chown -R www-data:www-data "$REMOTE_PATH"
+chmod -R 755 "$REMOTE_PATH"
+chmod -R 775 "$REMOTE_PATH/inc/uploads/"
+for svc in nginx apache2 php8.4-fpm php8.3-fpm php8.2-fpm php8.1-fpm php-fpm; do
+    systemctl is-active --quiet "\$svc" 2>/dev/null && systemctl reload "\$svc" && echo "✅ \$svc rechargé"
+done
 REMOTE
 
 echo ""
