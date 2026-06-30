@@ -72,14 +72,6 @@ $active_nav = $active_nav ?? '';
                 <i class="fas fa-signal"></i> <?php echo t('status.nav'); ?>
             </a>
 
-            <a href="https://php.orinstone.deepstone.fr" class="glass px-4 py-2 rounded-full text-xs flex items-center gap-2 border border-white/5 text-gray-300 hover:text-white hover:bg-white/10 transition whitespace-nowrap">
-                <i class="fas fa-database text-sky-400"></i> phpMyAdmin
-            </a>
-
-            <a href="https://panel.orinstone.deepstone.fr" class="bg-sky-600 hover:bg-sky-500 px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium shadow-md shadow-sky-900/20 whitespace-nowrap text-white">
-                <i class="fas fa-cogs"></i> Panel
-            </a>
-
             <?php include __DIR__ . '/lang_switcher.php'; ?>
         </div>
 
@@ -104,6 +96,7 @@ $active_nav = $active_nav ?? '';
         <a href="/status/" class="block py-2 px-4 rounded-xl flex items-center gap-2 text-sm font-medium border bg-emerald-600/10 border-emerald-500/30 text-emerald-400">
             <i class="fas fa-signal w-5 text-center"></i> <?php echo t('status.nav'); ?>
         </a>
+
 
         <?php if (isset($_SESSION['is_admin']) && $_SESSION['is_admin']): ?>
             <a href="/admin/" class="block py-2 px-4 rounded-xl bg-rose-600/20 border border-rose-500/30 text-rose-400 flex items-center gap-2 text-sm font-semibold">
@@ -135,15 +128,6 @@ $active_nav = $active_nav ?? '';
 
         <hr class="border-white/10">
 
-        <div class="grid grid-cols-2 gap-2 pt-1">
-            <a href="https://php.orinstone.deepstone.fr" class="glass text-gray-300 px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 justify-center border border-white/5 font-medium">
-                <i class="fas fa-database text-sky-400"></i> phpMyAdmin
-            </a>
-            <a href="https://panel.orinstone.deepstone.fr" class="bg-sky-600 text-white px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 justify-center font-medium">
-                <i class="fas fa-cogs"></i> Panel
-            </a>
-        </div>
-        
         <div class="pt-1">
             <?php include __DIR__ . '/lang_switcher.php'; ?>
         </div>

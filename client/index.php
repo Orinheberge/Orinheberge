@@ -151,6 +151,14 @@ $open_tickets = $stmt2->fetchColumn();
         </a>
         <a href="<?php echo $panel_url; ?>" target="_blank" class="glass p-4 rounded-2xl border border-white/[0.05] hover:border-amber-500/30 transition card-hover flex flex-col items-center gap-2 text-center">
             <i class="fas fa-cogs text-amber-400 text-xl"></i>
-            <span class="text-xs font-semibold text-gray-300"><?php echo $lang==='en' ? 'Panel Pterodactyl' : 'Panel Pterodactyl'; ?></span>
+            <span class="text-xs font-semibold text-gray-300">Panel Pterodactyl</span>
+        </a>
+        <a href="https://php.orinstone.deepstone.fr" target="_blank" class="glass p-4 rounded-2xl border border-white/[0.05] hover:border-sky-500/30 transition card-hover flex flex-col items-center gap-2 text-center">
+            <i class="fas fa-database text-sky-400 text-xl"></i>
+            <span class="text-xs font-semibold text-gray-300">phpMyAdmin</span>
+        </a>
+        <a href="/logout/" class="glass p-4 rounded-2xl border border-white/[0.05] hover:border-red-500/30 transition card-hover flex flex-col items-center gap-2 text-center">
+            <i class="fas fa-sign-out-alt text-red-400 text-xl"></i>
+            <span class="text-xs font-semibold text-gray-300"><?php echo $lang==='en' ? 'Logout' : 'Déconnexion'; ?></span>
         </a>
     </div>
