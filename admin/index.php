@@ -441,9 +441,9 @@ $is_logged_in = true;
          VUE SERVEURS
     ════════════════════════════════════════════════════ -->
     <?php elseif ($view === 'servers'): ?>
-    <div class="glass rounded-3xl overflow-hidden">
-        <div class="p-6 border-b border-white/5 flex items-center justify-between">
-            <h2 class="text-lg font-black text-white flex items-center gap-2"><i class="fas fa-server text-green-400"></i> Tous les serveurs (<?php echo count($all_servers); ?>)</h2>
+    <div class="card overflow-hidden">
+        <div class="px-5 py-4 border-b border-white/[0.05] flex items-center justify-between">
+            <h2 class="text-sm font-bold text-white flex items-center gap-2"><i class="fas fa-server text-green-400 text-xs"></i> Serveurs (<?php echo count($all_servers); ?>)</h2>
         </div>
         <div class="overflow-x-auto">
             <table class="w-full text-sm">
