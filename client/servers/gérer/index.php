@@ -367,33 +367,11 @@ $open_tickets = (int)$t_stmt->fetchColumn();
     </div>
 
     <div class="content">
-                        <a href="?lang=en" onclick="changeLanguage('en', 'EN', 'https://flagcdn.com/w20/gb.png', event)" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 hover:bg-sky-600/20 hover:text-white transition">
-                            <img src="https://flagcdn.com/w20/gb.png" alt="English" class="w-5 h-auto rounded-sm">
-                            <span>English</span>
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </nav>
-
-    <div class="max-w-7xl mx-auto w-full px-4 lg:px-6 mb-auto">
-        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-            <div>
-                <a href="/client/servers/" class="text-xs text-sky-400 hover:underline flex items-center gap-2 mb-1">
-                    <i class="fas fa-arrow-left"></i> Retour à la liste
-                </a>
-                <h2 class="text-2xl font-black tracking-tight text-white">
-                    <?php echo ($service_type === "javascript") ? "🖥️ Console Application Node.js" : "⛏️ Gestionnaire Minecraft Live SQL"; ?>
-                </h2>
-                <p class="text-gray-400 text-xs mt-0.5">Serveur : <span class="text-sky-400 font-medium"><?php echo htmlspecialchars($server['service_name']); ?></span></p>
-            </div>
-            <div>
-                <span class="glass px-4 py-1.5 rounded-full text-xs text-gray-300 flex items-center gap-2">
-                    <span id="statusBadge" class="h-2 w-2 rounded-full bg-gray-500"></span> 
-                    <span id="statusText" class="font-bold text-gray-400">Calcul...</span>
-                </span>
-            </div>
+        <div class="mb-6">
+            <h2 class="text-lg font-bold text-white">
+                <?php echo ($service_type === "javascript") ? "Console Node.js" : "Console Minecraft"; ?>
+            </h2>
+            <p class="text-xs text-gray-500 mt-0.5">Serveur : <span class="text-sky-400 font-medium"><?php echo htmlspecialchars($server['service_name']); ?></span></p>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
@@ -450,84 +428,9 @@ $open_tickets = (int)$t_stmt->fetchColumn();
                 </div>
             </div>
         </div>
-    </div>
-        <div class="fixed bottom-6 right-6 z-50">
-        <a href="https://heberge.orinstone.deepstone.fr/discord/" target="_blank" class="bg-[#5865F2] hover:bg-[#4752C4] transition text-white px-5 py-3.5 rounded-full font-bold flex items-center gap-2 shadow-2xl hover:scale-105 transform duration-200">
-            <i class="fab fa-discord text-xl"></i>
-            <span class="hidden sm:inline text-sm">Besoin d'aide ? Discord</span>
-        </a>
-    </div>
-
-<footer class="w-full bg-[#05070d] text-gray-400 py-12 px-6 border-t border-white/5 font-sans">
-    <div class="max-w-7xl mx-auto">
-        
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-10">
-            
-            <div class="flex flex-col gap-4">
-                <h3 class="text-white font-bold text-base tracking-wide">Navigation</h3>
-                <div class="flex flex-col gap-2.5 text-sm">
-                    <a href="/" class="hover:text-sky-400 transition">Accueil</a>
-                    <a href="/client/servers/" class="hover:text-sky-400 transition">Mes serveurs</a>
-                    <a href="/shop/" class="hover:text-sky-400 transition">Offres</a>
-                    <a href="/support/" class="hover:text-sky-400 transition">Support</a>
-                </div>
-            </div>
-
-            <div class="flex flex-col gap-4">
-                <h3 class="text-white font-bold text-base tracking-wide">Notre Réseau</h3>
-                <div class="flex flex-col gap-2.5 text-sm">
-                    <a href="/discord/" class="hover:text-sky-400 transition">Notre Discord</a>
-                    <a href="https://status.deepstone.fr/" class="hover:text-sky-400 transition">Statut des Services</a>
-                </div>
-            </div>
-
-            <div class="flex flex-col gap-4">
-                <h3 class="text-white font-bold text-base tracking-wide">Liens Utiles</h3>
-                <div class="flex flex-col gap-2.5 text-sm">
-                    <a href="https://php.orinstone.deepstone.fr" class="hover:text-sky-400 transition">phpMyAdmin</a>
-                    <a href="https://panel.orinstone.deepstone.fr" class="hover:text-sky-400 transition">Panel</a>
-                </div>
-            </div>
-
-            <div class="flex flex-col justify-end gap-3 items-start md:items-end">
-                <span class="text-xs text-gray-400 font-semibold tracking-wider uppercase">Moyens de Paiements Acceptés</span>
-                <div class="flex items-center gap-3 bg-white/[0.02] border border-white/5 p-3 rounded-xl">
-                    <img src="https://azurhosts.com/assets/images/logos/psrl/card-icons/card_cb.svg" alt="CB" class="h-8 object-contain" />
-                    <img src="https://azurhosts.com/assets/images/logos/psrl/card-icons/card_visa.svg" alt="Visa" class="h-8 object-contain" />
-                    <img src="https://azurhosts.com/assets/images/logos/psrl/card-icons/card_mastercard.svg" alt="Mastercard" class="h-8 object-contain" />
-                    <img src="https://azurhosts.com/assets/images/logos/psrl/card-icons/card_paypal.svg" alt="PayPal" class="h-8 object-contain" />
-                </div>
-            </div>
-
-        </div>
-
-        <hr class="border-white/10 mb-8">
-
-     <div class="flex flex-col md:flex-row items-start justify-between gap-6 text-xs text-gray-500">
-            
-            <div class="flex items-center gap-2">
-                <span class="text-2xl font-black tracking-tighter text-white">Orin<span class="text-sky-500">Heberge</span></span>
-            </div>
-
-            <div class="flex flex-col gap-2 md:text-left">
-                <div class="flex flex-wrap gap-x-4 gap-y-1 text-gray-400 font-medium">
-                    <a href="/mentions-legales/" class="hover:text-sky-400 transition">Mentions Légales</a>
-                    <span class="text-white/10">|</span>
-                    <a href="/cgu/" class="hover:text-sky-400 transition">Conditions Générales d'Utilisation</a>
-                    <span class="text-white/10">|</span>
-                    <a href="/politique-confidentialite/" class="hover:text-sky-400 transition">Politique de Confidentialité</a>
-                </div>
-                <div class="flex flex-col gap-0.5">
-                    <div>© 2026-2029 OrinHeberge — Infrastructure OrinStone. Tous droits réservés.</div>
-                    <div class="text-[10px] text-gray-600 mt-1">
-                        Propulsé par <span class="text-sky-500/70 font-medium hover:text-sky-400 transition">Orinstone Studio</span>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-    </div>
-</footer>
+    </div><!-- /grid -->
+    </div><!-- /content -->
+</div><!-- /main-content -->
 
     <script>
         const consoleScreen = document.getElementById('consoleScreen');
