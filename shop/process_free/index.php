@@ -31,7 +31,7 @@ $headers = [
 */
 
 $pdo = new PDO(
-    "mysql:host=localhost;dbname=s43_orinheberge;charset=utf8mb4",
+    "mysql:host=127.0.0.1;port=3306;dbname=s43_orinheberge;charset=utf8mb4",
     "root",
     "1504",
     [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
