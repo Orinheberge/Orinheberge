@@ -48,7 +48,7 @@ composer install --no-dev --optimize-autoloader --no-interaction
 chown -R www-data:www-data "$REMOTE_PATH"
 chmod -R 755 "$REMOTE_PATH"
 chmod -R 775 "$REMOTE_PATH/inc/uploads/"
-for svc in nginx apache2 php8.4-fpm php8.3-fpm php8.2-fpm php8.1-fpm php-fpm; do
+for svc in nginx apache2 php8.5-fpm php8.4-fpm php8.3-fpm php8.2-fpm php8.1-fpm php-fpm; do
     systemctl is-active --quiet "\$svc" 2>/dev/null && systemctl reload "\$svc" && echo "✅ \$svc rechargé"
 done
 REMOTE
