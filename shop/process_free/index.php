@@ -15,27 +15,23 @@ if (!isset($_SESSION['user_id'])) {
 |--------------------------------------------------------------------------
 */
 
-$panel_url = "https://panel.orinstone.deepstone.fr";
-$api_key = "ptla_YKix8PexQDCZ7nIeexST3NXC2sFwQAoefDtOQBvJkbx";
+$pdo = new PDO(
+    "mysql:host=localhost;dbname=s43_orinheberge;charset=utf8mb4",
+    "root", "1504",
+    [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+);
+
+// Charger config depuis BDD
+$cfg = [];
+foreach ($pdo->query('SELECT `key`, `value` FROM settings') as $row) $cfg[$row['key']] = $row['value'];
+$panel_url = $cfg['panel_url']    ?? 'https://panel.orinstone.deepstone.fr';
+$api_key   = $cfg['api_key_admin'] ?? '';
 
 $headers = [
     "Authorization: Bearer $api_key",
     "Content-Type: application/json",
     "Accept: application/vnd.pterodactyl.v1+json"
 ];
-
-/*
-|--------------------------------------------------------------------------
-| DB
-|--------------------------------------------------------------------------
-*/
-
-$pdo = new PDO(
-    "mysql:host=localhost;dbname=s43_orinheberge;charset=utf8mb4",
-    "root",
-    "1504",
-    [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
-);
 
 /*
 |--------------------------------------------------------------------------

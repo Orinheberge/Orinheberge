@@ -14,18 +14,10 @@ if (!isset($_SESSION['user_id'])) {
 |--------------------------------------------------------------------------
 */
 
-$panel_url           = "https://panel.orinstone.deepstone.fr";
-$api_key             = "ptla_YKix8PexQDCZ7nIeexST3NXC2sFwQAoefDtOQBvJkbx";
 $discord_webhook_url = "https://discord.com/api/webhooks/1505677242527649872/jFoANIv3OKNtGMib4bViJ79ltRDsf0LJviq59yXwW5hrqZ0uTyU1Yx3nV88yy6rG2eA4";
 $stripe_secret_key   = "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";
 $stripe_public_key   = "pk_live_51TYsYg2f2egcuUT4obSIMXsBBAVpzw0Gk18niYNgWQ5vhvV8nX5aAI6nZqEZ12RfHg1nmP2qjczVfPuX8Eb0ePzk00qDqtPro2";
 $paypalme_username   = "metal544002009";
-
-$headers = [
-    "Authorization: Bearer $api_key",
-    "Content-Type: application/json",
-    "Accept: application/vnd.pterodactyl.v1+json"
-];
 
 require_once __DIR__ . '/lib/panel/panel.php';
 require_once __DIR__ . '/lib/stripe/stripe.php';
