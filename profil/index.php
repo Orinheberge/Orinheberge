@@ -5,13 +5,11 @@ require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/lang.php';
 if (!isset($_SESSION['user_id'])) { header('Location: /login/'); exit(); }
 
 $is_logged_in = true;
-$db_config = ['host'=>'5.48.143.126','port'=>'3306','name'=>'s43_orinheberge','user'=>'root','pass'=>'1504'];
 $message = '';
 $message_type = 'info';
 
 try {
-    $dsn = "mysql:host={$db_config['host']};port={$db_config['port']};dbname={$db_config['name']};charset=utf8mb4";
-    $pdo = new PDO($dsn, $db_config['user'], $db_config['pass'], [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+    $pdo = new PDO('mysql:host=localhost;dbname=s43_orinheberge;charset=utf8mb4', 'root', '1504', [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC]);
     $stmt = $pdo->prepare('SELECT id, firstname, lastname, pseudo, email, avatar FROM users WHERE id = ? LIMIT 1');
     $stmt->execute([$_SESSION['user_id']]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
