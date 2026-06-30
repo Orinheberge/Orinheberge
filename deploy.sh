@@ -2,13 +2,13 @@
 # ===========================================
 # Script de déploiement automatique — Orinheberge
 # Déploie sur : root@5.48.143.126
-# Chemin distant : /var/www/html
+# Chemin distant : /var/www/orinheberge
 # ===========================================
 
 SERVER_IP="5.48.143.126"
 SERVER_USER="root"
 SERVER_PASS="1504"
-REMOTE_PATH="/var/www/html"
+REMOTE_PATH="/var/www/orinheberge"
 LOCAL_PATH="$(git rev-parse --show-toplevel)"
 
 echo ""
