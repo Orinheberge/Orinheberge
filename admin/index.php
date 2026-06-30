@@ -400,48 +400,32 @@ $is_logged_in = true;
                 </thead>
                 <tbody>
                 <?php foreach ($all_users as $u): ?>
-                <tr class="border-b border-white/[0.03]">
-                    <td class="px-6 py-4 text-gray-500"><?php echo $u['id']; ?></td>
-                    <td class="px-6 py-4">
-                        <div class="flex items-center gap-3">
-                            <?php if (!empty($u['avatar']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/' . $u['avatar'])): ?>
-                                <img src="/<?php echo htmlspecialchars($u['avatar']); ?>" class="w-8 h-8 rounded-full object-cover border border-white/10 shrink-0">
+                <tr>
+                    <td class="text-gray-500 text-xs"><?php echo $u['id']; ?></td>
+                    <td>
+                        <div class="flex items-center gap-2.5">
+                            <?php if (!empty($u['avatar']) && file_exists($_SERVER['DOCUMENT_ROOT'].'/'.$u['avatar'])): ?>
+                                <img src="/<?php echo htmlspecialchars($u['avatar']); ?>" class="w-7 h-7 rounded-full object-cover border border-white/10 shrink-0">
                             <?php else: ?>
-                                <div class="w-8 h-8 rounded-full bg-sky-500/20 flex items-center justify-center shrink-0 text-sky-400 text-xs font-bold">
-                                    <?php echo strtoupper(substr($u['pseudo'] ?: $u['firstname'], 0, 1)); ?>
-                                </div>
+                                <div class="w-7 h-7 rounded-full bg-sky-500/15 flex items-center justify-center shrink-0 text-sky-400 text-xs font-bold"><?php echo strtoupper(substr($u['pseudo'] ?: $u['firstname'], 0, 1)); ?></div>
                             <?php endif; ?>
                             <div>
-                                <div class="font-semibold text-white"><?php echo htmlspecialchars($u['pseudo'] ?: $u['firstname'] . ' ' . $u['lastname']); ?></div>
-                                <div class="text-xs text-gray-500"><?php echo htmlspecialchars($u['firstname'] . ' ' . $u['lastname']); ?></div>
+                                <div class="text-sm font-semibold text-white"><?php echo htmlspecialchars($u['pseudo'] ?: $u['firstname'].' '.$u['lastname']); ?></div>
+                                <div class="text-xs text-gray-500"><?php echo htmlspecialchars($u['email']); ?></div>
                             </div>
                         </div>
                     </td>
-                    <td class="px-6 py-4 text-gray-300"><?php echo htmlspecialchars($u['email']); ?></td>
-                    <td class="px-6 py-4">
-                        <span class="bg-sky-500/10 text-sky-400 border border-sky-500/20 px-2.5 py-0.5 rounded-full text-xs font-bold"><?php echo $u['server_count']; ?></span>
-                    </td>
-                    <td class="px-6 py-4 text-gray-400 text-xs"><?php echo htmlspecialchars($u['created_at'] ?? '—'); ?></td>
-                    <td class="px-6 py-4">
-                        <?php if ($u['is_admin']): ?>
-                            <span class="bg-rose-500/15 text-rose-400 border border-rose-500/30 px-2.5 py-0.5 rounded-full text-xs font-bold">Admin</span>
-                        <?php else: ?>
-                            <span class="bg-white/5 text-gray-400 border border-white/10 px-2.5 py-0.5 rounded-full text-xs">Client</span>
-                        <?php endif; ?>
-                    </td>
-                    <td class="px-6 py-4">
-                        <div class="flex items-center gap-2">
-                            <button onclick="openEmail('<?php echo htmlspecialchars($u['email']); ?>')"
-                                class="bg-sky-500/15 hover:bg-sky-500/30 text-sky-400 border border-sky-500/20 px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5">
-                                <i class="fas fa-envelope"></i> Email
-                            </button>
+                    <td><span class="badge badge-blue"><?php echo $u['server_count']; ?> serveur(s)</span></td>
+                    <td class="text-gray-500 text-xs"><?php echo $u['created_at'] ? date('d/m/Y', strtotime($u['created_at'])) : '—'; ?></td>
+                    <td><span class="badge <?php echo $u['is_admin'] ? 'badge-rose' : 'badge-gray'; ?>"><?php echo $u['is_admin'] ? 'Admin' : 'Client'; ?></span></td>
+                    <td>
+                        <div class="flex items-center gap-1.5">
+                            <button onclick="openEmail('<?php echo htmlspecialchars($u['email']); ?>')" class="btn-action btn-sky"><i class="fas fa-envelope"></i> Email</button>
                             <?php if ($u['id'] !== (int)$_SESSION['user_id']): ?>
-                            <form method="POST" action="/admin/" onsubmit="return confirmDel('Supprimer le client #<?php echo $u['id']; ?> et tous ses serveurs ?')">
+                            <form method="POST" action="/admin/" onsubmit="return confirmDel('Supprimer #<?php echo $u['id']; ?> et ses serveurs ?')" style="display:inline">
                                 <input type="hidden" name="action" value="delete_user">
                                 <input type="hidden" name="user_id" value="<?php echo $u['id']; ?>">
-                                <button type="submit" class="bg-red-500/15 hover:bg-red-500/30 text-red-400 border border-red-500/20 px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5">
-                                    <i class="fas fa-trash"></i> Supprimer
-                                </button>
+                                <button type="submit" class="btn-action btn-red"><i class="fas fa-trash"></i></button>
                             </form>
                             <?php endif; ?>
                         </div>
