@@ -59,6 +59,32 @@ echo "🔒 Correction des permissions..."
 sshpass -p "$SERVER_PASS" ssh -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" \
     "chown -R www-data:www-data $REMOTE_PATH && chmod -R 755 $REMOTE_PATH && chmod -R 775 $REMOTE_PATH/inc/uploads/"
 
+# ── Rechargement nginx / apache / php-fpm ──────────────────────────────────────
+echo ""
+echo "🔄 Rechargement des services web..."
+
+sshpass -p "$SERVER_PASS" ssh -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" bash <<'REMOTE'
+reload_if_active() {
+    local svc="$1"
+    if systemctl is-active --quiet "$svc" 2>/dev/null; then
+        if systemctl reload "$svc" 2>/dev/null; then
+            echo "✅ $svc rechargé"
+        elif systemctl restart "$svc" 2>/dev/null; then
+            echo "✅ $svc redémarré (reload impossible)"
+        else
+            echo "⚠️  Échec reload/restart de $svc"
+        fi
+    fi
+}
+
+reload_if_active nginx
+reload_if_active apache2
+
+while read -r fpm_svc; do
+    [ -n "$fpm_svc" ] && reload_if_active "${fpm_svc%.service}"
+done < <(systemctl list-units --type=service --all 'php*-fpm.service' --no-legend 2>/dev/null | awk '{print $1}')
+REMOTE
+
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "✅ Déploiement terminé !"
