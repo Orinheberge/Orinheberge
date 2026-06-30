@@ -194,198 +194,179 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_command'])) {
     exit();
 }
 
-    if ($is_logged_in) {
-        $stmt = $pdo->prepare("SELECT pseudo, firstname, avatar FROM users WHERE id = ? LIMIT 1");
-        $stmt->execute([$_SESSION['user_id']]);
-        $user_data = $stmt->fetch(PDO::FETCH_ASSOC);
+// Rafraîchir session utilisateur
+$u_stmt = $pdo->prepare("SELECT pseudo, firstname, avatar, is_admin FROM users WHERE id = ? LIMIT 1");
+$u_stmt->execute([$_SESSION['user_id']]);
+$user_data = $u_stmt->fetch();
+if ($user_data) {
+    $_SESSION['username'] = !empty($user_data['pseudo']) ? $user_data['pseudo'] : $user_data['firstname'];
+    $_SESSION['avatar']   = $user_data['avatar'];
+}
+$is_admin = (bool)($user_data['is_admin'] ?? false);
 
-        if ($user_data) {
-            // On s'assure que la session utilise les données fraîches pour la Navbar
-            $_SESSION['username'] = !empty($user_data['pseudo']) ? $user_data['pseudo'] : $user_data['firstname'];
-            $_SESSION['avatar']   = $user_data['avatar'];
-        }
-    }
+// Tickets ouverts (pour badge sidebar)
+$t_stmt = $pdo->prepare("SELECT COUNT(*) FROM support_tickets WHERE user_id=? AND status != 'Fermé'");
+$t_stmt->execute([$_SESSION['user_id']]);
+$open_tickets = (int)$t_stmt->fetchColumn();
 ?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OrinHeberge | Console | <?php echo htmlspecialchars($server['service_name']); ?></title>
+    <title>OrinHeberge — Console — <?php echo htmlspecialchars($server['service_name']); ?></title>
+    <link rel="icon" type="image/png" href="/favicon.ico">
+    <link rel="manifest" href="/manifest.json">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link class="rounded-full" rel="icon" type="image/png" href="https://heberge.orinstone.deepstone.fr/favicon.ico">
     <style>
-        body { background: #0b0f19; scroll-behavior: smooth; }
-        .glass { background: rgba(255, 255, 255, 0.04); backdrop-filter: blur(14px); border: 1px solid rgba(255, 255, 255, 0.08); }
-        .gradient-text { background: linear-gradient(90deg, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        #mobileMenu { display: none; }
-        #mobileMenu.active { display: block; }
+        :root{--sidebar:240px;}
+        *{box-sizing:border-box;}
+        body{background:#0d0f14;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;min-height:100vh;}
+        .sidebar{position:fixed;top:0;left:0;width:var(--sidebar);height:100vh;background:#111318;border-right:1px solid rgba(255,255,255,.06);display:flex;flex-direction:column;z-index:40;overflow-y:auto;}
+        .sidebar-logo{padding:1.5rem 1.25rem 1rem;border-bottom:1px solid rgba(255,255,255,.05);}
+        .sidebar-nav{padding:.75rem .75rem;flex:1;}
+        .nav-item{display:flex;align-items:center;gap:.75rem;padding:.625rem .875rem;border-radius:.625rem;font-size:.82rem;font-weight:500;color:#6b7280;transition:all .15s;text-decoration:none;margin-bottom:.15rem;border:1px solid transparent;}
+        .nav-item:hover{background:rgba(255,255,255,.04);color:#d1d5db;}
+        .nav-item.active{background:rgba(56,189,248,.08);color:#38bdf8;border-color:rgba(56,189,248,.15);}
+        .nav-item .icon{width:1.1rem;text-align:center;font-size:.85rem;flex-shrink:0;}
+        .nav-section{font-size:.65rem;font-weight:700;letter-spacing:.1em;color:#374151;text-transform:uppercase;padding:.75rem .875rem .35rem;}
+        .nav-separator{height:1px;background:rgba(255,255,255,.05);margin:.5rem .75rem;}
+        .sidebar-footer{padding:.875rem 1rem;border-top:1px solid rgba(255,255,255,.05);}
+        .main-content{margin-left:var(--sidebar);min-height:100vh;display:flex;flex-direction:column;}
+        .topbar{background:#111318;border-bottom:1px solid rgba(255,255,255,.06);padding:.875rem 1.75rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:30;}
+        .content{padding:1.75rem;flex:1;}
+        .card{background:#161a22;border:1px solid rgba(255,255,255,.07);border-radius:.875rem;}
+        .glass{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:.875rem;}
+        .mobile-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:39;}
+        @media(max-width:768px){
+            .sidebar{transform:translateX(-100%);transition:transform .25s;}
+            .sidebar.open{transform:translateX(0);}
+            .mobile-overlay.open{display:block;}
+            .main-content{margin-left:0;}
+            .topbar{padding:.75rem 1rem;}
+            .content{padding:1rem;}
+        }
     </style>
-	
-	<link rel="manifest" href="/manifest.json">
-
-<script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js')
-        .then(reg => console.log('Service Worker enregistré avec succès ! Scope:', reg.scope))
-        .catch(err => console.log('Échec de l\'enregistrement du Service Worker:', err));
-    });
-  }
-</script>
     <script>
-        function toggleMenu(){ document.getElementById("mobileMenu").classList.toggle("active"); }
+        function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('overlay').classList.toggle('open');}
     </script>
 </head>
-<body class="text-gray-200 font-sans min-h-screen flex flex-col justify-between">
+<body>
 
-<nav class="sticky top-0 z-50 glass p-5 border-b border-white/5">
-        <div class="max-w-7xl mx-auto flex justify-between items-center gap-4">
-            
-            <h1 class="text-3xl font-black gradient-text tracking-tight shrink-0">
-                <a href="/">OrinHeberge</a>
-            </h1>
+<div id="overlay" class="mobile-overlay" onclick="toggleSidebar()"></div>
 
-            <div class="hidden md:flex items-center gap-3 whitespace-nowrap">
-                <a href="/" class="bg-sky-600/20 hover:bg-sky-600 border border-sky-500/30 text-sky-400 hover:text-white px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium shadow-md shadow-sky-900/20">
-                    <i class="fas fa-home"></i> Accueil
-                </a>
-                <a href="/client/servers/" class="bg-slate-600/20 hover:bg-slate-600 border border-slate-500/30 text-slate-400 hover:text-white px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium shadow-md shadow-slate-900/20">
-                    <i class="fas fa-server"></i> Mes serveurs
-                </a>
-                <a href="/shop/" class="bg-amber-600/20 hover:bg-amber-600 border border-amber-500/30 text-amber-400 hover:text-white px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium shadow-md shadow-amber-900/20">
-                    <i class="fas fa-tags"></i> Offres
-                </a>
-                <a href="/support/" class="bg-purple-600/20 hover:bg-purple-600 border border-purple-500/30 text-purple-400 hover:text-white px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium shadow-md shadow-purple-900/20">
-                    <i class="fas fa-headset"></i> Support
-                </a>
-
-                <?php if(isset($_SESSION['user_id'])): ?>
-                    <?php include $_SERVER['DOCUMENT_ROOT'] . '/inc/notifications.php'; ?>
-                    
-                    <a href="/profil/" class="text-gray-300 hover:text-sky-400 font-bold flex items-center gap-2.5 transition bg-white/5 hover:bg-white/10 px-4 py-2 rounded-full border border-white/5 focus:outline-none text-xs">
-                        <?php if(!empty($_SESSION['avatar']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/' . $_SESSION['avatar'])): ?>
-                            <img src="/<?php echo htmlspecialchars($_SESSION['avatar']); ?>" alt="Avatar" class="w-5 h-5 rounded-full object-cover border border-sky-500/30 shrink-0">
-                        <?php else: ?>
-                            <i class="fas fa-user-circle text-lg text-sky-400 shrink-0 flex items-center justify-center"></i>
-                        <?php endif; ?>
-                        <span class="block"><?php echo htmlspecialchars($_SESSION['username'] ?? 'Mon Profil'); ?></span>
-                    </a>
-
-                    <a href="/logout/" class="bg-red-600/10 hover:bg-red-600 border border-red-500/20 text-red-400 hover:text-white px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium">
-                        <i class="fas fa-sign-out-alt"></i> Déconnexion
-                    </a>
-                <?php else: ?>
-                    <a href="/login/" class="bg-slate-600/20 hover:bg-slate-600 border border-slate-500/30 text-slate-400 hover:text-white px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium">
-                        <i class="fas fa-sign-in-alt"></i> Connexion
-                    </a>
-                    <a href="/register/" class="bg-slate-600/20 hover:bg-slate-600 border border-slate-500/30 text-slate-400 hover:text-white px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium">
-                        <i class="fas fa-user-plus"></i> Inscription
-                    </a>
-                <?php endif; ?>
+<!-- ══ SIDEBAR ══ -->
+<aside id="sidebar" class="sidebar">
+    <div class="sidebar-logo">
+        <a href="/" class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg bg-sky-500/20 flex items-center justify-center">
+                <i class="fas fa-server text-sky-400 text-sm"></i>
             </div>
+            <span class="font-black text-white text-base tracking-tight">OrinHeberge</span>
+        </a>
+    </div>
 
-            <div class="hidden lg:flex gap-2.5 items-center shrink-0">
-                <?php if(isset($_SESSION['is_admin']) && $_SESSION['is_admin']): ?>
-                    <a href="/support/admin_tickets/" class="bg-rose-600/20 hover:bg-rose-600 border border-rose-500/30 text-rose-400 hover:text-white px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium shadow-md shadow-rose-900/20 whitespace-nowrap">
-                        <i class="fas fa-unlock-keyhole"></i> Gérer les tickets (Admin)
-                    </a>
-                <?php endif; ?>
+    <nav class="sidebar-nav">
+        <div class="nav-section">Principal</div>
+        <a href="/client/" class="nav-item">
+            <i class="fas fa-home icon"></i> Tableau de bord
+        </a>
+        <a href="/client/servers/" class="nav-item active">
+            <i class="fas fa-server icon"></i> Mes serveurs
+        </a>
+        <a href="/offres/" class="nav-item">
+            <i class="fas fa-tags icon"></i> Nos offres
+        </a>
 
-                <a href="/status/" class="bg-emerald-600/20 hover:bg-emerald-600 border border-emerald-500/30 text-emerald-400 hover:text-white px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium shadow-md shadow-emerald-900/20 whitespace-nowrap">
-                    <i class="fas fa-signal"></i> Statut
-                </a>
+        <div class="nav-separator"></div>
+        <div class="nav-section">Compte</div>
+        <a href="/profil/" class="nav-item">
+            <i class="fas fa-user icon"></i> Mon profil
+        </a>
+        <a href="/support/" class="nav-item">
+            <i class="fas fa-headset icon"></i> Support
+            <?php if ($open_tickets > 0): ?>
+            <span class="ml-auto text-[10px] bg-purple-500/20 text-purple-400 border border-purple-500/20 px-1.5 py-0.5 rounded-full font-bold"><?php echo $open_tickets; ?></span>
+            <?php endif; ?>
+        </a>
+        <a href="/status/" class="nav-item">
+            <i class="fas fa-signal icon"></i> Statut
+        </a>
 
-                <a href="https://php.orinstone.deepstone.fr" class="glass text-gray-300 hover:text-white hover:bg-white/10 px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium border border-white/5 whitespace-nowrap">
-                    <i class="fas fa-database text-sky-400"></i> phpMyAdmin
-                </a>
-                
-                <a href="https://panel.orinstone.deepstone.fr" class="bg-sky-600 hover:bg-sky-500 px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium shadow-md shadow-sky-900/20 whitespace-nowrap text-white">
-                    <i class="fas fa-cogs"></i> Panel
-                </a>
+        <?php if ($is_admin): ?>
+        <div class="nav-separator"></div>
+        <div class="nav-section">Administration</div>
+        <a href="/admin/" class="nav-item" style="color:#f43f5e;border-color:rgba(244,63,94,.1);">
+            <i class="fas fa-shield-alt icon"></i> Admin Panel
+        </a>
+        <a href="/support/admin_tickets/" class="nav-item">
+            <i class="fas fa-ticket-alt icon"></i> Tickets
+        </a>
+        <?php endif; ?>
 
-                <div class="relative inline-block text-left group">
-                    <button type="button" class="inline-flex items-center gap-2 bg-white/5 border border-white/10 hover:border-sky-500/50 rounded-full px-3 py-1.5 text-xs font-semibold text-gray-200 transition focus:outline-none">
-                        <img src="https://flagcdn.com/w20/fr.png" id="current-flag" alt="Français" class="w-4 h-auto rounded-sm object-contain">
-                        <span id="current-lang-text">FR</span>
-                        <i class="fas fa-chevron-down text-[10px] text-gray-400 group-hover:text-sky-400 transition duration-200"></i>
-                    </button>
-                    <div class="absolute right-0 mt-2 w-36 rounded-xl glass border border-white/10 shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 overflow-hidden">
-                        <div class="py-1">
-                            <a href="?lang=fr" onclick="changeLanguage('fr', 'FR', 'https://flagcdn.com/w20/fr.png', event)" class="flex items-center gap-3 px-4 py-2 text-xs text-gray-300 hover:bg-sky-600/20 hover:text-white transition">
-                                <img src="https://flagcdn.com/w20/fr.png" alt="Français" class="w-4 h-auto rounded-sm">
-                                <span>Français</span>
-                            </a>
-                            <a href="?lang=en" onclick="changeLanguage('en', 'EN', 'https://flagcdn.com/w20/gb.png', event)" class="flex items-center gap-3 px-4 py-2 text-xs text-gray-300 hover:bg-sky-600/20 hover:text-white transition">
-                                <img src="https://flagcdn.com/w20/gb.png" alt="English" class="w-4 h-auto rounded-sm">
-                                <span>English</span>
-                            </a>
-                        </div>
-                    </div>
+        <div class="nav-separator"></div>
+        <div class="nav-section">Outils</div>
+        <a href="<?php echo htmlspecialchars($panel_url); ?>" target="_blank" class="nav-item">
+            <i class="fas fa-cogs icon"></i> Panel Pterodactyl
+        </a>
+        <a href="<?php echo htmlspecialchars($phpmyadmin_url); ?>" target="_blank" class="nav-item">
+            <i class="fas fa-database icon"></i> phpMyAdmin
+        </a>
+    </nav>
+
+    <div class="sidebar-footer">
+        <a href="/profil/" class="flex items-center gap-2.5 group mb-2">
+            <?php if (!empty($_SESSION['avatar']) && file_exists($_SERVER['DOCUMENT_ROOT'].'/'.$_SESSION['avatar'])): ?>
+                <img src="/<?php echo htmlspecialchars($_SESSION['avatar']); ?>" class="w-8 h-8 rounded-full object-cover border border-white/10">
+            <?php else: ?>
+                <div class="w-8 h-8 rounded-full bg-sky-500/20 flex items-center justify-center text-sky-400 text-xs font-bold border border-white/10">
+                    <?php echo strtoupper(substr($_SESSION['username'] ?? 'U', 0, 1)); ?>
                 </div>
+            <?php endif; ?>
+            <div class="flex-1 min-w-0">
+                <div class="text-xs font-semibold text-white truncate"><?php echo htmlspecialchars($_SESSION['username'] ?? ''); ?></div>
+                <div class="text-[10px] text-gray-500">Mon profil</div>
             </div>
+        </a>
+        <a href="/logout/" class="nav-item" style="color:#ef4444;">
+            <i class="fas fa-sign-out-alt icon"></i> Déconnexion
+        </a>
+    </div>
+</aside>
 
-            <button onclick="toggleMenu()" class="md:hidden text-2xl text-gray-400 hover:text-white transition shrink-0">
+<!-- ══ MAIN ══ -->
+<div class="main-content">
+
+    <!-- Topbar -->
+    <div class="topbar">
+        <div class="flex items-center gap-3">
+            <button onclick="toggleSidebar()" class="md:hidden text-gray-400 hover:text-white text-lg w-8">
                 <i class="fas fa-bars"></i>
             </button>
-        </div>
-
-        <div id="mobileMenu" class="md:hidden mt-4 px-4 space-y-3 glass rounded-2xl p-4 hidden">
-            <a href="/" class="bg-sky-600/20 border border-sky-500/30 text-sky-400 block py-2 px-4 rounded-xl flex items-center gap-2 text-sm font-medium"><i class="fas fa-home w-5 text-center"></i> Accueil</a>
-            <a href="/client/servers/" class="bg-white/[0.02] border border-white/5 text-gray-300 block py-2 px-4 rounded-xl flex items-center gap-2 text-sm font-medium"><i class="fas fa-server w-5 text-center"></i> Mes serveurs</a>
-            <a href="/shop/" class="bg-white/[0.02] border border-white/5 text-gray-300 block py-2 px-4 rounded-xl flex items-center gap-2 text-sm font-medium"><i class="fas fa-tags w-5 text-center"></i> Offres</a>
-            <a href="/support/" class="bg-white/[0.02] border border-white/5 text-gray-300 block py-2 px-4 rounded-xl flex items-center gap-2 text-sm font-medium"><i class="fas fa-headset w-5 text-center"></i> Support</a>
-            <a href="/status/" class="bg-emerald-600/20 border border-emerald-500/30 text-emerald-400 block py-2 px-4 rounded-xl flex items-center gap-2 text-sm font-medium"><i class="fas fa-signal w-5 text-center"></i> Statut</a>
-            
-            <?php if(isset($_SESSION['is_admin']) && $_SESSION['is_admin']): ?>
-                <a href="/support/admin_tickets/" class="bg-rose-600/20 border border-rose-500/30 text-rose-400 block py-2 px-4 rounded-xl flex items-center gap-2 text-sm font-semibold"><i class="fas fa-unlock-keyhole w-5 text-center"></i> Gérer les tickets</a>
-            <?php endif; ?>
-
-            <hr class="border-white/10">
-
-            <?php if(isset($_SESSION['user_id'])): ?>
-                <a href="/profil/" class="bg-white/5 text-gray-200 block py-2 px-4 rounded-xl flex items-center gap-2.5 text-sm font-bold border border-white/5">
-                    <?php if(!empty($_SESSION['avatar']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/' . $_SESSION['avatar'])): ?>
-                        <img src="/<?php echo htmlspecialchars($_SESSION['avatar']); ?>" alt="Avatar" class="w-5 h-5 rounded-full object-cover border border-sky-500/30 shrink-0">
-                    <?php else: ?>
-                        <i class="fas fa-user-circle text-lg text-sky-400 shrink-0"></i>
-                    <?php endif; ?>
-                    <span><?php echo htmlspecialchars($_SESSION['username'] ?? 'Mon Profil'); ?></span>
+            <div>
+                <a href="/client/servers/" class="text-xs text-sky-400 hover:underline flex items-center gap-1 mb-0.5">
+                    <i class="fas fa-arrow-left text-[10px]"></i> Mes serveurs
                 </a>
-                <a href="/logout/" class="bg-red-600/10 border border-red-500/20 text-red-400 block py-2 px-4 rounded-xl flex items-center gap-2 text-sm font-medium">
-                    <i class="fas fa-sign-out-alt w-5 text-center"></i> Déconnexion
-                </a>
-            <?php else: ?>
-                <a href="/login/" class="bg-white/5 text-gray-300 block py-2 px-4 rounded-xl flex items-center gap-2 text-sm font-medium border border-white/5"><i class="fas fa-sign-in-alt w-5 text-center"></i> Connexion</a>
-                <a href="/register/" class="bg-white/5 text-gray-300 block py-2 px-4 rounded-xl flex items-center gap-2 text-sm font-medium border border-white/5"><i class="fas fa-user-plus w-5 text-center"></i> Inscription</a>
-            <?php endif; ?>
-
-            <hr class="border-white/10">
-
-            <div class="grid grid-cols-2 gap-2 pt-1">
-                <a href="https://php.orinstone.deepstone.fr" class="glass text-gray-300 px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 justify-center border border-white/5 font-medium">
-                    <i class="fas fa-database text-sky-400"></i> phpMyAdmin
-                </a>
-                <a href="https://panel.orinstone.deepstone.fr" class="bg-sky-600 text-white px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 justify-center font-medium">
-                    <i class="fas fa-cogs"></i> Panel
-                </a>
+                <div class="text-sm font-bold text-white"><?php echo htmlspecialchars($server['service_name']); ?></div>
             </div>
+        </div>
+        <div class="flex items-center gap-3">
+            <span class="glass px-3 py-1.5 rounded-lg text-xs flex items-center gap-2" style="border-radius:.5rem;">
+                <span id="statusBadge" class="h-2 w-2 rounded-full bg-gray-500"></span>
+                <span id="statusText" class="font-bold text-gray-400">Calcul...</span>
+            </span>
+            <a href="/profil/" class="w-8 h-8 rounded-full overflow-hidden border border-white/10 flex items-center justify-center bg-sky-500/10 shrink-0">
+                <?php if (!empty($_SESSION['avatar']) && file_exists($_SERVER['DOCUMENT_ROOT'].'/'.$_SESSION['avatar'])): ?>
+                    <img src="/<?php echo htmlspecialchars($_SESSION['avatar']); ?>" class="w-full h-full object-cover">
+                <?php else: ?>
+                    <span class="text-sky-400 text-xs font-bold"><?php echo strtoupper(substr($_SESSION['username'] ?? 'U', 0, 1)); ?></span>
+                <?php endif; ?>
+            </a>
+        </div>
+    </div>
 
-            <div class="relative inline-block text-left group w-full pt-1">
-                <button type="button" class="inline-flex items-center justify-between w-full gap-2 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-semibold text-gray-200 transition focus:outline-none">
-                    <div class="flex items-center gap-2">
-                        <img src="https://flagcdn.com/w20/fr.png" alt="Français" class="w-5 h-auto rounded-sm object-contain">
-                        <span>FR</span>
-                    </div>
-                    <i class="fas fa-chevron-down text-xs text-gray-400 group-hover:text-sky-400 transition duration-200"></i>
-                </button>
-                <div class="absolute right-0 mt-2 w-full rounded-xl glass border border-white/10 shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 overflow-hidden">
-                    <div class="py-1">
-                        <a href="?lang=fr" onclick="changeLanguage('fr', 'FR', 'https://flagcdn.com/w20/fr.png', event)" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 hover:bg-sky-600/20 hover:text-white transition">
-                            <img src="https://flagcdn.com/w20/fr.png" alt="Français" class="w-5 h-auto rounded-sm">
-                            <span>Français</span>
-                        </a>
+    <div class="content">
                         <a href="?lang=en" onclick="changeLanguage('en', 'EN', 'https://flagcdn.com/w20/gb.png', event)" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 hover:bg-sky-600/20 hover:text-white transition">
                             <img src="https://flagcdn.com/w20/gb.png" alt="English" class="w-5 h-auto rounded-sm">
                             <span>English</span>
