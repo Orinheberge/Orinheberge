@@ -38,7 +38,7 @@ $active_nav = $active_nav ?? '';
                     <?php include $_SERVER['DOCUMENT_ROOT'] . '/inc/notifications.php'; ?>
                 <?php endif; ?>
 
-                <a href="/profil/" class="text-gray-300 hover:text-sky-400 font-bold flex items-center gap-2.5 transition bg-white/5 hover:bg-white/10 px-4 py-2 rounded-full border border-white/5 focus:outline-none text-xs whitespace-nowrap">
+                <a href="/client/servers/" class="text-gray-300 hover:text-sky-400 font-bold flex items-center gap-2.5 transition bg-white/5 hover:bg-white/10 px-4 py-2 rounded-full border border-white/5 focus:outline-none text-xs whitespace-nowrap">
                     <?php if (!empty($_SESSION['avatar']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/' . $_SESSION['avatar'])): ?>
                         <img src="/<?php echo htmlspecialchars($_SESSION['avatar']); ?>" alt="Avatar" class="w-5 h-5 rounded-full object-cover border border-sky-500/30 shrink-0">
                     <?php else: ?>
@@ -51,10 +51,10 @@ $active_nav = $active_nav ?? '';
                     <i class="fas fa-sign-out-alt"></i> <?php echo t('nav.logout'); ?>
                 </a>
             <?php else: ?>
-                <a href="/login/" class="bg-slate-600/10 border border-slate-500/20 text-slate-400 hover:text-white px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium whitespace-nowrap">
+                <a href="/login/" class="bg-sky-600/10 border border-sky-500/20 text-sky-400 hover:text-white hover:bg-sky-600 px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium whitespace-nowrap">
                     <i class="fas fa-sign-in-alt"></i> <?php echo t('nav.login'); ?>
                 </a>
-                <a href="/register/" class="bg-slate-600/10 border border-slate-500/20 text-slate-400 hover:text-white px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium whitespace-nowrap">
+                <a href="/register/" class="bg-sky-600 hover:bg-sky-500 text-white px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium whitespace-nowrap shadow-md shadow-sky-900/20">
                     <i class="fas fa-user-plus"></i> <?php echo t('nav.register'); ?>
                 </a>
             <?php endif; ?>
