@@ -1,46 +1,34 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+if (session_status() === PHP_SESSION_NONE) session_start();
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-// 1. Protection d'accès à la page
-if (!isset($_SESSION['user_id'])) {
-    header("Location: /login/");
-    exit();
-}
-
-if (!isset($_GET['uuid'])) {
-    die("Erreur : Aucun identifiant de serveur spécifié.");
-}
+// ── Accès ─────────────────────────────────────────────────────────────────────
+if (!isset($_SESSION['user_id'])) { header("Location: /login/"); exit(); }
+if (!isset($_GET['uuid']))        { die("Erreur : Aucun identifiant de serveur spécifié."); }
 
 $target_uuid = $_GET['uuid'];
-$panel_url = "https://panel.orinstone.deepstone.fr";
 
-$api_key_client = "ptlc_MfJSOUID0bnTgFCmm5VvYMML2jKUUA5RFZ2n2MeZCSU"; 
+// ── DB ────────────────────────────────────────────────────────────────────────
+try {
+    $pdo = new PDO(
+        "mysql:host=localhost;dbname=s43_orinheberge;charset=utf8mb4",
+        "root", "1504",
+        [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC]
+    );
+} catch (PDOException $e) {
+    die("Erreur BDD : " . $e->getMessage());
+}
+
+// ── Settings depuis BDD ───────────────────────────────────────────────────────
+$cfg = [];
+foreach ($pdo->query('SELECT `key`, `value` FROM settings') as $row) $cfg[$row['key']] = $row['value'];
+$panel_url      = $cfg['panel_url']      ?? 'https://panel.orinstone.deepstone.fr';
+$api_key_client = $cfg['api_key_client'] ?? '';
+$phpmyadmin_url = $cfg['phpmyadmin_url'] ?? 'https://php.orinstone.deepstone.fr';
 $headers_client = [
     "Authorization: Bearer $api_key_client",
     "Accept: application/vnd.pterodactyl.v1+json",
     "Content-Type: application/json"
 ];
-
-// 2. Connexion à la base de données
-try {
-    $pdo = new PDO(
-        "mysql:host=localhost;dbname=s43_orinheberge;charset=utf8mb4",
-        "root",
-        "1504",
-        [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
-        ]
-    );
-} catch (PDOException $e) {
-    die("Erreur BDD : " . $e->getMessage());
-}
 
 // Récupération du serveur
 $stmt = $pdo->prepare("SELECT id, service_name, uuid FROM orders WHERE user_id = ? AND uuid = ?");
