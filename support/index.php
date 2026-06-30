@@ -10,7 +10,7 @@ if (!isset($_SESSION['user_id'])) { header('Location: /login/'); exit(); }
 $is_logged_in = true;
 
 try {
-    $pdo = new PDO('mysql:host=127.0.0.1;port=3306;dbname=s43_orinheberge;charset=utf8mb4', 'root', '1504', [
+    $pdo = new PDO('mysql:host=localhost;dbname=s43_orinheberge;charset=utf8mb4', 'root', '1504', [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
     ]);
