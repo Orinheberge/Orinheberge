@@ -14,7 +14,7 @@ $headers_client = ["Authorization: Bearer $api_key_client","Accept: application/
 $headers_admin  = ["Authorization: Bearer $api_key_admin","Accept: application/vnd.pterodactyl.v1+json","Content-Type: application/json"];
 
 try {
-    $pdo = new PDO('mysql:host=pma.orinstone.deepstone.fr;dbname=s43_orinheberge;charset=utf8mb4', 'root', '1504', [
+    $pdo = new PDO('mysql:host=localhost;dbname=s43_orinheberge;charset=utf8mb4', 'root', '1504', [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
     ]);

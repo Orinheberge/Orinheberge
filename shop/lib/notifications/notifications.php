@@ -3,7 +3,7 @@ session_start();
 
 // DB config (copié du root index.php)
 $db_config = [
-    'host' => 'pma.orinstone.deepstone.fr',
+    'host' => 'localhost',
     'port' => '3306',
     'name' => 's43_orinheberge',
     'user' => 'root',

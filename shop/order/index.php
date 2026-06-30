@@ -34,7 +34,7 @@ require_once __DIR__ . '/lib/promo/promo.php';
 require_once __DIR__ . '/webhook/discord.php';
 
 $pdo = new PDO(
-    "mysql:host=pma.orinstone.deepstone.fr;dbname=s43_orinheberge;charset=utf8mb4",
+    "mysql:host=localhost;dbname=s43_orinheberge;charset=utf8mb4",
     "root", "1504",
     [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC]
 );
