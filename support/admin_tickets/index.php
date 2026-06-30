@@ -7,7 +7,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_id'] != 1) { header('Locatio
 $is_logged_in = true;
 
 try {
-    $pdo = new PDO('mysql:host=127.0.0.1;port=3306;dbname=s43_orinheberge;charset=utf8mb4','root','1504',[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC]);
+    $pdo = new PDO('mysql:host=localhost;dbname=s43_orinheberge;charset=utf8mb4','root','1504',[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC]);
 } catch (PDOException $e) { die(t('login.db_error')); }
 
 $notification = '';

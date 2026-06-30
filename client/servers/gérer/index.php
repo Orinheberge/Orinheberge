@@ -30,7 +30,7 @@ $headers_client = [
 // 2. Connexion à la base de données
 try {
     $pdo = new PDO(
-        "mysql:host=127.0.0.1;port=3306;dbname=s43_orinheberge;charset=utf8mb4",
+        "mysql:host=localhost;dbname=s43_orinheberge;charset=utf8mb4",
         "root",
         "1504",
         [

@@ -6,7 +6,7 @@ $db_status   = false;
 $is_logged_in = isset($_SESSION['user_id']);
 
 try {
-    $pdo = new PDO('mysql:host=localhost;port=3306;dbname=s43_orinheberge;charset=utf8mb4','root','1504',[PDO::ATTR_TIMEOUT=>3,PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);
+    $pdo = new PDO('mysql:host=localhost;dbname=s43_orinheberge;charset=utf8mb4','root','1504',[PDO::ATTR_TIMEOUT=>3,PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);
     $db_status = true;
     if ($is_logged_in) {
         $stmt = $pdo->prepare("SELECT pseudo, firstname, avatar FROM users WHERE id = ? LIMIT 1");
@@ -198,7 +198,7 @@ try {
             $route=$offer['free']?'/shop/process_free/?type='.$offer['plan']:'/shop/order/?plan='.$offer['plan'];
             $btn_text=$offer['free']?($is_logged_in?($cat==='php'?t('btn.host_site'):t('btn.deploy')):t('btn.login_to_buy')):($is_logged_in?t('btn.buy'):t('btn.login_to_buy'));
             $link=$is_logged_in?$route:'/login/';
-            $price_num=$offer['free']?0:(float)str_replace([',','€'],['.','''],$offer['price']);
+            $price_num=$offer['free']?0:(float)str_replace([',','€'],['.',  ''],$offer['price']);
         ?>
         <div data-category="<?php echo $cat; ?>" data-price="<?php echo $price_num; ?>" class="offer-card glass rounded-3xl <?php echo $border_class; ?> flex flex-col card-hover overflow-hidden relative">
             <?php if($popular): ?><div class="absolute top-3 right-3 z-10 bg-sky-500 text-slate-950 px-3 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider shadow-lg"><?php echo t('btn.popular'); ?></div><?php endif; ?>
