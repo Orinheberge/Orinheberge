@@ -7,18 +7,22 @@ require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/lang.php';
 if (!isset($_SESSION['user_id'])) { header('Location: /login/'); exit(); }
 $is_logged_in = true;
 
-$panel_url      = 'https://panel.orinstone.deepstone.fr';
-$api_key_client = 'ptlc_MfJSOUID0bnTgFCmm5VvYMML2jKUUA5RFZ2n2MeZCSU';
-$api_key_admin  = 'ptla_YKix8PexQDCZ7nIeexST3NXC2sFwQAoefDtOQBvJkbx';
-$headers_client = ["Authorization: Bearer $api_key_client","Accept: application/vnd.pterodactyl.v1+json","Content-Type: application/json"];
-$headers_admin  = ["Authorization: Bearer $api_key_admin","Accept: application/vnd.pterodactyl.v1+json","Content-Type: application/json"];
-
 try {
     $pdo = new PDO('mysql:host=localhost;dbname=s43_orinheberge;charset=utf8mb4', 'root', '1504', [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
     ]);
 } catch (PDOException $e) { die(t('login.db_error')); }
+
+// Charger la config depuis la BDD
+$cfg = [];
+foreach ($pdo->query('SELECT `key`, `value` FROM settings') as $row) $cfg[$row['key']] = $row['value'];
+$panel_url      = $cfg['panel_url']      ?? 'https://panel.orinstone.deepstone.fr';
+$api_key_client = $cfg['api_key_client'] ?? '';
+$api_key_admin  = $cfg['api_key_admin']  ?? '';
+$phpmyadmin_url = $cfg['phpmyadmin_url'] ?? 'https://php.orinstone.deepstone.fr';
+$headers_client = ["Authorization: Bearer $api_key_client","Accept: application/vnd.pterodactyl.v1+json","Content-Type: application/json"];
+$headers_admin  = ["Authorization: Bearer $api_key_admin","Accept: application/vnd.pterodactyl.v1+json","Content-Type: application/json"];
 
 // Rafraîchir session user
 $stmt = $pdo->prepare('SELECT pseudo, firstname, avatar FROM users WHERE id = ? LIMIT 1');
@@ -63,6 +67,11 @@ $services = $stmt->fetchAll();
 $stmt2 = $pdo->prepare("SELECT COUNT(*) FROM support_tickets WHERE user_id=? AND status != 'Fermé'");
 $stmt2->execute([$_SESSION['user_id']]);
 $open_tickets = $stmt2->fetchColumn();
+
+// Vérifier si admin
+$stmt3 = $pdo->prepare('SELECT is_admin FROM users WHERE id=? LIMIT 1');
+$stmt3->execute([$_SESSION['user_id']]);
+$is_admin = (bool)($stmt3->fetchColumn());
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo $lang; ?>">
@@ -135,6 +144,44 @@ $open_tickets = $stmt2->fetchColumn();
         </a>
     </div>
 
+    <!-- Bloc Admin (visible uniquement pour les admins) -->
+    <?php if ($is_admin): ?>
+    <div class="mb-8 rounded-2xl border border-rose-500/30 bg-rose-500/5 p-1">
+        <div class="flex flex-wrap items-center justify-between gap-4 px-5 py-4 border-b border-rose-500/10">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 bg-rose-500/20 rounded-xl flex items-center justify-center shrink-0">
+                    <i class="fas fa-shield-alt text-rose-400 text-sm"></i>
+                </div>
+                <div>
+                    <div class="text-sm font-black text-rose-300">Espace Administrateur</div>
+                    <div class="text-xs text-rose-400/60">Accès rapide aux outils de gestion</div>
+                </div>
+            </div>
+            <a href="/admin/" class="bg-rose-600 hover:bg-rose-500 text-white px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-lg shadow-rose-900/30">
+                <i class="fas fa-cogs"></i> Ouvrir l'Admin Panel
+            </a>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 p-3">
+            <a href="/admin/?view=clients" class="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] hover:bg-rose-500/10 border border-white/[0.04] hover:border-rose-500/20 transition group">
+                <i class="fas fa-users text-rose-400 text-base w-5 text-center group-hover:scale-110 transition"></i>
+                <div><div class="text-xs font-bold text-gray-200">Clients</div><div class="text-[10px] text-gray-500">Gérer les comptes</div></div>
+            </a>
+            <a href="/admin/?view=servers" class="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] hover:bg-rose-500/10 border border-white/[0.04] hover:border-rose-500/20 transition group">
+                <i class="fas fa-server text-rose-400 text-base w-5 text-center group-hover:scale-110 transition"></i>
+                <div><div class="text-xs font-bold text-gray-200">Serveurs</div><div class="text-[10px] text-gray-500">Suspendre / Suppr.</div></div>
+            </a>
+            <a href="/support/admin_tickets/" class="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] hover:bg-rose-500/10 border border-white/[0.04] hover:border-rose-500/20 transition group">
+                <i class="fas fa-headset text-rose-400 text-base w-5 text-center group-hover:scale-110 transition"></i>
+                <div><div class="text-xs font-bold text-gray-200">Tickets</div><div class="text-[10px] text-gray-500">Support clients</div></div>
+            </a>
+            <a href="/admin/?view=settings" class="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] hover:bg-rose-500/10 border border-white/[0.04] hover:border-rose-500/20 transition group">
+                <i class="fas fa-sliders-h text-rose-400 text-base w-5 text-center group-hover:scale-110 transition"></i>
+                <div><div class="text-xs font-bold text-gray-200">Paramètres</div><div class="text-[10px] text-gray-500">API, Panel, SMTP</div></div>
+            </a>
+        </div>
+    </div>
+    <?php endif; ?>
+
     <!-- Quick actions -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-10">
         <a href="/offres/" class="glass p-4 rounded-2xl border border-white/[0.05] hover:border-sky-500/30 transition card-hover flex flex-col items-center gap-2 text-center">
@@ -149,11 +196,11 @@ $open_tickets = $stmt2->fetchColumn();
             <i class="fas fa-headset text-purple-400 text-xl"></i>
             <span class="text-xs font-semibold text-gray-300"><?php echo $lang==='en' ? 'Open a ticket' : 'Ouvrir un ticket'; ?></span>
         </a>
-        <a href="<?php echo $panel_url; ?>" target="_blank" class="glass p-4 rounded-2xl border border-white/[0.05] hover:border-amber-500/30 transition card-hover flex flex-col items-center gap-2 text-center">
+        <a href="<?php echo htmlspecialchars($panel_url); ?>" target="_blank" class="glass p-4 rounded-2xl border border-white/[0.05] hover:border-amber-500/30 transition card-hover flex flex-col items-center gap-2 text-center">
             <i class="fas fa-cogs text-amber-400 text-xl"></i>
             <span class="text-xs font-semibold text-gray-300">Panel Pterodactyl</span>
         </a>
-        <a href="https://php.orinstone.deepstone.fr" target="_blank" class="glass p-4 rounded-2xl border border-white/[0.05] hover:border-sky-500/30 transition card-hover flex flex-col items-center gap-2 text-center">
+        <a href="<?php echo htmlspecialchars($phpmyadmin_url); ?>" target="_blank" class="glass p-4 rounded-2xl border border-white/[0.05] hover:border-sky-500/30 transition card-hover flex flex-col items-center gap-2 text-center">
             <i class="fas fa-database text-sky-400 text-xl"></i>
             <span class="text-xs font-semibold text-gray-300">phpMyAdmin</span>
         </a>

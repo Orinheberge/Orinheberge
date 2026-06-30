@@ -27,9 +27,12 @@ if (!$admin || !$admin['is_admin']) {
 $_SESSION['username'] = !empty($admin['pseudo']) ? $admin['pseudo'] : $admin['firstname'];
 $_SESSION['avatar']   = $admin['avatar'];
 
-$panel_url       = 'https://panel.orinstone.deepstone.fr';
-$api_key_admin   = 'ptla_YKix8PexQDCZ7nIeexST3NXC2sFwQAoefDtOQBvJkbx';
-$headers_admin   = ["Authorization: Bearer $api_key_admin","Accept: application/vnd.pterodactyl.v1+json","Content-Type: application/json"];
+// ─── Charger config depuis BDD ───────────────────────────────────────────────
+$cfg = [];
+foreach ($pdo->query('SELECT `key`, `value` FROM settings') as $row) $cfg[$row['key']] = $row['value'];
+$panel_url     = $cfg['panel_url']     ?? 'https://panel.orinstone.deepstone.fr';
+$api_key_admin = $cfg['api_key_admin'] ?? '';
+$headers_admin = ["Authorization: Bearer $api_key_admin","Accept: application/vnd.pterodactyl.v1+json","Content-Type: application/json"];
 
 function adminApiCall($url, $headers, $endpoint, $method = 'GET', $data = null) {
     $ch = curl_init($url . '/api/application/' . $endpoint);
@@ -46,6 +49,22 @@ $flash = '';
 // ─── Actions POST ───────────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
+
+    // Sauvegarder les paramètres
+    if ($action === 'save_settings') {
+        $keys = ['panel_url','api_key_admin','api_key_client','phpmyadmin_url','site_name','smtp_host','smtp_port','smtp_user','smtp_pass','smtp_from','smtp_from_name'];
+        $stmt = $pdo->prepare('INSERT INTO settings (`key`,`value`) VALUES (?,?) ON DUPLICATE KEY UPDATE `value`=VALUES(`value`)');
+        foreach ($keys as $k) {
+            if (isset($_POST[$k])) $stmt->execute([$k, trim($_POST[$k])]);
+        }
+        // Recharger la config
+        foreach ($pdo->query('SELECT `key`, `value` FROM settings') as $row) $cfg[$row['key']] = $row['value'];
+        $panel_url     = $cfg['panel_url']     ?? $panel_url;
+        $api_key_admin = $cfg['api_key_admin'] ?? $api_key_admin;
+        $headers_admin = ["Authorization: Bearer $api_key_admin","Accept: application/vnd.pterodactyl.v1+json","Content-Type: application/json"];
+        $flash = "<div class='bg-green-500/20 text-green-400 border border-green-500/30 p-4 rounded-xl text-sm'>✅ Paramètres sauvegardés.</div>";
+        header('Location: /admin/?view=settings'); exit();
+    }
 
     // Envoyer un email à un client
     if ($action === 'send_email') {
@@ -250,6 +269,9 @@ $is_logged_in = true;
         </a>
         <a href="/admin/?view=email" class="px-5 py-2.5 rounded-full text-sm font-bold border transition <?php echo $view === 'email' ? 'tab-active border-rose-500/40' : 'tab-inactive border-white/10'; ?>">
             <i class="fas fa-envelope mr-1"></i> Email
+        </a>
+        <a href="/admin/?view=settings" class="px-5 py-2.5 rounded-full text-sm font-bold border transition <?php echo $view === 'settings' ? 'tab-active border-rose-500/40' : 'tab-inactive border-white/10'; ?>">
+            <i class="fas fa-sliders-h mr-1"></i> Paramètres
         </a>
     </div>
 
@@ -474,6 +496,94 @@ $is_logged_in = true;
             </div>
         </div>
     </div>
+    <!-- ═══════════════════════════════════════════════════
+         VUE PARAMÈTRES
+    ════════════════════════════════════════════════════ -->
+    <?php elseif ($view === 'settings'): ?>
+    <form method="POST" action="/admin/?view=settings">
+        <input type="hidden" name="action" value="save_settings">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+            <!-- Pterodactyl Panel -->
+            <div class="glass rounded-3xl p-6 space-y-5">
+                <h2 class="text-lg font-black text-white flex items-center gap-2 pb-3 border-b border-white/5">
+                    <i class="fas fa-cogs text-amber-400"></i> Panel Pterodactyl
+                </h2>
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1.5 font-semibold uppercase tracking-wide">URL du Panel</label>
+                    <input type="url" name="panel_url" value="<?php echo htmlspecialchars($cfg['panel_url'] ?? ''); ?>" placeholder="https://panel.example.com" class="w-full rounded-xl px-4 py-2.5 text-sm">
+                    <p class="text-[11px] text-gray-500 mt-1">URL de base de votre instance Pterodactyl.</p>
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1.5 font-semibold uppercase tracking-wide">API Key Admin <span class="text-rose-400 normal-case font-normal">(ptla_…)</span></label>
+                    <input type="text" name="api_key_admin" value="<?php echo htmlspecialchars($cfg['api_key_admin'] ?? ''); ?>" placeholder="ptla_xxxxxxxxxxxx" class="w-full rounded-xl px-4 py-2.5 text-sm font-mono">
+                    <p class="text-[11px] text-gray-500 mt-1">Clé admin pour créer/supprimer des serveurs. Panel → Compte → API Keys.</p>
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1.5 font-semibold uppercase tracking-wide">API Key Client <span class="text-sky-400 normal-case font-normal">(ptlc_…)</span></label>
+                    <input type="text" name="api_key_client" value="<?php echo htmlspecialchars($cfg['api_key_client'] ?? ''); ?>" placeholder="ptlc_xxxxxxxxxxxx" class="w-full rounded-xl px-4 py-2.5 text-sm font-mono">
+                    <p class="text-[11px] text-gray-500 mt-1">Clé client pour les actions côté utilisateur.</p>
+                </div>
+            </div>
+
+            <!-- Site & phpMyAdmin -->
+            <div class="glass rounded-3xl p-6 space-y-5">
+                <h2 class="text-lg font-black text-white flex items-center gap-2 pb-3 border-b border-white/5">
+                    <i class="fas fa-globe text-sky-400"></i> Site & Outils
+                </h2>
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1.5 font-semibold uppercase tracking-wide">Nom du site</label>
+                    <input type="text" name="site_name" value="<?php echo htmlspecialchars($cfg['site_name'] ?? 'OrinHeberge'); ?>" class="w-full rounded-xl px-4 py-2.5 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1.5 font-semibold uppercase tracking-wide">URL phpMyAdmin</label>
+                    <input type="url" name="phpmyadmin_url" value="<?php echo htmlspecialchars($cfg['phpmyadmin_url'] ?? ''); ?>" placeholder="https://php.example.com" class="w-full rounded-xl px-4 py-2.5 text-sm">
+                </div>
+            </div>
+
+            <!-- SMTP -->
+            <div class="glass rounded-3xl p-6 space-y-5 lg:col-span-2">
+                <h2 class="text-lg font-black text-white flex items-center gap-2 pb-3 border-b border-white/5">
+                    <i class="fas fa-envelope text-purple-400"></i> Configuration SMTP (emails)
+                </h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1.5 font-semibold uppercase tracking-wide">Serveur SMTP</label>
+                        <input type="text" name="smtp_host" value="<?php echo htmlspecialchars($cfg['smtp_host'] ?? ''); ?>" placeholder="smtp.gmail.com" class="w-full rounded-xl px-4 py-2.5 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1.5 font-semibold uppercase tracking-wide">Port</label>
+                        <input type="number" name="smtp_port" value="<?php echo htmlspecialchars($cfg['smtp_port'] ?? '587'); ?>" placeholder="587" class="w-full rounded-xl px-4 py-2.5 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1.5 font-semibold uppercase tracking-wide">Utilisateur SMTP</label>
+                        <input type="text" name="smtp_user" value="<?php echo htmlspecialchars($cfg['smtp_user'] ?? ''); ?>" placeholder="user@example.com" class="w-full rounded-xl px-4 py-2.5 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1.5 font-semibold uppercase tracking-wide">Mot de passe SMTP</label>
+                        <input type="password" name="smtp_pass" value="<?php echo htmlspecialchars($cfg['smtp_pass'] ?? ''); ?>" placeholder="••••••••" class="w-full rounded-xl px-4 py-2.5 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1.5 font-semibold uppercase tracking-wide">Email expéditeur</label>
+                        <input type="email" name="smtp_from" value="<?php echo htmlspecialchars($cfg['smtp_from'] ?? ''); ?>" placeholder="no-reply@example.com" class="w-full rounded-xl px-4 py-2.5 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1.5 font-semibold uppercase tracking-wide">Nom expéditeur</label>
+                        <input type="text" name="smtp_from_name" value="<?php echo htmlspecialchars($cfg['smtp_from_name'] ?? ''); ?>" placeholder="OrinHeberge" class="w-full rounded-xl px-4 py-2.5 text-sm">
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Bouton save -->
+        <div class="mt-6 flex justify-end">
+            <button type="submit" class="bg-rose-600 hover:bg-rose-500 text-white font-bold px-8 py-3 rounded-xl text-sm transition flex items-center gap-2 shadow-lg shadow-rose-900/30">
+                <i class="fas fa-save"></i> Sauvegarder les paramètres
+            </button>
+        </div>
+    </form>
+
     <?php endif; ?>
 
 </main>
