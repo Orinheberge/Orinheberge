@@ -131,14 +131,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Suspendre / Unsuspend un serveur sur le panel
     if ($action === 'suspend_server' || $action === 'unsuspend_server') {
+        $uuid      = trim($_POST['server_uuid'] ?? '');
         $server_id = (int)($_POST['server_id'] ?? 0);
         if ($server_id) {
             $ep = $action === 'suspend_server' ? "servers/$server_id/suspend" : "servers/$server_id/unsuspend";
             $ch = curl_init($panel_url . '/api/application/' . $ep);
             curl_setopt_array($ch, [CURLOPT_HTTPHEADER => $headers_admin, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 15, CURLOPT_SSL_VERIFYPEER => false, CURLOPT_POST => true, CURLOPT_POSTFIELDS => '{}']);
             curl_exec($ch); curl_close($ch);
-            $flash = "<div class='bg-green-500/20 text-green-400 border border-green-500/30 p-4 rounded-xl text-sm'>✅ Action '" . htmlspecialchars($action) . "' effectuée sur serveur #$server_id.</div>";
+            if ($action === 'suspend_server' && $uuid) {
+                $pdo->prepare("UPDATE orders SET status='suspended', suspended_at=NOW(), delete_after=DATE_ADD(NOW(), INTERVAL 15 DAY) WHERE uuid=?")->execute([$uuid]);
+            } elseif ($uuid) {
+                $pdo->prepare("UPDATE orders SET status='paid', suspended_at=NULL, delete_after=NULL WHERE uuid=?")->execute([$uuid]);
+            }
+            $flash = "<div class='bg-green-500/20 text-green-400 border border-green-500/30 p-4 rounded-xl text-sm'>✅ Serveur " . ($action==='suspend_server'?'suspendu':'réactivé') . " — suppression auto dans 15 jours si non renouvelé.</div>";
         }
+    }
+
+    // Modifier l'expiration d'un serveur
+    if ($action === 'set_expiry') {
+        $uuid       = trim($_POST['server_uuid'] ?? '');
+        $new_expiry = trim($_POST['new_expiry'] ?? '');
+        $new_price  = trim($_POST['new_price'] ?? '');
+        if ($uuid && $new_expiry) {
+            $updates = "expires_at=?, next_payment_date=DATE(?)";
+            $params  = [$new_expiry, $new_expiry];
+            if ($new_price !== '') { $updates .= ", renewal_price=?"; $params[] = (float)$new_price; }
+            $params[] = $uuid;
+            $pdo->prepare("UPDATE orders SET $updates WHERE uuid=?")->execute($params);
+            $flash = "<div class='bg-green-500/20 text-green-400 border border-green-500/30 p-4 rounded-xl text-sm'>✅ Expiration mise à jour : <strong>" . htmlspecialchars($new_expiry) . "</strong>.</div>";
+        }
+        header('Location: /admin/?view=servers'); exit();
     }
 }
 
