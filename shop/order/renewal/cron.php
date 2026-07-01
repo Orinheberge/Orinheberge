@@ -121,6 +121,37 @@ switch ($mode) {
     // ──────────────────────────────────────────────────────────────
     // SUPPRESSION DÉFINITIVE (suspended depuis +15 jours)
     // ──────────────────────────────────────────────────────────────
+    case 'unsuspend':
+        $to_unsuspend = $pdo->query("
+            SELECT o.*, u.email, u.firstname
+            FROM orders o
+            JOIN users u ON u.id = o.user_id
+            WHERE o.status = 'suspended'
+              AND o.suspension_until IS NOT NULL
+              AND o.suspension_until <= NOW()
+              AND (o.expires_at IS NULL OR o.expires_at > NOW())
+        ")->fetchAll();
+
+        $unsuspended = 0;
+        foreach ($to_unsuspend as $order) {
+            if (!empty($order['server_id'])) {
+                panelPost($panel_url, $headers_admin, "servers/{$order['server_id']}/unsuspend");
+            }
+            $pdo->prepare("
+                UPDATE orders
+                SET status='paid',
+                    suspended_at=NULL,
+                    suspension_until=NULL,
+                    delete_after=NULL
+                WHERE id=?
+            ")->execute([$order['id']]);
+
+            echo "[REACTIVE] {$order['service_name']} — {$order['email']}\n";
+            $unsuspended++;
+        }
+        echo "[OK] {$unsuspended} serveur(s) reactive(s)\n";
+        break;
+
     case 'delete':
         $to_delete = $pdo->query("
             SELECT o.*, u.email, u.firstname
