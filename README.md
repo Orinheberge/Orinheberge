@@ -78,4 +78,5 @@ php shop/order/renewal/cron.php urgent
 php shop/order/renewal/cron.php suspend
 php shop/order/renewal/cron.php unsuspend
 php shop/order/renewal/cron.php delete
+php cron/cron_ping.php
 ```
