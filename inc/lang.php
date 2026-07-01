@@ -132,8 +132,8 @@ $translations = [
     'offer.hy_basic.desc'   => ['fr' => 'Lancez un petit serveur Hytale privé avec des ressources dédiées stables.', 'en' => 'Launch a small private Hytale server with stable dedicated resources.'],
     'offer.hy_medium.name'  => ['fr' => 'Hytale Medium',     'en' => 'Hytale Medium'],
     'offer.hy_medium.desc'  => ['fr' => 'Hébergez un serveur Hytale communautaire stable avec mods et plugins.', 'en' => 'Host a stable Hytale community server with mods and plugins.'],
-    'offer.hy_premium.name' => ['fr' => 'Hytale Pro',        'en' => 'Hytale Pro'],
-    'offer.hy_premium.desc' => ['fr' => 'Idéal pour les grands serveurs communautaires Hytale, mods complexes et scripts lourds.', 'en' => 'Ideal for large Hytale community servers, complex mods and heavy scripts.'],
+    'offer.hytale_premium.name' => ['fr' => 'Hytale Pro',        'en' => 'Hytale Pro'],
+    'offer.hytale_premium.desc' => ['fr' => 'Idéal pour les grands serveurs communautaires Hytale, mods complexes et scripts lourds.', 'en' => 'Ideal for large Hytale community servers, complex mods and heavy scripts.'],
 
     // PHP / Web
     'offer.php_free.name'    => ['fr' => 'Web PHP Free',     'en' => 'Web PHP Free'],
