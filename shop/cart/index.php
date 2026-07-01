@@ -18,16 +18,53 @@ function loadCartProduct(PDO $pdo, string $slug): ?array {
     return $stmt->fetch() ?: null;
 }
 
-function loadCartFromDatabase(PDO $pdo, int $userId): array {
-    $stmt = $pdo->prepare('SELECT cart_data FROM carts WHERE user_id = ? LIMIT 1');
-    $stmt->execute([$userId]);
-    $row = $stmt->fetch();
-    if (!$row || empty($row['cart_data'])) {
-        return [];
+function ensureCartTable(PDO $pdo): void {
+    try {
+        $check = $pdo->query("SHOW TABLES LIKE 'carts'");
+        if ($check && $check->fetch()) {
+            return;
+        }
+    } catch (PDOException $e) {
+        error_log('Cart table check failed: ' . $e->getMessage());
     }
 
-    $data = json_decode($row['cart_data'], true);
-    return is_array($data) ? $data : [];
+    try {
+        $pdo->exec("""
+            CREATE TABLE IF NOT EXISTS carts (
+                id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                user_id INT UNSIGNED NOT NULL,
+                cart_data JSON NOT NULL,
+                updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY uq_carts_user (user_id),
+                KEY idx_carts_updated_at (updated_at),
+                CONSTRAINT fk_carts_user
+                    FOREIGN KEY (user_id) REFERENCES users(id)
+                    ON DELETE CASCADE
+                    ON UPDATE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        """);
+    } catch (PDOException $e) {
+        error_log('Cart table creation failed: ' . $e->getMessage());
+    }
+}
+
+function loadCartFromDatabase(PDO $pdo, int $userId): array {
+    try {
+        ensureCartTable($pdo);
+        $stmt = $pdo->prepare('SELECT cart_data FROM carts WHERE user_id = ? LIMIT 1');
+        $stmt->execute([$userId]);
+        $row = $stmt->fetch();
+        if (!$row || empty($row['cart_data'])) {
+            return [];
+        }
+
+        $data = json_decode($row['cart_data'], true);
+        return is_array($data) ? $data : [];
+    } catch (Throwable $e) {
+        error_log('Cart load failed: ' . $e->getMessage());
+        return [];
+    }
 }
 
 function saveCartToDatabase(PDO $pdo, int $userId, array $cart): void {
@@ -35,9 +72,14 @@ function saveCartToDatabase(PDO $pdo, int $userId, array $cart): void {
         return;
     }
 
-    $payload = json_encode($cart, JSON_UNESCAPED_UNICODE);
-    $stmt = $pdo->prepare('INSERT INTO carts (user_id, cart_data, updated_at) VALUES (?, ?, NOW()) ON DUPLICATE KEY UPDATE cart_data = VALUES(cart_data), updated_at = NOW()');
-    $stmt->execute([$userId, $payload]);
+    try {
+        ensureCartTable($pdo);
+        $payload = json_encode($cart, JSON_UNESCAPED_UNICODE);
+        $stmt = $pdo->prepare('INSERT INTO carts (user_id, cart_data, updated_at) VALUES (?, ?, NOW()) ON DUPLICATE KEY UPDATE cart_data = VALUES(cart_data), updated_at = NOW()');
+        $stmt->execute([$userId, $payload]);
+    } catch (Throwable $e) {
+        error_log('Cart save failed: ' . $e->getMessage());
+    }
 }
 
 function syncCartWithStorage(PDO $pdo, array $cart): void {
