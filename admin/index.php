@@ -306,21 +306,21 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_sidebar.php';
 
         <!-- Stats toujours visibles -->
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <div class="stat-card">
+            <a href="/admin/?view=clients" class="stat-card hover:border-sky-500/30 transition block">
                 <div class="flex items-center justify-between mb-3"><span class="text-xs text-gray-500 font-medium">Clients</span><div class="w-7 h-7 rounded-lg bg-sky-500/15 flex items-center justify-center"><i class="fas fa-users text-sky-400 text-xs"></i></div></div>
                 <div class="text-2xl font-black text-white"><?php echo count($all_users); ?></div>
-                <div class="text-xs text-gray-500 mt-1">Comptes enregistrés</div>
-            </div>
-            <div class="stat-card">
+                <div class="text-xs text-sky-400 mt-1">Gérer →</div>
+            </a>
+            <a href="/admin/?view=servers" class="stat-card hover:border-green-500/30 transition block">
                 <div class="flex items-center justify-between mb-3"><span class="text-xs text-gray-500 font-medium">Serveurs</span><div class="w-7 h-7 rounded-lg bg-green-500/15 flex items-center justify-center"><i class="fas fa-server text-green-400 text-xs"></i></div></div>
                 <div class="text-2xl font-black text-white"><?php echo count($all_servers); ?></div>
-                <div class="text-xs text-gray-500 mt-1">Total déployés</div>
-            </div>
-            <div class="stat-card">
+                <div class="text-xs text-green-400 mt-1">Voir tous →</div>
+            </a>
+            <a href="/admin/?view=invoices" class="stat-card hover:border-yellow-500/30 transition block">
                 <div class="flex items-center justify-between mb-3"><span class="text-xs text-gray-500 font-medium">Revenus</span><div class="w-7 h-7 rounded-lg bg-yellow-500/15 flex items-center justify-center"><i class="fas fa-euro-sign text-yellow-400 text-xs"></i></div></div>
-                <div class="text-2xl font-black text-white"><?php echo number_format((float)$total_revenue,2,',',''); ?>€</div>
-                <div class="text-xs text-gray-500 mt-1">Commandes payées</div>
-            </div>
+                <div class="text-2xl font-black text-white"><?php echo number_format($invoice_revenue,2,',',''); ?>€</div>
+                <div class="text-xs text-yellow-400 mt-1"><?php echo $total_invoices; ?> facture(s) →</div>
+            </a>
             <a href="/support/admin_tickets/" class="stat-card hover:border-rose-500/30 transition block">
                 <div class="flex items-center justify-between mb-3"><span class="text-xs text-gray-500 font-medium">Tickets</span><div class="w-7 h-7 rounded-lg bg-rose-500/15 flex items-center justify-center"><i class="fas fa-headset text-rose-400 text-xs"></i></div></div>
                 <div class="text-2xl font-black text-white"><?php echo $open_tickets; ?></div>
@@ -328,11 +328,96 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_sidebar.php';
             </a>
         </div>
 
+    <!-- ═══════════════════════════════════════════════════
+         VUE DASHBOARD
+    ════════════════════════════════════════════════════ -->
+    <?php if ($view === 'dashboard'): ?>
+
+        <!-- Activité récente : derniers clients + derniers serveurs -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+
+            <!-- Derniers clients -->
+            <div class="card overflow-hidden">
+                <div class="px-5 py-4 border-b border-white/[0.05] flex items-center justify-between">
+                    <h2 class="text-sm font-bold text-white flex items-center gap-2"><i class="fas fa-users text-sky-400 text-xs"></i> Derniers clients</h2>
+                    <a href="/admin/?view=clients" class="text-xs text-sky-400 hover:text-sky-300 font-semibold">Tous →</a>
+                </div>
+                <?php foreach (array_slice($all_users, 0, 6) as $u): ?>
+                <div class="flex items-center gap-3 px-5 py-3 border-b border-white/[0.03] last:border-0 hover:bg-white/[0.02] transition">
+                    <?php if (!empty($u['avatar']) && file_exists($_SERVER['DOCUMENT_ROOT'].'/'.$u['avatar'])): ?>
+                        <img src="/<?= htmlspecialchars($u['avatar']) ?>" class="w-7 h-7 rounded-full object-cover border border-white/10 shrink-0">
+                    <?php else: ?>
+                        <div class="w-7 h-7 rounded-full bg-sky-500/15 flex items-center justify-center shrink-0 text-sky-400 text-xs font-bold"><?= strtoupper(substr($u['pseudo'] ?: $u['firstname'], 0, 1)) ?></div>
+                    <?php endif; ?>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-xs font-semibold text-white truncate"><?= htmlspecialchars($u['pseudo'] ?: $u['firstname'].' '.$u['lastname']) ?></div>
+                        <div class="text-[10px] text-gray-500 truncate"><?= htmlspecialchars($u['email']) ?></div>
+                    </div>
+                    <div class="flex items-center gap-2 shrink-0">
+                        <span class="badge <?= $u['is_admin'] ? 'badge-rose' : 'badge-gray' ?>"><?= $u['is_admin'] ? 'Admin' : 'Client' ?></span>
+                        <span class="text-[10px] text-gray-500"><?= $u['server_count'] ?> srv</span>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+            </div>
+
+            <!-- Derniers serveurs -->
+            <div class="card overflow-hidden">
+                <div class="px-5 py-4 border-b border-white/[0.05] flex items-center justify-between">
+                    <h2 class="text-sm font-bold text-white flex items-center gap-2"><i class="fas fa-server text-green-400 text-xs"></i> Derniers serveurs</h2>
+                    <a href="/admin/?view=servers" class="text-xs text-green-400 hover:text-green-300 font-semibold">Tous →</a>
+                </div>
+                <?php foreach (array_slice($all_servers, 0, 6) as $sv):
+                    $st = $sv['status'] ?? 'unknown';
+                    $st_badge = match($st) { 'paid'=>'badge-green','suspended'=>'badge-orange','expired'=>'badge-red',default=>'badge-gray' };
+                    $st_label = match($st) { 'paid'=>'Actif','suspended'=>'Suspendu','expired'=>'Expiré',default=>'Autre' };
+                ?>
+                <div class="flex items-center gap-3 px-5 py-3 border-b border-white/[0.03] last:border-0 hover:bg-white/[0.02] transition">
+                    <div class="w-7 h-7 rounded-lg bg-sky-500/10 flex items-center justify-center shrink-0"><i class="fas fa-server text-sky-400 text-xs"></i></div>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-xs font-semibold text-white truncate"><?= htmlspecialchars($sv['service_name'] ?? '—') ?></div>
+                        <div class="text-[10px] text-gray-500 truncate"><?= htmlspecialchars($sv['pseudo'] ?: ($sv['firstname'] ?? '')) ?> · <?= htmlspecialchars($sv['user_email'] ?? '') ?></div>
+                    </div>
+                    <div class="shrink-0 flex items-center gap-2">
+                        <span class="badge <?= $st_badge ?>"><?= $st_label ?></span>
+                        <?php if (($sv['renewal_price'] ?? 0) > 0): ?>
+                        <span class="text-[10px] text-gray-400 font-mono"><?= number_format((float)$sv['renewal_price'],2,',','') ?>€</span>
+                        <?php else: ?>
+                        <span class="text-[10px] text-green-400">Gratuit</span>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+            </div>
+
+        </div>
+
+        <!-- Raccourcis admin -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            <?php
+            $shortcuts = [
+                ['/admin/nodes/',         'fa-network-wired', 'bg-sky-500/10',    'text-sky-400',    'Nodes'],
+                ['/admin/eggs/',          'fa-egg',           'bg-purple-500/10', 'text-purple-400', 'Eggs'],
+                ['/admin/products/',      'fa-box',           'bg-amber-500/10',  'text-amber-400',  'Produits'],
+                ['/admin/extensions/',    'fa-puzzle-piece',  'bg-green-500/10',  'text-green-400',  'Extensions'],
+                ['/admin/?view=invoices', 'fa-file-invoice-dollar', 'bg-yellow-500/10','text-yellow-400','Factures'],
+                ['/admin/?view=settings', 'fa-sliders-h',    'bg-rose-500/10',   'text-rose-400',   'Paramètres'],
+            ];
+            foreach ($shortcuts as [$href,$icon,$bg,$color,$label]):
+            ?>
+            <a href="<?= $href ?>" class="card p-4 flex flex-col items-center gap-2.5 hover:border-white/20 transition text-center">
+                <div class="w-9 h-9 rounded-xl <?= $bg ?> flex items-center justify-center">
+                    <i class="fas <?= $icon ?> <?= $color ?> text-sm"></i>
+                </div>
+                <span class="text-xs font-semibold text-gray-300"><?= $label ?></span>
+            </a>
+            <?php endforeach; ?>
+        </div>
 
     <!-- ═══════════════════════════════════════════════════
          VUE CLIENTS
     ════════════════════════════════════════════════════ -->
-    <?php if ($view === 'clients'): ?>
+    <?php elseif ($view === 'clients'): ?>
     <div class="card overflow-hidden">
         <div class="px-5 py-4 border-b border-white/[0.05] flex items-center justify-between">
             <h2 class="text-sm font-bold text-white flex items-center gap-2"><i class="fas fa-users text-sky-400 text-xs"></i> Clients (<?php echo count($all_users); ?>)</h2>
@@ -374,6 +459,13 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_sidebar.php';
                         <div class="flex items-center gap-1.5">
                             <button onclick="openEmail('<?php echo htmlspecialchars($u['email']); ?>')" class="btn-action btn-sky"><i class="fas fa-envelope"></i> Email</button>
                             <?php if ($u['id'] !== (int)$_SESSION['user_id']): ?>
+                            <form method="POST" action="/admin/?view=clients" style="display:inline">
+                                <input type="hidden" name="action" value="toggle_admin">
+                                <input type="hidden" name="user_id" value="<?php echo $u['id']; ?>">
+                                <button type="submit" class="btn-action <?php echo $u['is_admin'] ? 'btn-orange' : 'btn-blue'; ?>" title="<?php echo $u['is_admin'] ? 'Rétrograder' : 'Promouvoir admin'; ?>">
+                                    <i class="fas <?php echo $u['is_admin'] ? 'fa-user-minus' : 'fa-user-shield'; ?>"></i>
+                                </button>
+                            </form>
                             <form method="POST" action="/admin/" onsubmit="return confirmDel('Supprimer #<?php echo $u['id']; ?> et ses serveurs ?')" style="display:inline">
                                 <input type="hidden" name="action" value="delete_user">
                                 <input type="hidden" name="user_id" value="<?php echo $u['id']; ?>">
