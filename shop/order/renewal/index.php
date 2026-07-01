@@ -53,6 +53,7 @@ if (isset($_GET['session_id'])) {
     // ── Générer la facture de renouvellement ─────────────────────────────────
     $invoice_count = (int)$pdo->query("SELECT COUNT(*)+1 FROM invoices")->fetchColumn();
     $invoice_id    = 'INV-' . date('Y') . '-' . str_pad($invoice_count, 5, '0', STR_PAD_LEFT);
+    $next_pay_date = date("Y-m-01", strtotime("+1 month"));
     $pdo->prepare("
         INSERT INTO invoices (invoice_id, user_id, order_id, service_name, amount, type,
             status, payment_method, payment_ref, paid_at, created_at)
@@ -61,6 +62,20 @@ if (isset($_GET['session_id'])) {
         $invoice_id, $_SESSION['user_id'], $order['order_id'], $order['service_name'],
         $price, $_GET['session_id']
     ]);
+
+    // ── Email de confirmation renouvellement ─────────────────────────────────
+    require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/smtp.php';
+    $u_stmt = $pdo->prepare('SELECT pseudo, firstname FROM users WHERE id=? LIMIT 1');
+    $u_stmt->execute([$_SESSION['user_id']]);
+    $u_row = $u_stmt->fetch();
+    $username_display = !empty($u_row['pseudo']) ? $u_row['pseudo'] : ($u_row['firstname'] ?? '');
+    send_renewal_confirmation_email(
+        $pdo, $_SESSION['email'] ?? $order['email'] ?? '',
+        $username_display,
+        $order['order_id'], $order['service_name'],
+        $price,
+        date("d/m/Y", strtotime($next_pay_date))
+    );
 
     sendRenewalDiscord(
         $discord_webhook_url,

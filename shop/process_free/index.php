@@ -57,6 +57,15 @@ $pdo->prepare('
     $srv['identifier'],
 ]);
 
+// ─── Email de confirmation ───────────────────────────────────
+require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/smtp.php';
+$username_display = !empty($user['pseudo']) ? $user['pseudo'] : $user['firstname'];
+send_order_confirmation_email(
+    $pdo, $user['email'], $username_display,
+    $order_id, $product['name'], 0.0,
+    $srv['identifier'], $pass ?? null, $panel_url
+);
+
 // ─── Session succès ──────────────────────────────────────────
 $_SESSION['success_order_id']       = $order_id;
 $_SESSION['success_email']          = $user['email'];

@@ -130,12 +130,6 @@ $pay_method_label = match($inv['payment_method'] ?? '') {
             <?php if ($open_tickets > 0): ?><span class="ml-auto text-[10px] bg-purple-500/20 text-purple-400 border border-purple-500/20 px-1.5 py-0.5 rounded-full font-bold"><?php echo $open_tickets; ?></span><?php endif; ?>
         </a>
         <a href="/status/" class="nav-item"><i class="fas fa-signal icon"></i> Statut</a>
-        <?php if ($is_admin): ?>
-        <div class="nav-separator"></div>
-        <div class="nav-section">Administration</div>
-        <a href="/admin/" class="nav-item" style="color:#f43f5e;border-color:rgba(244,63,94,.1);"><i class="fas fa-shield-alt icon"></i> Admin Panel</a>
-        <a href="/support/admin_tickets/" class="nav-item"><i class="fas fa-ticket-alt icon"></i> Tickets</a>
-        <?php endif; ?>
         <div class="nav-separator"></div>
         <div class="nav-section">Outils</div>
         <a href="<?php echo htmlspecialchars($panel_url); ?>" target="_blank" class="nav-item"><i class="fas fa-cogs icon"></i> Panel Pterodactyl</a>

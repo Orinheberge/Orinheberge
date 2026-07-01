@@ -138,6 +138,15 @@ if (isset($_GET['session_id'])) {
         $offer['price'], $user['email'], $srv['uuid'], $srv['identifier']
     );
 
+    // ── Email de confirmation ─────────────────────────────────────────────────
+    require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/smtp.php';
+    $username_display = !empty($user['pseudo']) ? $user['pseudo'] : $user['firstname'];
+    send_order_confirmation_email(
+        $pdo, $user['email'], $username_display,
+        $order_id, $offer['name'], (float)$offer['price'],
+        $srv['identifier'], $pass ?? null, $panel_url
+    );
+
     $_SESSION['success_order_id']       = $order_id;
     $_SESSION['success_email']          = $user['email'];
     $_SESSION['success_server_id']      = $srv['id'];
