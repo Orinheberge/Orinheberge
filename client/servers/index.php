@@ -367,12 +367,19 @@ $total = count($servers);
                 'offline'  => ['text' => 'Hors ligne', 'badge' => 'badge-red',    'dot' => 'bg-red-400'],
             ];
             foreach ($server_data as $entry):
-                $server   = $entry['server'];
-                $status   = $entry['status'];
-                $id       = $server['uuid'] ?? '';
-                $short_id = $server['id_server_panel'] ?? substr($id, 0, 8);
-                $sm       = $status_map[$status] ?? ['text' => 'Inconnu', 'badge' => 'badge-gray', 'dot' => 'bg-gray-400'];
-                $name     = htmlspecialchars($server['service_name'] ?? 'Serveur');
+                $server     = $entry['server'];
+                $status     = $entry['status'];
+                $db_status  = $server['status'] ?? 'paid'; // statut BDD (paid/suspended/deleted)
+                $id         = $server['uuid'] ?? '';
+                $short_id   = $server['id_server_panel'] ?? substr($id, 0, 8);
+                $is_suspended = in_array($db_status, ['suspended', 'deleted']);
+                $sm         = $status_map[$status] ?? ['text' => 'Inconnu', 'badge' => 'badge-gray', 'dot' => 'bg-gray-400'];
+                // Overrider le badge si suspendu en BDD
+                if ($db_status === 'suspended') $sm = ['text' => 'Suspendu', 'badge' => 'badge-gray', 'dot' => 'bg-gray-500'];
+                if ($db_status === 'deleted')   $sm = ['text' => 'Supprimé', 'badge' => 'badge-red',  'dot' => 'bg-red-500'];
+                $name       = htmlspecialchars($server['service_name'] ?? 'Serveur');
+                // Date suppression si suspendu
+                $delete_after = $server['delete_after'] ?? null;
 
                 // Icône selon type
                 $sname_low  = strtolower($server['service_name'] ?? '');
