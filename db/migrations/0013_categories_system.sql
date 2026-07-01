@@ -1,41 +1,25 @@
 -- ====================================================================
--- 1. CRÉATION DE LA TABLE DES CATÉGORIES (GÉRABLE DEPUIS L'ADMIN)
--- ====================================================================
-CREATE TABLE IF NOT EXISTS `categories` (
-  `slug` VARCHAR(50) NOT NULL PRIMARY KEY COMMENT 'Identifiant unique (ex: minecraft, fivem)',
-  `name_key` VARCHAR(100) NOT NULL COMMENT 'Clé de traduction pour le nom (ex: cat.minecraft.name)',
-  `icon` VARCHAR(100) NOT NULL DEFAULT 'fas fa-server' COMMENT 'Classe FontAwesome (ex: fas fa-cube)',
-  `image_url` VARCHAR(255) NULL COMMENT 'Lien de l image d illustration',
-  `sort_order` INT NOT NULL DEFAULT 0,
-  `is_active` TINYINT(1) NOT NULL DEFAULT 1,
-  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- ====================================================================
--- 2. CRÉATION DE LA TABLE DE LIAISON (MANY-TO-MANY)
+-- 1. CRÉATION DE LA TABLE UNIQUE CATEGORIES_PRODUCTS
 -- ====================================================================
 CREATE TABLE IF NOT EXISTS `categories_products` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
   `product_id` INT NOT NULL,
-  `category_slug` VARCHAR(50) NOT NULL,
+  `category_slug` VARCHAR(50) NOT NULL COMMENT 'Slug de la catégorie (ex: minecraft, fivem)',
+  `name_key` VARCHAR(100) NOT NULL COMMENT 'Clé de traduction pour le menu/titre (ex: cat.minecraft.name)',
+  `icon` VARCHAR(100) NOT NULL DEFAULT 'fas fa-server' COMMENT 'Icône FontAwesome',
+  `image_url` VARCHAR(255) NULL COMMENT 'Image d illustration de la catégorie',
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`product_id`, `category_slug`),
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   CONSTRAINT `fk_cp_product` 
     FOREIGN KEY (`product_id`) 
     REFERENCES `products` (`id`) 
     ON DELETE CASCADE 
-    ON UPDATE CASCADE,
-  CONSTRAINT `fk_cp_category` 
-    FOREIGN KEY (`category_slug`) 
-    REFERENCES `categories` (`slug`) 
-    ON DELETE CASCADE 
     ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
 -- ====================================================================
 -- 3. INSERTIION DES CATÉGORIES PAR DÉFAUT
 -- ====================================================================
-INSERT INTO `categories` (`slug`, `name_key`, `icon`, `image_url`, `sort_order`) VALUES
+INSERT INTO `categories_products` (`slug`, `name_key`, `icon`, `image_url`, `sort_order`) VALUES
 ('minecraft', 'cat.minecraft.name', 'fas fa-cube', 'https://www.4netplayers.com/images/minecraft/blog/teaser-image.jpg', 1),
 ('fivem', 'cat.fivem.name', 'fas fa-car', 'https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=600&auto=format&fit=crop', 2),
 ('hytale', 'cat.hytale.name', 'fas fa-gamepad', 'https://cdn.minestrator.com/blog/articles/155/thumbnail.webp', 3),
