@@ -56,6 +56,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         header('Location: /admin/extensions/'); exit();
     }
 
+    if ($action === 'toggle_promo') {
+        $id = (int)($_POST['promo_id'] ?? 0);
+        if ($id > 0) {
+            $pdo->prepare('UPDATE promos SET is_active = 1 - is_active WHERE id=?')->execute([$id]);
+        }
+        header('Location: /admin/extensions/'); exit();
+    }
+
     if ($action === 'save_settings') {
         $ext_id = (int)($_POST['ext_id'] ?? 0);
         $ext    = $pdo->prepare('SELECT slug FROM extensions WHERE id=?');
@@ -103,6 +111,16 @@ $extensions = $pdo->query('SELECT * FROM extensions ORDER BY id')->fetchAll();
 $ext_settings = [];
 foreach ($pdo->query('SELECT * FROM extension_settings') as $r) {
     $ext_settings[$r['extension_id']][$r['key']] = $r['value'];
+}
+
+$promos = [];
+try {
+    $promoTable = $pdo->query("SHOW TABLES LIKE 'promos'")->fetch();
+    if ($promoTable) {
+        $promos = $pdo->query('SELECT id, slug, name, code, is_active FROM promos ORDER BY id')->fetchAll();
+    }
+} catch (PDOException $e) {
+    $promos = [];
 }
 
 $active_nav = 'extensions';
@@ -158,7 +176,39 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_layout.php';
         </div>
 
         <!-- Configuration -->
-        <?php if ($has_config): ?>
+        <?php if ($ext['slug'] === 'promo'): ?>
+        <div class="p-5 space-y-3">
+          <div class="text-xs text-gray-500">Les codes promo sont gérés depuis la table promos du site.</div>
+          <?php if (!empty($promos)): ?>
+            <div class="space-y-2">
+              <?php foreach ($promos as $promo): ?>
+                <div class="rounded-lg border border-white/10 bg-white/5 p-3">
+                  <div class="flex items-center justify-between gap-3">
+                    <div>
+                      <div class="text-sm font-semibold text-white"><?= htmlspecialchars($promo['code']) ?></div>
+                      <div class="text-[11px] text-gray-400"><?= htmlspecialchars($promo['name']) ?></div>
+                    </div>
+                    <form method="POST" class="shrink-0">
+                      <input type="hidden" name="action" value="toggle_promo">
+                      <input type="hidden" name="promo_id" value="<?= (int)$promo['id'] ?>">
+                      <button type="submit" class="relative inline-flex h-6 w-11 items-center rounded-full border transition-colors <?= (int)$promo['is_active'] ? 'bg-sky-500 border-sky-400' : 'bg-gray-700 border-gray-600' ?>">
+                        <span class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform <?= (int)$promo['is_active'] ? 'translate-x-6' : 'translate-x-1' ?>"></span>
+                      </button>
+                    </form>
+                  </div>
+                  <div class="mt-2 text-[11px] <?= (int)$promo['is_active'] ? 'text-emerald-400' : 'text-gray-500' ?>">
+                    <?= (int)$promo['is_active'] ? 'Activé' : 'Désactivé' ?>
+                  </div>
+                </div>
+              <?php endforeach; ?>
+            </div>
+          <?php else: ?>
+            <div class="rounded-lg border border-yellow-500/20 bg-yellow-500/10 p-3 text-xs text-yellow-300">
+              Aucune promo n’a été trouvée dans la base.
+            </div>
+          <?php endif; ?>
+        </div>
+        <?php elseif ($has_config): ?>
         <div class="p-5">
           <form method="POST" class="space-y-3">
             <input type="hidden" name="action" value="save_settings">
@@ -182,11 +232,6 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_layout.php';
               <i class="fas fa-save"></i> Sauvegarder
             </button>
           </form>
-        </div>
-        <?php elseif ($ext['slug'] === 'promo'): ?>
-        <div class="p-5">
-          <p class="text-xs text-gray-500">Les codes promo sont gérés via le fichier <code class="bg-white/5 px-1.5 py-0.5 rounded text-sky-400">shop/order/lib/promo/promo.php</code>.</p>
-          <a href="/admin/?view=settings" class="btn btn-ghost w-full mt-3 text-xs justify-center">Aller aux paramètres généraux</a>
         </div>
         <?php endif; ?>
       </div>
