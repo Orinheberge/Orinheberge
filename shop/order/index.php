@@ -29,13 +29,78 @@ $stripe_public_key = $ext_cfg['stripe']['public_key'] ?? '';
 $paypalme_username = $ext_cfg['paypal']['username']   ?? 'metal544002009';
 $discord_webhook_url = $ext_cfg['discord']['webhook_url'] ?? '';
 
-// ─── Produit depuis BDD ──────────────────────────────────────
-$type = strtolower(trim($_GET['plan'] ?? $_GET['type'] ?? ''));
-if ($type === '') die("Aucune offre spécifiée.");
+// ─── Annulation de commande ──────────────────────────────────
+if (isset($_GET['cancel']) && ($_GET['cancel'] === '1' || $_GET['cancel'] === 'true')) {
+    $pending_order_id = $_SESSION['current_pending_order_id'] ?? null;
+    if ($pending_order_id) {
+        $cancel_stmt = $pdo->prepare("DELETE FROM orders WHERE order_id = ? AND user_id = ? AND status = 'pending' LIMIT 1");
+        $cancel_stmt->execute([$pending_order_id, $_SESSION['user_id']]);
+    }
 
-$offer = getProductBySlug($pdo, $type);
-if (!$offer) die("Offre invalide ou inactive : " . htmlspecialchars($type, ENT_QUOTES, 'UTF-8'));
-if ($offer['type'] !== 'paid') die("Cette offre n'est pas une offre payante.");
+    unset($_SESSION['current_pending_order_id'], $_SESSION['checkout_bundle']);
+    $_SESSION['order_cancelled'] = true;
+    header('Location: /shop/cart/');
+    exit();
+}
+
+// ─── Produit depuis BDD ──────────────────────────────────────
+$bundle_items = [];
+$bundle_total = 0.0;
+$bundle_param = '';
+$bundle_label = '';
+
+$plan_param = trim($_GET['plan'] ?? $_GET['type'] ?? '');
+$selected_slugs = [];
+if ($plan_param !== '') {
+    $raw_parts = array_filter(array_map('trim', explode(',', $plan_param)), 'strlen');
+    foreach ($raw_parts as $raw_slug) {
+        $selected_slugs[] = strtolower($raw_slug);
+    }
+}
+
+if (empty($selected_slugs) && !empty($_SESSION['checkout_bundle']['items']) && is_array($_SESSION['checkout_bundle']['items'])) {
+    foreach ($_SESSION['checkout_bundle']['items'] as $entry) {
+        $slug = trim((string)($entry['slug'] ?? ''));
+        if ($slug !== '') {
+            $selected_slugs[] = strtolower($slug);
+        }
+    }
+}
+
+if (empty($selected_slugs)) {
+    die("Aucune offre spécifiée.");
+}
+
+foreach ($selected_slugs as $slug) {
+    $product = getProductBySlug($pdo, $slug);
+    if (!$product || (string)($product['type'] ?? '') !== 'paid') {
+        continue;
+    }
+
+    $quantity = 1;
+    if (!empty($_SESSION['checkout_bundle']['items']) && is_array($_SESSION['checkout_bundle']['items'])) {
+        foreach ($_SESSION['checkout_bundle']['items'] as $entry) {
+            if (strtolower((string)($entry['slug'] ?? '')) === strtolower($slug)) {
+                $quantity = max(1, (int)($entry['quantity'] ?? 1));
+                break;
+            }
+        }
+    }
+
+    $bundle_items[] = ['product' => $product, 'quantity' => $quantity];
+    $bundle_total += (float)($product['price'] ?? 0) * $quantity;
+}
+
+if (empty($bundle_items)) {
+    die("Aucune offre payante valide n'a été trouvée.");
+}
+
+$offer = $bundle_items[0]['product'];
+$bundle_param = implode($selected_slugs, ',');
+$bundle_label = count($bundle_items) > 1 ? implode(array_map(static function ($entry) {
+    return $entry['product']['name'];
+}, $bundle_items), ' + ') : $offer['name'];
+$type = strtolower(trim($offer['slug'] ?? $selected_slugs[0] ?? ''));
 
 $stmt = $pdo->prepare("SELECT * FROM users WHERE id=?");
 $stmt->execute([$_SESSION['user_id']]);
@@ -84,7 +149,7 @@ if ($check->fetchColumn() >= 5) die("❌ Limite de 5 serveurs atteinte.");
 // Nettoyage de la promotion en session si demandé
 if (isset($_GET['clear_promo'])) {
     unset($_SESSION['promo_code']);
-    header("Location: ?plan=" . urlencode($type));
+    header("Location: ?plan=" . urlencode($bundle_param ?: $type));
     exit();
 }
 
@@ -94,6 +159,7 @@ if (isset($_GET['clear_promo'])) {
 |--------------------------------------------------------------------------
 */
 
+$promo_context  = count($bundle_items) > 1 ? 'cart' : $type;
 $active_promo   = getActiveAutoPromo($promos);
 $promo_error    = null;
 $applied_promo  = null;
@@ -101,7 +167,7 @@ $applied_promo  = null;
 if (isset($_POST['promo_code']) && !empty($_POST['promo_code'])) {
     // Nettoyage agressif des espaces invisibles et insécables
     $input_code = preg_replace('/\s+/u', '', $_POST['promo_code']);
-    $manual = checkPromoCode($promos, $input_code, $type);
+    $manual = checkPromoCode($promos, $input_code, $promo_context);
     
     if ($manual) {
         $applied_promo = $manual;
@@ -110,14 +176,14 @@ if (isset($_POST['promo_code']) && !empty($_POST['promo_code'])) {
         $promo_error = "Code invalide ou expiré.";
     }
 } elseif (isset($_SESSION['promo_code'])) {
-    $applied_promo = checkPromoCode($promos, $_SESSION['promo_code'], $type);
+    $applied_promo = checkPromoCode($promos, $_SESSION['promo_code'], $promo_context);
 }
 
 $promo = $applied_promo ?? $active_promo;
-$prices = $promo ? applyPromo((float)$offer['price'], $promo) : [
-    'original_price' => (float)$offer['price'],
+$prices = $promo ? applyPromo((float)$bundle_total, $promo) : [
+    'original_price' => (float)$bundle_total,
     'reduction'      => 0,
-    'final_price'    => (float)$offer['price'],
+    'final_price'    => (float)$bundle_total,
     'label'          => null,
 ];
 $final_price = $prices['final_price'];
@@ -150,10 +216,10 @@ if (isset($_GET['session_id'])) {
             renewal_price, next_payment_date, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'paid', ?, ?, ?, NOW())
     ")->execute([
-        $_SESSION['user_id'], $order_id, $offer['name'],
+        $_SESSION['user_id'], $order_id, $bundle_label,
         $offer['ram'], $offer['disk'], $offer['cpu'],
         $srv['id'], $srv['uuid'], $srv['identifier'],
-        $_GET['session_id'], $offer['price'], $next_pay
+        $_GET['session_id'], $final_price, $next_pay
     ]);
 
     // ── Générer la facture ────────────────────────────────────────────────────
@@ -164,13 +230,13 @@ if (isset($_GET['session_id'])) {
             status, payment_method, payment_ref, paid_at, created_at)
         VALUES (?, ?, ?, ?, ?, 'purchase', 'paid', 'stripe', ?, NOW(), NOW())
     ")->execute([
-        $invoice_id, $_SESSION['user_id'], $order_id, $offer['name'],
-        $offer['price'], $_GET['session_id']
+        $invoice_id, $_SESSION['user_id'], $order_id, $bundle_label,
+        $final_price, $_GET['session_id']
     ]);
 
     sendDiscordWebhook(
-        $discord_webhook_url, $order_id, $offer['name'],
-        $offer['price'], $user['email'], $srv['uuid'], $srv['identifier']
+        $discord_webhook_url, $order_id, $bundle_label,
+        $final_price, $user['email'], $srv['uuid'], $srv['identifier']
     );
 
     // ── Email de confirmation ─────────────────────────────────────────────────
@@ -178,14 +244,14 @@ if (isset($_GET['session_id'])) {
     $username_display = !empty($user['pseudo']) ? $user['pseudo'] : $user['firstname'];
     send_order_confirmation_email(
         $pdo, $user['email'], $username_display,
-        $order_id, $offer['name'], (float)$offer['price'],
+        $order_id, $bundle_label, (float)$final_price,
         $srv['identifier'], $pass ?? null, $panel_url
     );
 
     $_SESSION['success_order_id']       = $order_id;
     $_SESSION['success_email']          = $user['email'];
     $_SESSION['success_server_id']      = $srv['id'];
-    $_SESSION['success_offer']          = $offer['name'];
+    $_SESSION['success_offer']          = $bundle_label;
     $_SESSION['success_panel_password'] = $pass ?? ($user['panel_password'] ?? null);
 
     // Nettoyage de la promo après un achat réussi
@@ -212,9 +278,9 @@ if (!isset($_SESSION['current_pending_order_id'])) {
             renewal_price, next_payment_date, created_at)
         VALUES (?, ?, ?, ?, ?, ?, NULL, NULL, NULL, 'pending', NULL, ?, ?, NOW())
     ")->execute([
-        $_SESSION['user_id'], $order_id, $offer['name'],
+        $_SESSION['user_id'], $order_id, $bundle_label,
         $offer['ram'], $offer['disk'], $offer['cpu'],
-        $offer['price'], $next_pay
+        $final_price, $next_pay
     ]);
     
     $_SESSION['current_pending_order_id'] = $order_id;
@@ -222,8 +288,8 @@ if (!isset($_SESSION['current_pending_order_id'])) {
     $order_id = $_SESSION['current_pending_order_id'];
     
     // Mise à jour optionnelle du prix de renouvellement si le prix ou la promo change
-    $pdo->prepare("UPDATE orders SET renewal_price = ? WHERE order_id = ? AND status = 'pending'")
-        ->execute([$final_price, $order_id]);
+    $pdo->prepare("UPDATE orders SET renewal_price = ?, service_name = ? WHERE order_id = ? AND status = 'pending'")
+        ->execute([$final_price, $bundle_label, $order_id]);
 }
 
 $stripe_session = createStripeSession(
@@ -434,13 +500,35 @@ $paypalme_url = getPaypalMeLink($paypalme_username, $final_price);
                 Commande <span class="text-amber-400 font-bold">#<?= htmlspecialchars($order_id, ENT_QUOTES, 'UTF-8') ?></span>
             </p>
 
+            <?php if (!empty($_SESSION['order_cancelled'])): ?>
+            <div class="mb-4 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-sm">
+                <i class="fas fa-check-circle mr-2"></i> La commande en attente a bien été annulée.
+            </div>
+            <?php unset($_SESSION['order_cancelled']); ?>
+            <?php endif; ?>
+
+            <div class="mb-4 flex justify-end">
+                <a href="?plan=<?= urlencode($bundle_param) ?>&cancel=1" class="inline-flex items-center gap-2 rounded-xl border border-red-500/20 bg-red-500/10 px-3 py-2 text-sm text-red-400 transition hover:bg-red-500/20">
+                    <i class="fas fa-trash"></i> Annuler la commande
+                </a>
+            </div>
+
             <div class="bg-white/5 border border-white/[0.05] p-4 rounded-xl text-left mb-4 flex justify-between items-center">
                 <div>
-                    <p class="text-xs text-gray-400 uppercase font-bold tracking-wider">Offre sélectionnée</p>
-                    <p class="text-lg font-bold text-white"><?= htmlspecialchars($offer['name'], ENT_QUOTES, 'UTF-8') ?></p>
+                    <p class="text-xs text-gray-400 uppercase font-bold tracking-wider">Offres sélectionnées</p>
+                    <div class="mt-2 space-y-1">
+                        <?php foreach ($bundle_items as $bundle_entry): ?>
+                        <div class="text-sm text-white">
+                            <span class="font-semibold"><?= htmlspecialchars($bundle_entry['product']['name'], ENT_QUOTES, 'UTF-8') ?></span>
+                            <?php if ((int)$bundle_entry['quantity'] > 1): ?>
+                            <span class="text-gray-400">×<?= (int)$bundle_entry['quantity'] ?></span>
+                            <?php endif; ?>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
                 </div>
                 <div class="text-right">
-                    <p class="text-xs text-gray-400 uppercase font-bold tracking-wider">Total</p>
+                    <p class="text-xs text-gray-400 uppercase font-bold tracking-wider">Total combiné</p>
                     <?php if ($promo): ?>
                         <p class="text-sm line-through text-gray-500"><?= number_format($prices['original_price'], 2, '.', '') ?>€</p>
                         <p class="text-xl font-black text-green-400"><?= number_format($final_price, 2, '.', '') ?>€ <span class="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full"><?= htmlspecialchars($prices['label'], ENT_QUOTES, 'UTF-8') ?></span></p>

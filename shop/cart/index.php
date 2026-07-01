@@ -127,6 +127,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $free_items = [];
         $paid_items = [];
+        $paid_total = 0.0;
         foreach ($_SESSION['cart'] as $slug => $item) {
             if ((int)($item['quantity'] ?? 0) <= 0) {
                 continue;
@@ -144,11 +145,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($is_free) {
                 $free_items[] = ['product' => $product, 'quantity' => (int)($item['quantity'] ?? 0)];
             } else {
-                $paid_items[] = ['slug' => $slug, 'product' => $product];
+                $quantity = (int)($item['quantity'] ?? 0);
+                $paid_items[] = ['slug' => $slug, 'product' => $product, 'quantity' => $quantity];
+                $paid_total += $product_price * $quantity;
             }
         }
 
-        if (!empty($free_items) && empty($paid_items)) {
+        if (!empty($free_items)) {
             foreach ($free_items as $entry) {
                 for ($i = 0; $i < $entry['quantity']; $i++) {
                     $result = processFreeOrder($pdo, $user, $entry['product'], $headers_admin, $panel_url);
@@ -159,16 +162,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['success_panel_password'] = $result['panel_password'];
                 }
             }
-
-            $_SESSION['cart'] = [];
-            header('Location: /shop/success/?type=free');
-            exit();
         }
 
         if (!empty($paid_items)) {
-            $selected_slug = $paid_items[0]['slug'];
+            $bundle_slugs = [];
+            foreach ($paid_items as $entry) {
+                $bundle_slugs[] = $entry['slug'];
+            }
+
+            $_SESSION['checkout_bundle'] = [
+                'items' => $paid_items,
+                'total' => round($paid_total, 2),
+                'label' => count($paid_items) > 1 ? 'Offres combinées' : ($paid_items[0]['product']['name'] ?? 'Offre')
+            ];
             $_SESSION['cart'] = [];
-            header('Location: /shop/order/?plan=' . urlencode($selected_slug));
+            header('Location: /shop/order/?plan=' . urlencode(implode($bundle_slugs, ',')));
+            exit();
+        }
+
+        if (!empty($free_items)) {
+            $_SESSION['cart'] = [];
+            header('Location: /shop/success/?type=free');
             exit();
         }
 
