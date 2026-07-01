@@ -69,28 +69,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->execute([$ext_id, $field['key'], $val]);
             }
 
-            // Synchroniser aussi vers la table settings pour compatibilité
             if ($slug === 'pterodactyl') {
                 $sync = $pdo->prepare('INSERT INTO settings (`key`,`value`) VALUES (?,?) ON DUPLICATE KEY UPDATE `value`=VALUES(`value`)');
                 foreach (['panel_url','api_key_admin','api_key_client'] as $k) {
-                    if (isset($_POST[$k])) $sync->execute([$k, trim($_POST[$k])]);
+                    if (isset($_POST[$k])) {
+                        $sync->execute([$k, trim($_POST[$k])]);
+                    }
                 }
             }
+
             if ($slug === 'smtp') {
                 $sync = $pdo->prepare('INSERT INTO settings (`key`,`value`) VALUES (?,?) ON DUPLICATE KEY UPDATE `value`=VALUES(`value`)');
                 $map = ['host'=>'smtp_host','port'=>'smtp_port','user'=>'smtp_user','pass'=>'smtp_pass','from'=>'smtp_from','from_name'=>'smtp_from_name'];
                 foreach ($map as $fk => $sk) {
-                    if (isset($_POST[$fk])) $sync->execute([$sk, trim($_POST[$fk])]);
+                    if (isset($_POST[$fk])) {
+                        $sync->execute([$sk, trim($_POST[$fk])]);
+                    }
                 }
             }
 
-              if ($slug === 'promo') {
+            if ($slug === 'promo') {
                 $sync = $pdo->prepare('INSERT INTO promos (`key`,`value`) VALUES (?,?) ON DUPLICATE KEY UPDATE `value`=VALUES(`value`)');
-                if (isset($_POST['promo_enabled'])) {
-                    $sync->execute(['promo_enabled', '1']);
-                } else {
-                    $sync->execute(['promo_enabled', '0']);
-                }
+                $sync->execute(['promo_enabled', isset($_POST['promo_enabled']) ? '1' : '0']);
+            }
 
             $flash = '<div class="bg-green-500/15 text-green-400 border border-green-500/25 p-3 rounded-xl text-sm mb-4">✅ Configuration sauvegardée.</div>';
         }
