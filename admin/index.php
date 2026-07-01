@@ -255,6 +255,7 @@ $is_logged_in = true;
             .topbar,.content{padding:.875rem 1rem;}
         }
     </style>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script>
         function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('overlay').classList.toggle('open');}
         function confirmDel(msg){return confirm('⚠️ '+msg+'\nCette action est irréversible.');}
