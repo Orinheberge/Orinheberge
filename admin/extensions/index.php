@@ -85,7 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
               if ($slug === 'promo') {
-                $sync = $pdo->prepare('INSERT INTO settings (`key`,`value`) VALUES (?,?) ON DUPLICATE KEY UPDATE `value`=VALUES(`value`)');
+                $sync = $pdo->prepare('INSERT INTO promos (`key`,`value`) VALUES (?,?) ON DUPLICATE KEY UPDATE `value`=VALUES(`value`)');
                 if (isset($_POST['promo_enabled'])) {
                     $sync->execute(['promo_enabled', '1']);
                 } else {
