@@ -138,15 +138,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Renouveler un serveur (repousser l'expiration de 30 jours)
     if ($action === 'renew_server') {
         $uuid = trim($_POST['server_uuid'] ?? '');
+        $days = max(1, min(3650, (int)($_POST['renew_days'] ?? 30)));
         if ($uuid) {
             $sv = $pdo->prepare('SELECT expires_at FROM orders WHERE uuid=?');
             $sv->execute([$uuid]);
             $row = $sv->fetch();
             $current = $row && $row['expires_at'] ? strtotime($row['expires_at']) : time();
             $base = max($current, time());
-            $new_expiry = date('Y-m-d H:i:s', strtotime('+30 days', $base));
-            $pdo->prepare('UPDATE orders SET expires_at=?, status=? WHERE uuid=?')->execute([$new_expiry, 'paid', $uuid]);
-            $flash = "<div class='bg-green-500/20 text-green-400 border border-green-500/30 p-4 rounded-xl text-sm'>✅ Serveur renouvelé jusqu'au <strong>" . htmlspecialchars($new_expiry) . "</strong>.</div>";
+            $new_expiry = date('Y-m-d H:i:s', strtotime("+{$days} days", $base));
+            $pdo->prepare("
+                UPDATE orders
+                SET expires_at=?,
+                    next_payment_date=DATE(?),
+                    status='paid',
+                    suspended_at=NULL,
+                    delete_after=NULL
+                WHERE uuid=?
+            ")->execute([$new_expiry, $new_expiry, $uuid]);
+            $flash = adminFlash('ok', "Serveur prolonge de <strong>{$days} jour(s)</strong>, jusqu'au <strong>" . htmlspecialchars($new_expiry) . "</strong>.");
         }
     }
 
