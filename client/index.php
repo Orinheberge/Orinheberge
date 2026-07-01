@@ -68,10 +68,6 @@ $stmt2 = $pdo->prepare("SELECT COUNT(*) FROM support_tickets WHERE user_id=? AND
 $stmt2->execute([$_SESSION['user_id']]);
 $open_tickets = $stmt2->fetchColumn();
 
-// Vérifier si admin
-$stmt3 = $pdo->prepare('SELECT is_admin FROM users WHERE id=? LIMIT 1');
-$stmt3->execute([$_SESSION['user_id']]);
-$is_admin = (bool)($stmt3->fetchColumn());
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo $lang; ?>">
@@ -119,7 +115,6 @@ $is_admin = (bool)($stmt3->fetchColumn());
         .service-row:hover{background:rgba(255,255,255,.02);}
         .service-icon{width:2.25rem;height:2.25rem;border-radius:.625rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:.9rem;}
         /* Admin bar */
-        .admin-bar{background:linear-gradient(135deg,rgba(225,29,72,.08),rgba(249,115,22,.06));border:1px solid rgba(225,29,72,.2);border-radius:.875rem;padding:1rem 1.25rem;}
         /* Quick links */
         .qlink{display:flex;align-items:center;gap:.75rem;padding:.75rem 1rem;border-radius:.75rem;border:1px solid rgba(255,255,255,.06);background:#161a22;transition:all .15s;text-decoration:none;}
         .qlink:hover{border-color:rgba(56,189,248,.25);background:rgba(56,189,248,.04);}
