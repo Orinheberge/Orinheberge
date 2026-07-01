@@ -457,6 +457,34 @@ $paypalme_url = getPaypalMeLink($paypalme_username, $final_price);
             </div>
             <?php endif; ?>
 
+            <?php if (count($avail_nodes) > 1): ?>
+            <!-- Sélecteur de node -->
+            <div class="mb-5">
+                <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
+                    <i class="fas fa-network-wired text-sky-400 mr-1"></i> Choisir votre datacenter
+                </label>
+                <div class="grid grid-cols-1 gap-2">
+                    <?php foreach ($avail_nodes as $an): ?>
+                    <a href="?plan=<?= urlencode($type) ?>&node=<?= $an['id'] ?>"
+                       class="flex items-center gap-3 px-4 py-3 rounded-xl border transition <?= $chosen_node_id === (int)$an['id'] ? 'bg-sky-500/10 border-sky-500/40 text-white' : 'bg-white/[0.02] border-white/[0.07] text-gray-400 hover:border-white/20 hover:bg-white/[0.05]' ?>">
+                        <div class="w-8 h-8 rounded-lg <?= $chosen_node_id === (int)$an['id'] ? 'bg-sky-500/20' : 'bg-white/5' ?> flex items-center justify-center shrink-0">
+                            <i class="fas fa-server text-xs <?= $chosen_node_id === (int)$an['id'] ? 'text-sky-400' : 'text-gray-500' ?>"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="text-sm font-semibold"><?= htmlspecialchars($an['name']) ?></div>
+                            <?php if ($an['fqdn']): ?>
+                            <div class="text-[11px] text-gray-600 font-mono truncate"><?= htmlspecialchars($an['fqdn']) ?></div>
+                            <?php endif; ?>
+                        </div>
+                        <?php if ($chosen_node_id === (int)$an['id']): ?>
+                        <i class="fas fa-check-circle text-sky-400 text-sm shrink-0"></i>
+                        <?php endif; ?>
+                    </a>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+            <?php endif; ?>
+
             <form method="POST" action="?plan=<?= htmlspecialchars($type, ENT_QUOTES, 'UTF-8') ?>" class="flex gap-2 mb-6">
                 <input type="text" name="promo_code"
                     placeholder="Code promo (ex: ETE2026)"
