@@ -3,12 +3,7 @@ if (session_status() === PHP_SESSION_NONE) session_start();
 require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/lang.php';
 if (!isset($_SESSION['user_id'])) { header('Location: /login/'); exit(); }
 
-try {
-    $pdo = new PDO('mysql:host=localhost;dbname=s43_orinheberge;charset=utf8mb4', 'root', '1504', [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
-    ]);
-} catch (PDOException $e) { die('Erreur BDD.'); }
+require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/db.php';
 
 // Charger infos user
 $u = $pdo->prepare('SELECT pseudo, firstname, avatar, is_admin FROM users WHERE id=? LIMIT 1');
@@ -17,6 +12,12 @@ $me = $u->fetch();
 $_SESSION['username'] = !empty($me['pseudo']) ? $me['pseudo'] : $me['firstname'];
 $_SESSION['avatar']   = $me['avatar'];
 $is_admin = (bool)($me['is_admin'] ?? false);
+
+// Tickets ouverts (pour badge sidebar)
+$open_tickets_count = (int)$pdo->prepare("SELECT COUNT(*) FROM support_tickets WHERE user_id=? AND status != 'Fermé'")->execute([$_SESSION['user_id']]) ? 0 : 0;
+$_ot = $pdo->prepare("SELECT COUNT(*) FROM support_tickets WHERE user_id=? AND status != 'Fermé'");
+$_ot->execute([$_SESSION['user_id']]);
+$open_tickets = (int)$_ot->fetchColumn();
 
 $flash = '';
 $view = $_GET['view'] ?? 'list'; // list | new | detail
