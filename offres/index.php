@@ -1,38 +1,57 @@
 <?php
-require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/lang.php';
-require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/db.php'; // fournit $pdo (connexion partagée, credentials centralisés)
-session_start();
+// 1. Inclusion des fichiers de configuration et de langue
+require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/lang.php'; 
+// Ce fichier est censé fournir $pdo (connexion partagée) et potentiellement $db_status
 
-// db.php doit définir $pdo et idéalement $db_status ; on sécurise si ce n'est pas le cas
-if (!isset($db_status)) {
-    $db_status = isset($pdo) && $pdo instanceof PDO;
+session_start();
+$is_logged_in = isset($_SESSION['user_id']);
+
+// 2. Initialisation sécurisée ou fallback de la connexion si non définie
+if (!isset($pdo)) {
+    try {
+        $pdo = new PDO('mysql:host=localhost;port=3306;dbname=s43_orinheberge;charset=utf8mb4', 'root', '1504', [
+            PDO::ATTR_TIMEOUT => 3,
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+        ]);
+        $db_status = true;
+    } catch (PDOException $e) {
+        $db_status = false;
+    }
+} else {
+    $db_status = true;
 }
 
-$is_logged_in = isset($_SESSION['user_id']);
+// 3. Récupération des données utilisateur si connecté
 if ($is_logged_in && $db_status) {
-    $stmt = $pdo->prepare("SELECT pseudo, firstname, avatar FROM users WHERE id = ? LIMIT 1");
-    $stmt->execute([$_SESSION['user_id']]);
-    $user_data = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    if ($user_data) {
-        // On s'assure que la session utilise les données fraîches pour la Navbar
-        $_SESSION['username'] = !empty($user_data['pseudo']) ? $user_data['pseudo'] : $user_data['firstname'];
-        $_SESSION['avatar']   = $user_data['avatar'];
+    try {
+        $stmt = $pdo->prepare("SELECT pseudo, firstname, avatar FROM users WHERE id = ? LIMIT 1");
+        $stmt->execute([$_SESSION['user_id']]);
+        $user_data = $stmt->fetch();
+        
+        if ($user_data) {
+            $_SESSION['username'] = !empty($user_data['pseudo']) ? $user_data['pseudo'] : $user_data['firstname'];
+            $_SESSION['avatar']   = $user_data['avatar'];
+        }
+    } catch (PDOException $e) {
+        // Optionnel : logger l'erreur discrètement
     }
 }
 
-// ── Chargement des offres depuis la table `products` ───────────────────────
-// Toute ligne active dans `products` apparaît automatiquement ici : plus besoin
-// de toucher ce fichier pour ajouter/retirer une offre, tout se pilote en BDD
-// (ou depuis l'admin, cf. /admin/products/).
+// 4. Chargement dynamique des offres (Pterodactyl / Hébergement)
 $all_products = [];
 if ($db_status) {
-    $all_products = $pdo->query("
-        SELECT p.*
-        FROM products p
-        WHERE p.is_active = 1
-        ORDER BY FIELD(p.tier, 'free','basic','medium','premium'), p.sort_order ASC, p.id ASC
-    ")->fetchAll(PDO::FETCH_ASSOC);
+    try {
+        // Ajout d'une colonne 'tier' générique ou tri par défaut si 'tier' n'est pas une ENUM
+        $all_products = $pdo->query("
+            SELECT p.*
+            FROM products p
+            WHERE p.is_active = 1
+            ORDER BY p.sort_order ASC, p.id ASC
+        ")->fetchAll();
+    } catch (PDOException $e) {
+        $all_products = [];
+    }
 }
 ?>
 <!DOCTYPE html>
