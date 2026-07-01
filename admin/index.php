@@ -58,6 +58,41 @@ function adminFlash(string $type, string $message): string {
     return "<div class='$class p-4 rounded-xl text-sm'><i class='fas fa-$icon mr-2'></i>$message</div>";
 }
 
+function clientApiCall($url, $headers, $endpoint, $method = 'GET', $data = null) {
+    $ch = curl_init($url . '/api/client/' . $endpoint);
+    curl_setopt_array($ch, [CURLOPT_HTTPHEADER => $headers, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 20, CURLOPT_SSL_VERIFYPEER => false]);
+    if ($method === 'DELETE') curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'DELETE');
+    if ($method === 'PATCH') curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PATCH');
+    if ($method === 'POST') curl_setopt($ch, CURLOPT_POST, true);
+    if ($data !== null) curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+    $res = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+    if ($code === 204) return true;
+    return $res ? json_decode($res, true) : null;
+}
+
+function requestServerBackup(string $panel_url, array $headers_client, array $server): ?string {
+    $identifier = $server['id_server_panel'] ?: substr((string)($server['uuid'] ?? ''), 0, 8);
+    if (!$identifier) return null;
+    $backup = clientApiCall($panel_url, $headers_client, "servers/$identifier/backups", 'POST', [
+        'name' => 'Backup avant suppression - ' . date('Y-m-d H:i'),
+        'ignored' => '',
+    ]);
+    return $backup['attributes']['uuid'] ?? null;
+}
+
+function sendServerDeletionScheduledEmail(array $server, string $delete_after, ?string $backup_uuid): void {
+    $backup_text = $backup_uuid
+        ? '<p>Un backup a ete demande avant suppression. Reference backup : <strong>' . htmlspecialchars($backup_uuid) . '</strong>.</p>'
+        : '<p>La demande de backup automatique n\'a pas pu etre confirmee. Contactez le support si vous souhaitez une archive manuelle.</p>';
+
+    $body = '<p>Bonjour,</p>'
+        . '<p>Le serveur <strong>' . htmlspecialchars($server['service_name'] ?? 'Serveur') . '</strong> est programme pour suppression le <strong>' . htmlspecialchars($delete_after) . '</strong>.</p>'
+        . $backup_text
+        . '<p>Vous pouvez contacter le support avant cette date si vous souhaitez annuler la suppression ou recuperer vos fichiers.</p>';
+
+    send_smtp_mail($server['user_email'], 'Suppression programmee - ' . ($server['service_name'] ?? 'Serveur'), email_layout('Suppression programmee', $body));
+}
+
 $flash = '';
 
 // ─── Actions POST ───────────────────────────────────────────────────────────
