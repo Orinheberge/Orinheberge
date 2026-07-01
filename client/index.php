@@ -176,6 +176,9 @@ $is_admin = (bool)($stmt3->fetchColumn());
         <a href="/profil/" class="nav-item">
             <i class="fas fa-user icon"></i> Mon profil
         </a>
+        <a href="/client/billing/" class="nav-item">
+            <i class="fas fa-file-invoice-dollar icon"></i> Facturation
+        </a>
         <a href="/support/" class="nav-item">
             <i class="fas fa-headset icon"></i> Support
             <?php if ($open_tickets > 0): ?>
