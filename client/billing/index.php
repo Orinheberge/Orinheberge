@@ -34,7 +34,10 @@ $inv_stmt = $pdo->prepare("
     ORDER BY created_at DESC
     LIMIT ? OFFSET ?
 ");
-$inv_stmt->execute([$_SESSION['user_id'], $per_page, $offset]);
+$inv_stmt->bindValue(1, (int)$_SESSION['user_id'], PDO::PARAM_INT);
+$inv_stmt->bindValue(2, $per_page,                 PDO::PARAM_INT);
+$inv_stmt->bindValue(3, $offset,                   PDO::PARAM_INT);
+$inv_stmt->execute();
 $invoices = $inv_stmt->fetchAll();
 
 // Totaux
