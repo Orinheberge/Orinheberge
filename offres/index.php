@@ -125,6 +125,7 @@ if ($db_status) {
                 'name_key'   => $name_key,
                 'desc_key'   => $desc_key,
                 'price'      => ($product['type'] === 'free') ? '0€' : number_format($product['price'], 2, ',', '') . '€',
+                'price_value'=> ($product['type'] === 'free') ? 0.0 : (float)$product['price'],
                 'period_key' => ($product['type'] === 'free') ? 'offers.period.free' : 'offers.period.month',
                 'plan'       => $slug,
                 'free'       => ($product['type'] === 'free'),
@@ -300,9 +301,22 @@ window.addEventListener('DOMContentLoaded', () => filterCategory('all'));
                         <?php endforeach; ?>
                     </ul>
                     
-                    <a href="<?php echo $link; ?>" class="mt-6 w-full <?php echo $style['btn']; ?> text-slate-950 font-bold py-3 rounded-2xl transition text-sm text-center block">
-                        <?php echo $btn_text; ?>
-                    </a>
+                    <?php if ($is_logged_in): ?>
+                        <form method="post" action="/shop/cart/" class="mt-6 w-full">
+                            <input type="hidden" name="action" value="add_item">
+                            <input type="hidden" name="slug" value="<?php echo htmlspecialchars($offer['slug']); ?>">
+                            <input type="hidden" name="name" value="<?php echo htmlspecialchars(t($offer['name_key'])); ?>">
+                            <input type="hidden" name="price" value="<?php echo htmlspecialchars((string)$offer['price_value']); ?>">
+                            <input type="hidden" name="period" value="<?php echo htmlspecialchars(t($offer['period_key'])); ?>">
+                            <button type="submit" class="w-full <?php echo $style['btn']; ?> text-slate-950 font-bold py-3 rounded-2xl transition text-sm text-center block">
+                                <?php echo $btn_text; ?>
+                            </button>
+                        </form>
+                    <?php else: ?>
+                        <a href="<?php echo $link; ?>" class="mt-6 w-full <?php echo $style['btn']; ?> text-slate-950 font-bold py-3 rounded-2xl transition text-sm text-center block">
+                            <?php echo $btn_text; ?>
+                        </a>
+                    <?php endif; ?>
                 </div>
             </div>
             <?php endforeach; ?>
