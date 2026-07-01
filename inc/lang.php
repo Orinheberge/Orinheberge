@@ -126,14 +126,14 @@ $translations = [
     'offer.mc_premium.desc' => ['fr' => 'Pour les architectures moddées exigeantes ou serveurs à fort trafic. Zéro latence.', 'en' => 'For demanding modded setups or high-traffic servers. Zero latency.'],
 
     // Hytale
-    'offer.hy_free.name'    => ['fr' => 'Hytale Free',       'en' => 'Hytale Free'],
-    'offer.hy_free.desc'    => ['fr' => 'Explorez Orbis et lancez votre premier serveur de test Hytale gratuitement.', 'en' => 'Explore Orbis and launch your first Hytale test server for free.'],
-    'offer.hy_basic.name'   => ['fr' => 'Hytale Basic',      'en' => 'Hytale Basic'],
-    'offer.hy_basic.desc'   => ['fr' => 'Lancez un petit serveur Hytale privé avec des ressources dédiées stables.', 'en' => 'Launch a small private Hytale server with stable dedicated resources.'],
-    'offer.hy_medium.name'  => ['fr' => 'Hytale Medium',     'en' => 'Hytale Medium'],
-    'offer.hy_medium.desc'  => ['fr' => 'Hébergez un serveur Hytale communautaire stable avec mods et plugins.', 'en' => 'Host a stable Hytale community server with mods and plugins.'],
-    'offer.hy_premium.name' => ['fr' => 'Hytale Pro',        'en' => 'Hytale Pro'],
-    'offer.hy_premium.desc' => ['fr' => 'Idéal pour les grands serveurs communautaires Hytale, mods complexes et scripts lourds.', 'en' => 'Ideal for large Hytale community servers, complex mods and heavy scripts.'],
+    'offer.hytale_free.name'    => ['fr' => 'Hytale Free',       'en' => 'Hytale Free'],
+    'offer.hytale_free.desc'    => ['fr' => 'Explorez Orbis et lancez votre premier serveur de test Hytale gratuitement.', 'en' => 'Explore Orbis and launch your first Hytale test server for free.'],
+    'offer.hytale_basic.name'   => ['fr' => 'Hytale Basic',      'en' => 'Hytale Basic'],
+    'offer.hytale_basic.desc'   => ['fr' => 'Lancez un petit serveur Hytale privé avec des ressources dédiées stables.', 'en' => 'Launch a small private Hytale server with stable dedicated resources.'],
+    'offer.hytale_medium.name'  => ['fr' => 'Hytale Medium',     'en' => 'Hytale Medium'],
+    'offer.hytale_medium.desc'  => ['fr' => 'Hébergez un serveur Hytale communautaire stable avec mods et plugins.', 'en' => 'Host a stable Hytale community server with mods and plugins.'],
+    'offer.hytale_premium.name' => ['fr' => 'Hytale Pro',        'en' => 'Hytale Pro'],
+    'offer.hytale_premium.desc' => ['fr' => 'Idéal pour les grands serveurs communautaires Hytale, mods complexes et scripts lourds.', 'en' => 'Ideal for large Hytale community servers, complex mods and heavy scripts.'],
 
     // PHP / Web
     'offer.php_free.name'    => ['fr' => 'Web PHP Free',     'en' => 'Web PHP Free'],
@@ -175,6 +175,17 @@ $translations = [
     'offer.fivem_premium.name' => ['fr' => 'FiveM Pro',       'en' => 'FiveM Pro'],
     'offer.fivem_premium.desc' => ['fr' => 'Pour les grands serveurs RP FiveM avec nombreux scripts et joueurs.', 'en' => 'For large FiveM RP servers with many scripts and players.'],
 
+
+	// Terraria
+    'offer.terraria_free.name'    => ['fr' => 'Terraria Free',      'en' => 'Terraria Free'],
+    'offer.terraria_free.desc'    => ['fr' => 'Lancez votre monde Terraria gratuitement avec tModLoader disponible.', 'en' => 'Launch your Terraria world for free with tModLoader available.'],
+    'offer.terraria_basic.name'   => ['fr' => 'Terraria Basic',     'en' => 'Terraria Basic'],
+    'offer.terraria_basic.desc'   => ['fr' => 'Parfait pour explorer et survivre en petit comité entre amis.', 'en' => 'Perfect for exploring and surviving in a small group with friends.'],
+    'offer.terraria_medium.name'  => ['fr' => 'Terraria Medium',    'en' => 'Terraria Medium'],
+    'offer.terraria_medium.desc'  => ['fr' => 'Idéal pour un serveur communautaire avec des mondes larges et tModLoader.', 'en' => 'Ideal for a community server with large worlds and tModLoader.'],
+    'offer.terraria_premium.name' => ['fr' => 'Terraria Pro',       'en' => 'Terraria Pro'],
+    'offer.terraria_premium.desc' => ['fr' => 'Puissance maximale pour les grands serveurs avec d\'immenses structures et de nombreux mods.', 'en' => 'Maximum power for large servers with massive structures and numerous mods.'],
+
     // Java
     'offer.java_free.name'    => ['fr' => 'Java Free',       'en' => 'Java Free'],
     'offer.java_free.desc'    => ['fr' => 'Idéal pour héberger vos bots Discord, apps asynchrones ou APIs en Java.', 'en' => 'Ideal for hosting your Discord bots, async apps or Java APIs.'],
@@ -185,6 +196,16 @@ $translations = [
     'offer.java_premium.name' => ['fr' => 'Java Pro',        'en' => 'Java Pro'],
     'offer.java_premium.desc' => ['fr' => 'Réactivité maximale pour vos applications Java les plus exigeantes.', 'en' => 'Maximum responsiveness for your most demanding Java applications.'],
 
+    // catégorie
+	'cat.minecraft.name' => ['fr' => 'Minecraft', 'en' => 'Minecraft'],
+    'cat.fivem.name'     => ['fr' => 'FiveM',     'en' => 'FiveM'],
+    'cat.hytale.name'    => ['fr' => 'Hytale',    'en' => 'Hytale'],
+    'cat.php.name'       => ['fr' => 'PHP',       'en' => 'PHP'],
+    'cat.python.name'    => ['fr' => 'Python',    'en' => 'Python'],
+    'cat.nodejs.name'    => ['fr' => 'Node.js',   'en' => 'Node.js'],
+    'cat.java.name'      => ['fr' => 'Java',      'en' => 'Java'],
+    'cat.terra.name'     => ['fr' => 'Terraria',  'en' => 'Terraria'],
+	
     // Features des offres (textes communs)
     'feat.ssl_free'       => ['fr' => 'SSL Gratuit',          'en' => 'Free SSL'],
     'feat.ssl_le'         => ['fr' => "SSL Let's Encrypt",    'en' => "Let's Encrypt SSL"],
