@@ -616,7 +616,9 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_sidebar.php';
                 ?>
                 <tr class="border-b border-white/[0.03]">
                     <td class="px-5 py-4">
-                        <div class="font-semibold text-white"><?php echo htmlspecialchars($sv['service_name'] ?? '—'); ?></div>
+                        <a href="/admin/?view=server&id=<?php echo (int)$sv['id']; ?>" class="font-semibold text-white hover:text-sky-400 transition">
+                            <?php echo htmlspecialchars($sv['service_name'] ?? '—'); ?>
+                        </a>
                         <div class="text-xs text-gray-500 font-mono"><?php echo htmlspecialchars(substr($sv['uuid'] ?? '', 0, 8)); ?></div>
                     </td>
                     <td class="px-5 py-4">
