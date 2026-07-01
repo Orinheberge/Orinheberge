@@ -27,7 +27,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $description = trim($_POST['description']  ?? '');
         $type        = ($_POST['type'] ?? 'paid') === 'free' ? 'free' : 'paid';
         $price       = (float)($_POST['price']     ?? 0);
-        $node_id     = (int)($_POST['node_id']     ?? 0);
+        $node_id     = (int)($_POST['node_id']     ?? 0);   // node principal (compat)
+        $extra_nodes = array_map('intval', (array)($_POST['extra_nodes'] ?? []));
         $egg_id      = (int)($_POST['egg_id']      ?? 0);
         $ram         = (int)($_POST['ram']         ?? 512);
         $disk        = (int)($_POST['disk']        ?? 5000);
@@ -46,14 +47,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($action === 'add') {
                     $pdo->prepare('INSERT INTO products (slug,name,description,type,price,node_id,egg_id,ram,disk,cpu,`databases`,backups,allocations,env_override,sort_order,is_active) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
                         ->execute([$slug,$name,$description,$type,$price,$node_id,$egg_id,$ram,$disk,$cpu,$databases,$backups,$allocations,$env_override,$sort_order,$is_active]);
-                    $flash = '<div class="bg-green-500/15 text-green-400 border border-green-500/25 p-3 rounded-xl text-sm mb-4">✅ Produit créé.</div>';
+                    $new_id = (int)$pdo->lastInsertId();
                 } else {
                     $pdo->prepare('UPDATE products SET slug=?,name=?,description=?,type=?,price=?,node_id=?,egg_id=?,ram=?,disk=?,cpu=?,`databases`=?,backups=?,allocations=?,env_override=?,sort_order=?,is_active=? WHERE id=?')
                         ->execute([$slug,$name,$description,$type,$price,$node_id,$egg_id,$ram,$disk,$cpu,$databases,$backups,$allocations,$env_override,$sort_order,$is_active,$id]);
-                    $flash = '<div class="bg-green-500/15 text-green-400 border border-green-500/25 p-3 rounded-xl text-sm mb-4">✅ Produit modifié.</div>';
+                    $new_id = $id;
                 }
+
+                // Synchroniser product_nodes
+                $pdo->prepare('DELETE FROM product_nodes WHERE product_id=?')->execute([$new_id]);
+                // Toujours inclure le node principal + les extra_nodes
+                $all_nodes = array_unique(array_filter(array_merge([$node_id], $extra_nodes)));
+                $ins = $pdo->prepare('INSERT IGNORE INTO product_nodes (product_id,node_id) VALUES (?,?)');
+                foreach ($all_nodes as $nid) { if ($nid > 0) $ins->execute([$new_id, $nid]); }
+
+                $flash = '<div class="bg-green-500/15 text-green-400 border border-green-500/25 p-3 rounded-xl text-sm mb-4">✅ Produit ' . ($action === 'add' ? 'créé' : 'modifié') . '.</div>';
             } catch (PDOException $e) {
-                $flash = '<div class="bg-red-500/15 text-red-400 border border-red-500/25 p-3 rounded-xl text-sm mb-4">❌ Erreur : slug déjà utilisé ou champ manquant.</div>';
+                $flash = '<div class="bg-red-500/15 text-red-400 border border-red-500/25 p-3 rounded-xl text-sm mb-4">❌ Erreur : ' . htmlspecialchars($e->getMessage()) . '</div>';
             }
         } else {
             $flash = '<div class="bg-red-500/15 text-red-400 border border-red-500/25 p-3 rounded-xl text-sm mb-4">❌ Champs obligatoires manquants.</div>';
@@ -81,7 +91,12 @@ $products = $pdo->query('
     ORDER BY p.sort_order, p.id
 ')->fetchAll();
 
-$nodes = $pdo->query('SELECT id,name FROM nodes WHERE is_active=1 ORDER BY id')->fetchAll();
+// Charger nodes liés par produit
+$pn_rows = $pdo->query('SELECT product_id, node_id FROM product_nodes')->fetchAll();
+$product_nodes_map = [];
+foreach ($pn_rows as $r) $product_nodes_map[$r['product_id']][] = (int)$r['node_id'];
+
+$nodes = $pdo->query('SELECT id,name,fqdn FROM nodes WHERE is_active=1 ORDER BY id')->fetchAll();
 $eggs  = $pdo->query('SELECT id,name,icon FROM eggs  WHERE is_active=1 ORDER BY id')->fetchAll();
 
 $active_nav = 'products';
@@ -107,8 +122,8 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_layout.php';
     <!-- Stats rapides -->
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
       <?php
-        $free_count = count(array_filter($products, fn($p) => $p['type'] === 'free'));
-        $paid_count = count(array_filter($products, fn($p) => $p['type'] === 'paid'));
+        $free_count   = count(array_filter($products, fn($p) => $p['type'] === 'free'));
+        $paid_count   = count(array_filter($products, fn($p) => $p['type'] === 'paid'));
         $active_count = count(array_filter($products, fn($p) => $p['is_active']));
       ?>
       <div class="card p-4"><div class="text-xs text-gray-500 mb-1">Total</div><div class="text-2xl font-black text-white"><?= count($products) ?></div></div>
@@ -122,20 +137,37 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_layout.php';
         <span class="text-sm font-bold text-white flex items-center gap-2"><i class="fas fa-box text-green-400 text-xs"></i> Liste des produits</span>
       </div>
       <?php if (empty($products)): ?>
-        <div class="px-5 py-12 text-center text-gray-500 text-sm">Aucun produit. Exécutez d'abord la migration 007 ou ajoutez manuellement.</div>
+        <div class="px-5 py-12 text-center text-gray-500 text-sm">Aucun produit. Ajoutez-en un via le bouton ci-dessus.</div>
       <?php else: ?>
+      <div class="overflow-x-auto">
       <table class="tbl">
         <thead>
-          <tr><th>Slug</th><th>Nom</th><th>Type</th><th>Prix</th><th>Node</th><th>Egg</th><th>RAM</th><th>CPU</th><th>Statut</th><th>Actions</th></tr>
+          <tr><th>Slug</th><th>Nom</th><th>Type</th><th>Prix</th><th>Nodes disponibles</th><th>Egg</th><th>RAM</th><th>CPU</th><th>Statut</th><th>Actions</th></tr>
         </thead>
         <tbody>
-          <?php foreach ($products as $p): ?>
+          <?php foreach ($products as $p):
+            $p_nodes = $product_nodes_map[$p['id']] ?? [$p['node_id']];
+            // Noms des nodes liés
+            $node_names = [];
+            foreach ($nodes as $n) {
+                if (in_array($n['id'], $p_nodes)) $node_names[] = $n['name'];
+            }
+          ?>
           <tr>
             <td class="font-mono text-xs text-gray-400"><?= htmlspecialchars($p['slug']) ?></td>
             <td class="font-semibold text-white"><?= htmlspecialchars($p['name']) ?></td>
             <td><?= $p['type'] === 'free' ? '<span class="badge badge-blue">Gratuit</span>' : '<span class="badge badge-amber">Payant</span>' ?></td>
             <td class="font-mono text-green-400 font-bold"><?= $p['type'] === 'free' ? '—' : number_format($p['price'],2).'€' ?></td>
-            <td class="text-gray-400 text-xs"><?= htmlspecialchars($p['node_name'] ?? '?') ?></td>
+            <td>
+              <div class="flex flex-wrap gap-1">
+                <?php foreach ($node_names as $nn): ?>
+                  <span class="text-[10px] bg-sky-500/10 text-sky-400 border border-sky-500/20 px-2 py-0.5 rounded-full font-semibold"><?= htmlspecialchars($nn) ?></span>
+                <?php endforeach; ?>
+                <?php if (empty($node_names)): ?>
+                  <span class="text-[10px] text-gray-600">—</span>
+                <?php endif; ?>
+              </div>
+            </td>
             <td>
               <div class="flex items-center gap-1.5">
                 <i class="<?= htmlspecialchars($p['egg_icon'] ?? 'fas fa-server') ?> text-sky-400 text-xs"></i>
@@ -147,7 +179,7 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_layout.php';
             <td><?= $p['is_active'] ? '<span class="badge badge-green">Actif</span>' : '<span class="badge badge-gray">Inactif</span>' ?></td>
             <td>
               <div class="flex items-center gap-1.5">
-                <button onclick='openEditModal(<?= htmlspecialchars(json_encode($p), ENT_QUOTES) ?>)' class="btn btn-ghost text-xs"><i class="fas fa-edit"></i></button>
+                <button onclick='openEditModal(<?= htmlspecialchars(json_encode(array_merge($p,['product_nodes'=>$product_nodes_map[$p['id']] ?? []])), ENT_QUOTES) ?>)' class="btn btn-ghost text-xs"><i class="fas fa-edit"></i></button>
                 <form method="POST" class="inline">
                   <input type="hidden" name="action" value="toggle"><input type="hidden" name="id" value="<?= $p['id'] ?>">
                   <button class="btn btn-ghost text-xs"><?= $p['is_active'] ? '<i class="fas fa-eye-slash"></i>' : '<i class="fas fa-eye"></i>' ?></button>
@@ -162,21 +194,22 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_layout.php';
           <?php endforeach; ?>
         </tbody>
       </table>
+      </div>
       <?php endif; ?>
     </div>
   </div>
 </div>
 
 <!-- Modal Produit -->
-<div id="modalProduct" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+<div id="modalProduct" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" style="backdrop-filter:blur(6px)">
   <div class="bg-[#161a22] border border-white/10 rounded-2xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
     <div class="flex items-center justify-between mb-5">
       <h3 id="modalProductTitle" class="text-base font-bold text-white">Ajouter un Produit</h3>
       <button onclick="document.getElementById('modalProduct').classList.add('hidden')" class="text-gray-500 hover:text-white"><i class="fas fa-times"></i></button>
     </div>
     <form method="POST" class="space-y-4">
-      <input type="hidden" name="action"    id="pAction" value="add">
-      <input type="hidden" name="id"        id="pId"     value="">
+      <input type="hidden" name="action" id="pAction" value="add">
+      <input type="hidden" name="id"     id="pId"     value="">
 
       <div class="grid grid-cols-2 gap-3">
         <div>
@@ -212,23 +245,41 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_layout.php';
         </div>
       </div>
 
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="block text-xs font-semibold text-gray-400 mb-1.5">Node <span class="text-red-400">*</span></label>
-          <select name="node_id" id="pNodeId" class="input">
-            <?php foreach ($nodes as $n): ?>
-              <option value="<?= $n['id'] ?>"><?= htmlspecialchars($n['name']) ?></option>
-            <?php endforeach; ?>
-          </select>
+      <!-- Node principal -->
+      <div>
+        <label class="block text-xs font-semibold text-gray-400 mb-1.5">Node par défaut <span class="text-red-400">*</span></label>
+        <select name="node_id" id="pNodeId" class="input">
+          <?php foreach ($nodes as $n): ?>
+            <option value="<?= $n['id'] ?>"><?= htmlspecialchars($n['name']) ?><?= $n['fqdn'] ? ' — '.$n['fqdn'] : '' ?></option>
+          <?php endforeach; ?>
+        </select>
+        <p class="text-[11px] text-gray-600 mt-1">Le serveur sera déployé sur ce node si le client ne choisit pas.</p>
+      </div>
+
+      <!-- Nodes supplémentaires (choix client) -->
+      <div>
+        <label class="block text-xs font-semibold text-gray-400 mb-2">Nodes disponibles au choix du client</label>
+        <div id="pNodesCheckboxes" class="grid grid-cols-2 gap-2">
+          <?php foreach ($nodes as $n): ?>
+          <label class="flex items-center gap-2 bg-white/[0.03] border border-white/[0.07] rounded-lg px-3 py-2 cursor-pointer hover:bg-white/[0.06] transition">
+            <input type="checkbox" name="extra_nodes[]" value="<?= $n['id'] ?>" class="node-cb w-4 h-4 accent-sky-500" data-nid="<?= $n['id'] ?>">
+            <span class="text-xs text-gray-300 font-medium"><?= htmlspecialchars($n['name']) ?></span>
+            <?php if ($n['fqdn']): ?>
+            <span class="text-[10px] text-gray-600 font-mono truncate"><?= htmlspecialchars($n['fqdn']) ?></span>
+            <?php endif; ?>
+          </label>
+          <?php endforeach; ?>
         </div>
-        <div>
-          <label class="block text-xs font-semibold text-gray-400 mb-1.5">Egg <span class="text-red-400">*</span></label>
-          <select name="egg_id" id="pEggId" class="input">
-            <?php foreach ($eggs as $e): ?>
-              <option value="<?= $e['id'] ?>"><?= htmlspecialchars($e['name']) ?></option>
-            <?php endforeach; ?>
-          </select>
-        </div>
+        <p class="text-[11px] text-gray-600 mt-1.5">Cochez tous les nodes sur lesquels cette offre peut être déployée. Le client choisira au moment de la commande.</p>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-gray-400 mb-1.5">Egg <span class="text-red-400">*</span></label>
+        <select name="egg_id" id="pEggId" class="input">
+          <?php foreach ($eggs as $e): ?>
+            <option value="<?= $e['id'] ?>"><?= htmlspecialchars($e['name']) ?></option>
+          <?php endforeach; ?>
+        </select>
       </div>
 
       <div class="grid grid-cols-3 gap-3">
@@ -283,6 +334,9 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_layout.php';
 function togglePrice(v) {
     document.getElementById('priceField').style.opacity = v === 'free' ? '0.3' : '1';
 }
+function resetCheckboxes() {
+    document.querySelectorAll('.node-cb').forEach(cb => cb.checked = false);
+}
 function openAddModal() {
     document.getElementById('modalProductTitle').textContent = 'Ajouter un Produit';
     document.getElementById('pAction').value = 'add';
@@ -298,6 +352,7 @@ function openAddModal() {
     document.getElementById('pBk').value    = '1';
     document.getElementById('pAlloc').value = '1';
     document.getElementById('pActive').checked = true;
+    resetCheckboxes();
     togglePrice('paid');
     document.getElementById('modalProduct').classList.remove('hidden');
 }
@@ -321,6 +376,12 @@ function openEditModal(p) {
     document.getElementById('pAlloc').value  = p.allocations;
     document.getElementById('pEnv').value    = p.env_override || '';
     document.getElementById('pActive').checked = p.is_active == 1;
+    // Restaurer les checkboxes des nodes
+    resetCheckboxes();
+    const pn = p.product_nodes || [];
+    document.querySelectorAll('.node-cb').forEach(cb => {
+        cb.checked = pn.includes(parseInt(cb.dataset.nid));
+    });
     togglePrice(p.type);
     document.getElementById('modalProduct').classList.remove('hidden');
 }
