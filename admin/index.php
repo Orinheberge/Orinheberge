@@ -368,6 +368,7 @@ $is_logged_in = true;
 $active_nav = match($view) {
     'clients'  => 'clients',
     'servers'  => 'servers',
+    'server'   => 'servers',
     'invoices' => 'invoices',
     'email'    => 'email',
     'settings' => 'settings',
