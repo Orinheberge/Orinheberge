@@ -14,7 +14,6 @@ $_SESSION['avatar']   = $me['avatar'];
 $is_admin = (bool)($me['is_admin'] ?? false);
 
 // Tickets ouverts (pour badge sidebar)
-$open_tickets_count = (int)$pdo->prepare("SELECT COUNT(*) FROM support_tickets WHERE user_id=? AND status != 'Fermé'")->execute([$_SESSION['user_id']]) ? 0 : 0;
 $_ot = $pdo->prepare("SELECT COUNT(*) FROM support_tickets WHERE user_id=? AND status != 'Fermé'");
 $_ot->execute([$_SESSION['user_id']]);
 $open_tickets = (int)$_ot->fetchColumn();
@@ -122,7 +121,7 @@ function type_color(string $type): string {
         .sidebar-nav{padding:.75rem .75rem;flex:1;}
         .nav-item{display:flex;align-items:center;gap:.75rem;padding:.625rem .875rem;border-radius:.625rem;font-size:.82rem;font-weight:500;color:#6b7280;transition:all .15s;text-decoration:none;margin-bottom:.15rem;border:1px solid transparent;}
         .nav-item:hover{background:rgba(255,255,255,.04);color:#d1d5db;}
-        .nav-item.active{background:rgba(168,85,247,.08);color:#a855f7;border-color:rgba(168,85,247,.15);}
+        .nav-item.active{background:rgba(56,189,248,.08);color:#38bdf8;border-color:rgba(56,189,248,.15);}
         .nav-item .icon{width:1.1rem;text-align:center;font-size:.85rem;flex-shrink:0;}
         .nav-section{font-size:.65rem;font-weight:700;letter-spacing:.1em;color:#374151;text-transform:uppercase;padding:.75rem .875rem .35rem;}
         .nav-separator{height:1px;background:rgba(255,255,255,.05);margin:.5rem .75rem;}
@@ -142,10 +141,10 @@ function type_color(string $type): string {
         .ticket-row:hover{background:rgba(255,255,255,.02);}
         .ticket-dot{width:.5rem;height:.5rem;border-radius:50%;flex-shrink:0;}
         input,textarea,select{background:#1e2330;border:1px solid rgba(255,255,255,.08);color:#e2e8f0;border-radius:.625rem;padding:.6rem .875rem;font-size:.83rem;width:100%;outline:none;transition:border-color .15s;}
-        input:focus,textarea:focus,select:focus{border-color:rgba(168,85,247,.4);}
+        input:focus,textarea:focus,select:focus{border-color:rgba(56,189,248,.4);}
         .filter-btn{padding:.35rem .875rem;border-radius:9999px;font-size:.75rem;font-weight:600;border:1px solid rgba(255,255,255,.07);color:#6b7280;cursor:pointer;transition:all .15s;text-decoration:none;white-space:nowrap;}
         .filter-btn:hover{background:rgba(255,255,255,.05);color:#d1d5db;}
-        .filter-btn.active{background:rgba(168,85,247,.1);border-color:rgba(168,85,247,.3);color:#a855f7;}
+        .filter-btn.active{background:rgba(56,189,248,.1);border-color:rgba(56,189,248,.3);color:#38bdf8;}
         .mobile-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:39;}
         @media(max-width:768px){
             .sidebar{transform:translateX(-100%);transition:transform .25s;}
@@ -166,50 +165,57 @@ function type_color(string $type): string {
 <aside id="sidebar" class="sidebar">
     <div class="sidebar-logo">
         <a href="/" class="flex items-center gap-2.5">
-            <div class="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center">
-                <i class="fas fa-headset text-purple-400 text-sm"></i>
+            <div class="w-8 h-8 rounded-lg bg-sky-500/20 flex items-center justify-center">
+                <i class="fas fa-server text-sky-400 text-sm"></i>
             </div>
-            <div>
-                <span class="font-black text-white text-sm tracking-tight block leading-tight">OrinHeberge</span>
-                <span class="text-[10px] text-purple-400 font-semibold">Support</span>
-            </div>
+            <span class="font-black text-white text-base tracking-tight">OrinHeberge</span>
         </a>
     </div>
     <nav class="sidebar-nav">
-        <div class="nav-section">Support</div>
-        <a href="/support/?view=list" class="nav-item <?php echo ($view==='list'||$view==='detail')?'active':''; ?>">
-            <i class="fas fa-ticket-alt icon"></i> Mes tickets
-            <?php if ($counts['open'] > 0): ?><span class="ml-auto text-[10px] bg-orange-500/15 text-orange-400 border border-orange-500/20 px-1.5 py-0.5 rounded-full font-bold"><?php echo $counts['open']; ?></span><?php endif; ?>
+        <div class="nav-section">Principal</div>
+        <a href="/client/" class="nav-item">
+            <i class="fas fa-home icon"></i> Tableau de bord
         </a>
-        <a href="/support/?view=new" class="nav-item <?php echo $view==='new'?'active':''; ?>">
-            <i class="fas fa-plus icon"></i> Nouveau ticket
+        <a href="/client/servers/" class="nav-item">
+            <i class="fas fa-server icon"></i> Mes serveurs
         </a>
+        <a href="/offres/" class="nav-item">
+            <i class="fas fa-tags icon"></i> Nos offres
+        </a>
+
         <div class="nav-separator"></div>
-        <div class="nav-section">Ressources</div>
-        <a href="https://discord.gg/rnM2fngc7Z" target="_blank" class="nav-item">
-            <i class="fab fa-discord icon" style="color:#5865F2"></i> Discord
+        <div class="nav-section">Compte</div>
+        <a href="/profil/" class="nav-item">
+            <i class="fas fa-user icon"></i> Mon profil
+        </a>
+        <a href="/client/billing/" class="nav-item">
+            <i class="fas fa-file-invoice-dollar icon"></i> Facturation
+        </a>
+        <a href="/support/" class="nav-item active">
+            <i class="fas fa-headset icon"></i> Support
+            <?php if ($open_tickets > 0): ?>
+            <span class="ml-auto text-[10px] bg-purple-500/20 text-purple-400 border border-purple-500/20 px-1.5 py-0.5 rounded-full font-bold"><?php echo $open_tickets; ?></span>
+            <?php endif; ?>
         </a>
         <a href="/status/" class="nav-item">
             <i class="fas fa-signal icon"></i> Statut
         </a>
-        <?php if ($is_admin): ?>
+
         <div class="nav-separator"></div>
-        <div class="nav-section">Admin</div>
-        <a href="/support/admin_tickets/" class="nav-item" style="color:#f43f5e;">
-            <i class="fas fa-shield-alt icon"></i> Gérer les tickets
+        <div class="nav-section">Outils</div>
+        <a href="<?php echo htmlspecialchars($panel_url); ?>" target="_blank" class="nav-item">
+            <i class="fas fa-cogs icon"></i> Panel Pterodactyl
         </a>
-        <?php endif; ?>
-        <div class="nav-separator"></div>
-        <div class="nav-section">Navigation</div>
-        <a href="/client/" class="nav-item"><i class="fas fa-home icon"></i> Dashboard</a>
-        <a href="/client/servers/" class="nav-item"><i class="fas fa-server icon"></i> Mes serveurs</a>
+        <a href="<?php echo htmlspecialchars($cfg['phpmyadmin_url'] ?? ''); ?>" target="_blank" class="nav-item">
+            <i class="fas fa-database icon"></i> phpMyAdmin
+        </a>
     </nav>
     <div class="sidebar-footer">
-        <a href="/profil/" class="flex items-center gap-2.5 mb-2">
+        <a href="/profil/" class="flex items-center gap-2.5 group mb-2">
             <?php if (!empty($_SESSION['avatar']) && file_exists($_SERVER['DOCUMENT_ROOT'].'/'.$_SESSION['avatar'])): ?>
                 <img src="/<?php echo htmlspecialchars($_SESSION['avatar']); ?>" class="w-8 h-8 rounded-full object-cover border border-white/10">
             <?php else: ?>
-                <div class="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-400 text-xs font-bold border border-white/10"><?php echo strtoupper(substr($_SESSION['username']??'U',0,1)); ?></div>
+                <div class="w-8 h-8 rounded-full bg-sky-500/20 flex items-center justify-center text-sky-400 text-xs font-bold border border-white/10"><?php echo strtoupper(substr($_SESSION['username']??'U',0,1)); ?></div>
             <?php endif; ?>
             <div class="flex-1 min-w-0">
                 <div class="text-xs font-semibold text-white truncate"><?php echo htmlspecialchars($_SESSION['username']??''); ?></div>
