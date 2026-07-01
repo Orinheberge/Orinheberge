@@ -1,10 +1,9 @@
 -- ====================================================================
 -- 1. CRÉATION DE LA TABLE UNIQUE CATEGORIES_PRODUCTS
 -- ====================================================================
--- Note : Si ton ID dans 'products' est INT UNSIGNED, remplace "INT NULL" par "INT UNSIGNED NULL" ci-dessous.
 CREATE TABLE IF NOT EXISTS `categories_products` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `product_id` INT NULL COMMENT 'ID du produit lié (NULL si catégorie vide créée via l admin)',
+  `product_id` INT UNSIGNED NULL COMMENT 'ID du produit lié (Ajusté en INT UNSIGNED pour correspondre aux standards)',
   `category_slug` VARCHAR(50) NOT NULL COMMENT 'Slug de la catégorie (ex: minecraft, fivem)',
   `name_key` VARCHAR(100) NOT NULL COMMENT 'Clé de traduction pour le menu/titre (ex: cat.minecraft.name)',
   `icon` VARCHAR(100) NOT NULL DEFAULT 'fas fa-server' COMMENT 'Icône FontAwesome',
