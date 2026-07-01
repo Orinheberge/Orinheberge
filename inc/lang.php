@@ -126,12 +126,12 @@ $translations = [
     'offer.mc_premium.desc' => ['fr' => 'Pour les architectures moddées exigeantes ou serveurs à fort trafic. Zéro latence.', 'en' => 'For demanding modded setups or high-traffic servers. Zero latency.'],
 
     // Hytale
-    'offer.hy_free.name'    => ['fr' => 'Hytale Free',       'en' => 'Hytale Free'],
-    'offer.hy_free.desc'    => ['fr' => 'Explorez Orbis et lancez votre premier serveur de test Hytale gratuitement.', 'en' => 'Explore Orbis and launch your first Hytale test server for free.'],
-    'offer.hy_basic.name'   => ['fr' => 'Hytale Basic',      'en' => 'Hytale Basic'],
-    'offer.hy_basic.desc'   => ['fr' => 'Lancez un petit serveur Hytale privé avec des ressources dédiées stables.', 'en' => 'Launch a small private Hytale server with stable dedicated resources.'],
-    'offer.hy_medium.name'  => ['fr' => 'Hytale Medium',     'en' => 'Hytale Medium'],
-    'offer.hy_medium.desc'  => ['fr' => 'Hébergez un serveur Hytale communautaire stable avec mods et plugins.', 'en' => 'Host a stable Hytale community server with mods and plugins.'],
+    'offer.hytale_free.name'    => ['fr' => 'Hytale Free',       'en' => 'Hytale Free'],
+    'offer.hytale_free.desc'    => ['fr' => 'Explorez Orbis et lancez votre premier serveur de test Hytale gratuitement.', 'en' => 'Explore Orbis and launch your first Hytale test server for free.'],
+    'offer.hytale_basic.name'   => ['fr' => 'Hytale Basic',      'en' => 'Hytale Basic'],
+    'offer.hytale_basic.desc'   => ['fr' => 'Lancez un petit serveur Hytale privé avec des ressources dédiées stables.', 'en' => 'Launch a small private Hytale server with stable dedicated resources.'],
+    'offer.hytale_medium.name'  => ['fr' => 'Hytale Medium',     'en' => 'Hytale Medium'],
+    'offer.hytale_medium.desc'  => ['fr' => 'Hébergez un serveur Hytale communautaire stable avec mods et plugins.', 'en' => 'Host a stable Hytale community server with mods and plugins.'],
     'offer.hytale_premium.name' => ['fr' => 'Hytale Pro',        'en' => 'Hytale Pro'],
     'offer.hytale_premium.desc' => ['fr' => 'Idéal pour les grands serveurs communautaires Hytale, mods complexes et scripts lourds.', 'en' => 'Ideal for large Hytale community servers, complex mods and heavy scripts.'],
 
