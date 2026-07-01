@@ -21,6 +21,34 @@ if (isset($_GET['lang']) && in_array($_GET['lang'], ['fr', 'en'])) {
 $lang = $_SESSION['lang'] ?? 'fr';
 
 // ─── Dictionnaire complet ───────────────────────────────────────────────────
+function loadDbTranslations(array &$translations): void {
+    static $loaded = false;
+    if ($loaded) {
+        return;
+    }
+    $loaded = true;
+
+    try {
+        $pdo = new PDO('mysql:host=localhost;port=3306;dbname=s43_orinheberge;charset=utf8mb4', 'root', '1504', [
+            PDO::ATTR_TIMEOUT => 3,
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+        ]);
+
+        $stmt = $pdo->query('SELECT translation_key, fr, en FROM lang_boutique');
+        while ($row = $stmt->fetch()) {
+            if (!empty($row['translation_key'])) {
+                $translations[$row['translation_key']] = [
+                    'fr' => (string)($row['fr'] ?? ''),
+                    'en' => (string)($row['en'] ?? ''),
+                ];
+            }
+        }
+    } catch (PDOException $e) {
+        // Fallback silencieux si la table n'existe pas ou si la base est inaccessible.
+    }
+}
+
 $translations = [
 
     // ══════════════════════════════════════════════════════════════════════
@@ -116,108 +144,6 @@ $translations = [
     'offers.period.month' => ['fr' => '/ mois',             'en' => '/ month'],
 
     // Noms & descriptions des offres — Minecraft
-    'offer.mc_free.name'    => ['fr' => 'Minecraft Free',    'en' => 'Minecraft Free'],
-    'offer.mc_free.desc'    => ['fr' => 'Hébergement Minecraft fluide pour jouer en communauté ou tester vos configurations.', 'en' => 'Smooth Minecraft hosting to play with friends or test your setups.'],
-    'offer.mc_basic.name'   => ['fr' => 'Minecraft Basic',   'en' => 'Minecraft Basic'],
-    'offer.mc_basic.desc'   => ['fr' => 'Parfait pour un petit serveur entre amis avec quelques mods légers.', 'en' => 'Perfect for a small server between friends with a few light mods.'],
-    'offer.mc_medium.name'  => ['fr' => 'Minecraft Medium',  'en' => 'Minecraft Medium'],
-    'offer.mc_medium.desc'  => ['fr' => 'Un serveur Minecraft confortable pour une communauté active avec plugins.', 'en' => 'A comfortable Minecraft server for an active community with plugins.'],
-    'offer.mc_premium.name' => ['fr' => 'Minecraft Pro',     'en' => 'Minecraft Pro'],
-    'offer.mc_premium.desc' => ['fr' => 'Pour les architectures moddées exigeantes ou serveurs à fort trafic. Zéro latence.', 'en' => 'For demanding modded setups or high-traffic servers. Zero latency.'],
-
-    // Hytale
-    'offer.hytale_free.name'    => ['fr' => 'Hytale Free',       'en' => 'Hytale Free'],
-    'offer.hytale_free.desc'    => ['fr' => 'Explorez Orbis et lancez votre premier serveur de test Hytale gratuitement.', 'en' => 'Explore Orbis and launch your first Hytale test server for free.'],
-    'offer.hytale_basic.name'   => ['fr' => 'Hytale Basic',      'en' => 'Hytale Basic'],
-    'offer.hytale_basic.desc'   => ['fr' => 'Lancez un petit serveur Hytale privé avec des ressources dédiées stables.', 'en' => 'Launch a small private Hytale server with stable dedicated resources.'],
-    'offer.hytale_medium.name'  => ['fr' => 'Hytale Medium',     'en' => 'Hytale Medium'],
-    'offer.hytale_medium.desc'  => ['fr' => 'Hébergez un serveur Hytale communautaire stable avec mods et plugins.', 'en' => 'Host a stable Hytale community server with mods and plugins.'],
-    'offer.hytale_premium.name' => ['fr' => 'Hytale Pro',        'en' => 'Hytale Pro'],
-    'offer.hytale_premium.desc' => ['fr' => 'Idéal pour les grands serveurs communautaires Hytale, mods complexes et scripts lourds.', 'en' => 'Ideal for large Hytale community servers, complex mods and heavy scripts.'],
-
-    // PHP / Web
-    'offer.php_free.name'    => ['fr' => 'Web PHP Free',     'en' => 'Web PHP Free'],
-    'offer.php_free.desc'    => ['fr' => 'Mettez vos scripts et sites web en ligne instantanément avec un environnement PHP complet.', 'en' => 'Put your scripts and websites online instantly with a full PHP environment.'],
-    'offer.php_basic.name'   => ['fr' => 'PHP Basic',        'en' => 'PHP Basic'],
-    'offer.php_basic.desc'   => ['fr' => 'Hébergez un site vitrine ou un blog sans vous ruiner.', 'en' => 'Host a showcase website or blog without breaking the bank.'],
-    'offer.php_medium.name'  => ['fr' => 'PHP Medium',       'en' => 'PHP Medium'],
-    'offer.php_medium.desc'  => ['fr' => 'Un site WordPress, boutique ou application PHP avec de bonnes performances.', 'en' => 'A WordPress site, shop or PHP application with solid performance.'],
-    'offer.php_premium.name' => ['fr' => 'PHP Pro',          'en' => 'PHP Pro'],
-    'offer.php_premium.desc' => ['fr' => 'Solution haut de gamme idéale pour vos boutiques e-commerce ou APIs complexes.', 'en' => 'Top-of-the-range solution ideal for e-commerce shops or complex APIs.'],
-
-    // Python
-    'offer.py_free.name'    => ['fr' => 'Python Free',       'en' => 'Python Free'],
-    'offer.py_free.desc'    => ['fr' => 'Idéal pour héberger vos bots Discord, apps asynchrones ou APIs Python.', 'en' => 'Ideal for hosting your Discord bots, async apps or Python APIs.'],
-    'offer.py_basic.name'   => ['fr' => 'Python Basic',      'en' => 'Python Basic'],
-    'offer.py_basic.desc'   => ['fr' => 'Un bot Discord ou une petite API Python avec des ressources dédiées.', 'en' => 'A Discord bot or small Python API with dedicated resources.'],
-    'offer.py_medium.name'  => ['fr' => 'Python Medium',     'en' => 'Python Medium'],
-    'offer.py_medium.desc'  => ['fr' => 'Applications Python de taille moyenne, bots avancés ou API publiques.', 'en' => 'Medium-sized Python applications, advanced bots or public APIs.'],
-    'offer.py_premium.name' => ['fr' => 'Python Pro',        'en' => 'Python Pro'],
-    'offer.py_premium.desc' => ['fr' => 'Réactivité maximale pour vos applications Python les plus exigeantes.', 'en' => 'Maximum responsiveness for your most demanding Python applications.'],
-
-    // Node.js
-    'offer.node_free.name'    => ['fr' => 'Node.js Free',    'en' => 'Node.js Free'],
-    'offer.node_free.desc'    => ['fr' => 'Idéal pour héberger vos bots Discord, apps asynchrones ou APIs JavaScript.', 'en' => 'Ideal for hosting your Discord bots, async apps or JavaScript APIs.'],
-    'offer.node_basic.name'   => ['fr' => 'NodeJS Basic',    'en' => 'NodeJS Basic'],
-    'offer.node_basic.desc'   => ['fr' => 'Un bot Discord ou une petite API Node.js avec des ressources dédiées.', 'en' => 'A Discord bot or small Node.js API with dedicated resources.'],
-    'offer.node_medium.name'  => ['fr' => 'NodeJS Medium',   'en' => 'NodeJS Medium'],
-    'offer.node_medium.desc'  => ['fr' => 'Applications Node.js de taille moyenne, bots avancés ou API publiques.', 'en' => 'Medium-sized Node.js applications, advanced bots or public APIs.'],
-    'offer.node_premium.name' => ['fr' => 'NodeJS Pro',      'en' => 'NodeJS Pro'],
-    'offer.node_premium.desc' => ['fr' => 'Réactivité maximale pour vos applications Node.js les plus exigeantes.', 'en' => 'Maximum responsiveness for your most demanding Node.js applications.'],
-
-    // FiveM
-    'offer.fivem_free.name'    => ['fr' => 'FiveM Free',      'en' => 'FiveM Free'],
-    'offer.fivem_free.desc'    => ['fr' => 'Lancez votre serveur GTA RP FiveM gratuitement avec txAdmin inclus.', 'en' => 'Launch your FiveM GTA RP server for free with txAdmin included.'],
-    'offer.fivem_basic.name'   => ['fr' => 'FiveM Basic',     'en' => 'FiveM Basic'],
-    'offer.fivem_basic.desc'   => ['fr' => 'Parfait pour un petit serveur FiveM privé entre amis.', 'en' => 'Perfect for a small private FiveM server between friends.'],
-    'offer.fivem_medium.name'  => ['fr' => 'FiveM Medium',    'en' => 'FiveM Medium'],
-    'offer.fivem_medium.desc'  => ['fr' => 'Un serveur FiveM communautaire stable avec ressources dédiées.', 'en' => 'A stable FiveM community server with dedicated resources.'],
-    'offer.fivem_premium.name' => ['fr' => 'FiveM Pro',       'en' => 'FiveM Pro'],
-    'offer.fivem_premium.desc' => ['fr' => 'Pour les grands serveurs RP FiveM avec nombreux scripts et joueurs.', 'en' => 'For large FiveM RP servers with many scripts and players.'],
-
-
-	// Terraria
-    'offer.terraria_free.name'    => ['fr' => 'Terraria Free',      'en' => 'Terraria Free'],
-    'offer.terraria_free.desc'    => ['fr' => 'Lancez votre monde Terraria gratuitement avec tModLoader disponible.', 'en' => 'Launch your Terraria world for free with tModLoader available.'],
-    'offer.terraria_basic.name'   => ['fr' => 'Terraria Basic',     'en' => 'Terraria Basic'],
-    'offer.terraria_basic.desc'   => ['fr' => 'Parfait pour explorer et survivre en petit comité entre amis.', 'en' => 'Perfect for exploring and surviving in a small group with friends.'],
-    'offer.terraria_medium.name'  => ['fr' => 'Terraria Medium',    'en' => 'Terraria Medium'],
-    'offer.terraria_medium.desc'  => ['fr' => 'Idéal pour un serveur communautaire avec des mondes larges et tModLoader.', 'en' => 'Ideal for a community server with large worlds and tModLoader.'],
-    'offer.terraria_premium.name' => ['fr' => 'Terraria Pro',       'en' => 'Terraria Pro'],
-    'offer.terraria_premium.desc' => ['fr' => 'Puissance maximale pour les grands serveurs avec d\'immenses structures et de nombreux mods.', 'en' => 'Maximum power for large servers with massive structures and numerous mods.'],
-
-    // Java
-    'offer.java_free.name'    => ['fr' => 'Java Free',       'en' => 'Java Free'],
-    'offer.java_free.desc'    => ['fr' => 'Idéal pour héberger vos bots Discord, apps asynchrones ou APIs en Java.', 'en' => 'Ideal for hosting your Discord bots, async apps or Java APIs.'],
-    'offer.java_basic.name'   => ['fr' => 'Java Basic',      'en' => 'Java Basic'],
-    'offer.java_basic.desc'   => ['fr' => 'Un bot Discord ou une petite app Java avec des ressources dédiées.', 'en' => 'A Discord bot or small Java app with dedicated resources.'],
-    'offer.java_medium.name'  => ['fr' => 'Java Medium',     'en' => 'Java Medium'],
-    'offer.java_medium.desc'  => ['fr' => 'Applications Java de taille moyenne, microservices ou APIs robustes.', 'en' => 'Medium-sized Java applications, microservices or robust APIs.'],
-    'offer.java_premium.name' => ['fr' => 'Java Pro',        'en' => 'Java Pro'],
-    'offer.java_premium.desc' => ['fr' => 'Réactivité maximale pour vos applications Java les plus exigeantes.', 'en' => 'Maximum responsiveness for your most demanding Java applications.'],
-
-    // catégorie
-	'cat.minecraft.name' => ['fr' => 'Minecraft', 'en' => 'Minecraft'],
-    'cat.fivem.name'     => ['fr' => 'FiveM',     'en' => 'FiveM'],
-    'cat.hytale.name'    => ['fr' => 'Hytale',    'en' => 'Hytale'],
-    'cat.php.name'       => ['fr' => 'PHP',       'en' => 'PHP'],
-    'cat.python.name'    => ['fr' => 'Python',    'en' => 'Python'],
-    'cat.nodejs.name'    => ['fr' => 'Node.js',   'en' => 'Node.js'],
-    'cat.java.name'      => ['fr' => 'Java',      'en' => 'Java'],
-    'cat.terra.name'     => ['fr' => 'Terraria',  'en' => 'Terraria'],
-	
-    // Features des offres (textes communs)
-    'feat.ssl_free'       => ['fr' => 'SSL Gratuit',          'en' => 'Free SSL'],
-    'feat.ssl_le'         => ['fr' => "SSL Let's Encrypt",    'en' => "Let's Encrypt SSL"],
-    'feat.ddos'           => ['fr' => 'Protection DDoS',      'en' => 'DDoS Protection'],
-    'feat.mysql_1'        => ['fr' => '1 Base MySQL',         'en' => '1 MySQL Database'],
-    'feat.mysql_unlim'    => ['fr' => 'Base MySQL illimitée', 'en' => 'Unlimited MySQL'],
-    'feat.fast_install'   => ['fr' => 'Installation rapide',  'en' => 'Quick setup'],
-    'feat.git_auto'       => ['fr' => 'Auto-update Git',      'en' => 'Auto-update Git'],
-    'feat.support247'     => ['fr' => 'Support 24/7',         'en' => '24/7 Support'],
-    'feat.priority_sup'   => ['fr' => 'Support Prioritaire',  'en' => 'Priority Support'],
-    'feat.php8'           => ['fr' => 'PHP 8.x ultra optimisé', 'en' => 'Ultra-optimised PHP 8.x'],
-    'feat.cron'           => ['fr' => 'Tâches Cron avancées', 'en' => 'Advanced Cron Jobs'],
 
     // ══════════════════════════════════════════════════════════════════════
     // LOGIN PAGE
@@ -373,6 +299,8 @@ function th(string $key): string {
 // ══════════════════════════════════════════════════════════════════════
 // PAGES LÉGALES (CGU / Mentions / Confidentialité)
 // ══════════════════════════════════════════════════════════════════════
+loadDbTranslations($translations);
+
 $translations['legal.back']               = ['fr' => 'Retour',                                        'en' => 'Back'];
 $translations['cgu.heading']              = ['fr' => "Conditions Générales d'Utilisation",            'en' => 'Terms of Service'];
 $translations['cgu.subtitle']             = ['fr' => "Règles d'utilisation de nos services d'hébergement", 'en' => 'Rules for using our hosting services'];

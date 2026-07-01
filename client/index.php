@@ -183,10 +183,15 @@ $open_tickets = $stmt2->fetchColumn();
         <a href="/status/" class="nav-item">
             <i class="fas fa-signal icon"></i> Statut
         </a>
-
+        
 
         <div class="nav-separator"></div>
         <div class="nav-section">Outils</div>
+         <?php if (!empty($_SESSION['is_admin'])): ?>
+                            <a href="/admin/" class="flex items-center gap-2 px-4 py-2 text-sm text-amber-400 hover:bg-white/5 hover:text-amber-300">
+                                <i class="fas fa-shield-halved w-4"></i> Administration
+                            </a>
+                             <?php endif; ?>
         <a href="<?php echo htmlspecialchars($panel_url); ?>" target="_blank" class="nav-item">
             <i class="fas fa-cogs icon"></i> Panel Pterodactyl
         </a>

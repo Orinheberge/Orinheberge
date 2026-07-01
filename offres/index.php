@@ -78,6 +78,7 @@ if ($db_status) {
                 'image_url' => $c_row['image_url']
             ];
         }
+        $stmt_lang = $pdo->query("SELECT translation_key, fr, en FROM lang_boutique ORDER BY translation_key");
 
         // B. Récupérer uniquement les produits reliés à des catégories ACTIVES et dont le produit lui-même est actif
         $stmt = $pdo->query("

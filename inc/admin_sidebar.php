@@ -54,6 +54,9 @@ $_tickets_count  = isset($open_tickets) ? $open_tickets      : ($pdo->query("SEL
      <a href="/admin/categories/" class="nav-item <?= $active_nav === 'categories' ? 'active' : '' ?>">
       <i class="fas fa-folder icon"></i> Catégories
     </a>
+    <a href="/admin/lang/" class="nav-item <?= $active_nav === 'lang' ? 'active' : '' ?>">
+      <i class="fas fa-language icon"></i> Langues boutique
+    </a>
 
     <div class="nav-separator"></div>
     <div class="nav-section">Gestion</div>

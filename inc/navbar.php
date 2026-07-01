@@ -38,18 +38,35 @@ $active_nav = $active_nav ?? '';
                     <?php include $_SERVER['DOCUMENT_ROOT'] . '/inc/notifications.php'; ?>
                 <?php endif; ?>
 
-                <a href="/client/servers/" class="text-gray-300 hover:text-sky-400 font-bold flex items-center gap-2.5 transition bg-white/5 hover:bg-white/10 px-4 py-2 rounded-full border border-white/5 focus:outline-none text-xs whitespace-nowrap">
-                    <?php if (!empty($_SESSION['avatar']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/' . $_SESSION['avatar'])): ?>
-                        <img src="/<?php echo htmlspecialchars($_SESSION['avatar']); ?>" alt="Avatar" class="w-5 h-5 rounded-full object-cover border border-sky-500/30 shrink-0">
-                    <?php else: ?>
-                        <i class="fas fa-user-circle text-lg text-sky-400 shrink-0"></i>
-                    <?php endif; ?>
-                    <span><?php echo htmlspecialchars($_SESSION['username'] ?? t('nav.profile')); ?></span>
-                </a>
+                <div class="relative group">
+                    <button class="text-gray-300 hover:text-sky-400 font-bold flex items-center gap-2.5 transition bg-white/5 hover:bg-white/10 px-4 py-2 rounded-full border border-white/5 focus:outline-none text-xs whitespace-nowrap">
+                        <?php if (!empty($_SESSION['avatar']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/' . $_SESSION['avatar'])): ?>
+                            <img src="/<?php echo htmlspecialchars($_SESSION['avatar']); ?>" alt="Avatar" class="w-5 h-5 rounded-full object-cover border border-sky-500/30 shrink-0">
+                        <?php else: ?>
+                            <i class="fas fa-user-circle text-lg text-sky-400 shrink-0"></i>
+                        <?php endif; ?>
+                        <span><?php echo htmlspecialchars($_SESSION['username'] ?? t('nav.profile')); ?></span>
+                        <i class="fas fa-chevron-down text-[10px] opacity-70"></i>
+                    </button>
 
-                <a href="/logout/" class="bg-red-600/10 hover:bg-red-600/20 border border-red-500/20 text-red-400 hover:text-red-300 px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium shadow-md shadow-red-950/10 whitespace-nowrap">
-                    <i class="fas fa-sign-out-alt"></i> <?php echo t('nav.logout'); ?>
-                </a>
+                    <div class="absolute right-0 mt-2 w-56 rounded-2xl border border-white/10 bg-[#11151d] shadow-2xl shadow-black/30 py-2 hidden group-hover:block group-focus-within:block">
+                        <a href="/profil/" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white">
+                            <i class="fas fa-user w-4"></i> Profil
+                        </a>
+                        <a href="/client/servers/" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white">
+                            <i class="fas fa-server w-4"></i> Mes serveurs
+                        </a>
+                        <?php if (!empty($_SESSION['is_admin'])): ?>
+                            <a href="/admin/" class="flex items-center gap-2 px-4 py-2 text-sm text-amber-400 hover:bg-white/5 hover:text-amber-300">
+                                <i class="fas fa-shield-halved w-4"></i> Administration
+                            </a>
+                        <?php endif; ?>
+                        <hr class="my-2 border-white/10">
+                        <a href="/logout/" class="flex items-center gap-2 px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300">
+                            <i class="fas fa-sign-out-alt w-4"></i> Déconnexion
+                        </a>
+                    </div>
+                </div>
             <?php else: ?>
                 <a href="/login/" class="bg-sky-600/10 border border-sky-500/20 text-sky-400 hover:text-white hover:bg-sky-600 px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium whitespace-nowrap">
                     <i class="fas fa-sign-in-alt"></i> <?php echo t('nav.login'); ?>
