@@ -258,15 +258,14 @@ window.addEventListener('DOMContentLoaded', () => filterCategory('all'));
             <?php
                 $cat = $offer['category'];
                 $style = getCardStyle($tier_key);
-                
+
+                $cart_route = '/shop/cart/';
                 if ($offer['free']) {
-                    $route = '/shop/process_free/?type=' . urlencode($offer['slug']);
                     $btn_text = $is_logged_in ? t('btn.deploy') : t('btn.login_to_buy');
                 } else {
-                    $route = '/shop/order/?plan=' . urlencode($offer['slug']);
                     $btn_text = $is_logged_in ? t('btn.buy') : t('btn.login_to_buy');
                 }
-                $link = $is_logged_in ? $route : '/login/';
+                $link = $is_logged_in ? $cart_route : '/login/';
             ?>
             <div data-category="<?php echo $cat; ?>" 
                  class="offer-card glass rounded-3xl border <?php echo $style['card_border']; ?> flex flex-col card-hover overflow-hidden relative">

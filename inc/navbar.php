@@ -58,7 +58,7 @@ $active_nav = $active_nav ?? '';
                         </a>
                         <?php if (!empty($_SESSION['is_admin'])): ?>
                             <a href="/admin/" class="flex items-center gap-2 px-4 py-2 text-sm text-amber-400 hover:bg-white/5 hover:text-amber-300">
-                                <i class="fas fa-shield-halved w-4"></i> Administration
+                                <i class="fas fa-shield-halved text-sky-400 w-4"></i> Administration
                             </a>
                         <?php endif; ?>
                         <hr class="my-2 border-white/10">
