@@ -52,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Sauvegarder les paramètres
     if ($action === 'save_settings') {
-        $keys = ['panel_url','api_key_admin','api_key_client','phpmyadmin_url','site_name','smtp_host','smtp_port','smtp_user','smtp_pass','smtp_from','smtp_from_name'];
+        $keys = ['panel_url','api_key_admin','api_key_client','phpmyadmin_url','site_name','smtp_host','smtp_port','smtp_secure','smtp_user','smtp_pass','smtp_from','smtp_from_name'];
         $stmt = $pdo->prepare('INSERT INTO settings (`key`,`value`) VALUES (?,?) ON DUPLICATE KEY UPDATE `value`=VALUES(`value`)');
         foreach ($keys as $k) {
             if (isset($_POST[$k])) $stmt->execute([$k, trim($_POST[$k])]);
@@ -820,6 +820,14 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_sidebar.php';
                         <input type="number" name="smtp_port" value="<?php echo htmlspecialchars($cfg['smtp_port'] ?? '587'); ?>" placeholder="587" class="w-full rounded-xl px-4 py-2.5 text-sm">
                     </div>
                     <div>
+                        <label class="block text-xs text-gray-400 mb-1.5 font-semibold uppercase tracking-wide">Chiffrement</label>
+                        <select name="smtp_secure" class="w-full rounded-xl px-4 py-2.5 text-sm" style="background:#1e2330;border:1px solid rgba(255,255,255,.08);color:#e2e8f0;">
+                            <option value="tls"  <?php echo ($cfg['smtp_secure'] ?? 'tls') === 'tls'  ? 'selected' : ''; ?>>TLS (port 587)</option>
+                            <option value="ssl"  <?php echo ($cfg['smtp_secure'] ?? '') === 'ssl'  ? 'selected' : ''; ?>>SSL (port 465)</option>
+                            <option value="none" <?php echo ($cfg['smtp_secure'] ?? '') === 'none' ? 'selected' : ''; ?>>Aucun</option>
+                        </select>
+                    </div>
+                    <div>
                         <label class="block text-xs text-gray-400 mb-1.5 font-semibold uppercase tracking-wide">Utilisateur SMTP</label>
                         <input type="text" name="smtp_user" value="<?php echo htmlspecialchars($cfg['smtp_user'] ?? ''); ?>" placeholder="user@example.com" class="w-full rounded-xl px-4 py-2.5 text-sm">
                     </div>
@@ -835,6 +843,10 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_sidebar.php';
                         <label class="block text-xs text-gray-400 mb-1.5 font-semibold uppercase tracking-wide">Nom expéditeur</label>
                         <input type="text" name="smtp_from_name" value="<?php echo htmlspecialchars($cfg['smtp_from_name'] ?? ''); ?>" placeholder="OrinHeberge" class="w-full rounded-xl px-4 py-2.5 text-sm">
                     </div>
+                </div>
+                <div class="mt-3 p-3 bg-purple-500/5 border border-purple-500/15 rounded-xl text-xs text-gray-500 flex items-start gap-2">
+                    <i class="fas fa-circle-info text-purple-400 mt-0.5 shrink-0"></i>
+                    <span>OVH / ssl0.ovh.net : utilisez <strong class="text-white">SSL port 465</strong>. Gmail : <strong class="text-white">TLS port 587</strong>. La config est lue depuis cette page — aucune valeur en dur dans le code.</span>
                 </div>
             </div>
 
