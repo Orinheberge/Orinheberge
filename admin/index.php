@@ -38,10 +38,24 @@ function adminApiCall($url, $headers, $endpoint, $method = 'GET', $data = null) 
     $ch = curl_init($url . '/api/application/' . $endpoint);
     curl_setopt_array($ch, [CURLOPT_HTTPHEADER => $headers, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 15, CURLOPT_SSL_VERIFYPEER => false]);
     if ($method === 'DELETE') curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'DELETE');
-    if ($data) { curl_setopt($ch, CURLOPT_POST, true); curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data)); }
+    if ($method === 'PATCH') curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PATCH');
+    if ($method === 'POST') curl_setopt($ch, CURLOPT_POST, true);
+    if ($data !== null) curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
     $res = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
     if ($code === 204) return true;
     return $res ? json_decode($res, true) : null;
+}
+
+function adminFlash(string $type, string $message): string {
+    $classes = [
+        'ok'   => 'bg-green-500/20 text-green-400 border border-green-500/30',
+        'warn' => 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30',
+        'err'  => 'bg-red-500/20 text-red-400 border border-red-500/30',
+    ];
+    $icons = ['ok' => 'check-circle', 'warn' => 'triangle-exclamation', 'err' => 'circle-xmark'];
+    $class = $classes[$type] ?? $classes['ok'];
+    $icon  = $icons[$type] ?? $icons['ok'];
+    return "<div class='$class p-4 rounded-xl text-sm'><i class='fas fa-$icon mr-2'></i>$message</div>";
 }
 
 $flash = '';
