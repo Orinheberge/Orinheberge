@@ -23,7 +23,24 @@ function smtp_config_from_db(PDO $pdo): array {
 }
 
 /**
+ * Lit toutes les lignes d'une réponse SMTP multi-lignes.
+ * Retourne le code numérique (int) et log l'échange en cas d'erreur.
+ */
+function _smtp_read(mixed $sock, int $timeout): int {
+    $code = 0;
+    $deadline = microtime(true) + $timeout;
+    while (microtime(true) < $deadline) {
+        $line = fgets($sock, 512);
+        if ($line === false) break;
+        $code = (int)substr($line, 0, 3);
+        if (substr($line, 3, 1) === ' ') break; // dernière ligne de la réponse
+    }
+    return $code;
+}
+
+/**
  * Envoie un email via socket SMTP (SSL/TLS).
+ * Compatible OVH ssl0.ovh.net port 465 (SSL natif) et Gmail port 587 (STARTTLS).
  * Retourne true si accepté, false sinon.
  */
 function send_smtp_mail(string $to, string $subject, string $htmlBody, string $fromName = 'OrinHeberge', string $fromEmail = 'no-reply@orinheberge.fr', ?array $custom_config = null): bool {
@@ -38,12 +55,12 @@ function send_smtp_mail(string $to, string $subject, string $htmlBody, string $f
         $config = [];
     }
 
-    $host    = $config['host']     ?? '';
-    $port    = (int)($config['port']    ?? 587);
-    $user    = $config['username'] ?? $config['smtp_user'] ?? '';
-    $pass    = $config['password'] ?? $config['smtp_pass'] ?? '';
-    $secure  = strtolower($config['secure'] ?? 'tls');
-    $from    = $config['from']     ?? $fromEmail;
+    $host    = $config['host']      ?? '';
+    $port    = (int)($config['port']     ?? 587);
+    $user    = $config['username']  ?? $config['smtp_user'] ?? '';
+    $pass    = $config['password']  ?? $config['smtp_pass'] ?? '';
+    $secure  = strtolower($config['secure']  ?? 'tls');
+    $from    = $config['from']      ?? $fromEmail;
     $fname   = $config['from_name'] ?? $fromName;
 
     // Si pas de config SMTP valide on abandonne silencieusement
@@ -52,58 +69,111 @@ function send_smtp_mail(string $to, string $subject, string $htmlBody, string $f
         return false;
     }
 
-    $nl = "\r\n";
+    $nl      = "\r\n";
     $timeout = 15;
-    $errno = 0; $errstr = '';
+    $errno   = 0;
+    $errstr  = '';
 
-    $connect_host = ($secure === 'ssl') ? 'ssl://' . $host : $host;
-    $sock = @fsockopen($connect_host, $port, $errno, $errstr, $timeout);
+    // SSL natif (OVH port 465) : on ouvre le socket avec ssl://
+    // STARTTLS (Gmail port 587) : on ouvre en clair, puis on upgrade
+    if ($secure === 'ssl') {
+        $ctx = stream_context_create([
+            'ssl' => [
+                'verify_peer'       => false,
+                'verify_peer_name'  => false,
+                'allow_self_signed' => true,
+            ],
+        ]);
+        $sock = @stream_socket_client("ssl://{$host}:{$port}", $errno, $errstr, $timeout, STREAM_CLIENT_CONNECT, $ctx);
+    } else {
+        $sock = @stream_socket_client("tcp://{$host}:{$port}", $errno, $errstr, $timeout);
+    }
+
     if (!$sock) {
-        error_log("SMTP: connexion échouée ($connect_host:$port) — $errstr");
+        error_log("SMTP: connexion échouée ({$host}:{$port} secure={$secure}) — {$errstr}");
         return false;
     }
     stream_set_timeout($sock, $timeout);
 
-    fgets($sock, 512); // banner
+    _smtp_read($sock, $timeout); // banner 220
 
-    fputs($sock, "EHLO localhost$nl");
-    while ($line = fgets($sock, 512)) { if (substr($line, 3, 1) === ' ') break; }
+    fputs($sock, "EHLO localhost{$nl}");
+    _smtp_read($sock, $timeout); // 250-...
 
     if ($secure === 'tls') {
-        fputs($sock, "STARTTLS$nl");
-        fgets($sock, 512);
-        if (!stream_socket_enable_crypto($sock, true, STREAM_CRYPTO_METHOD_TLS_CLIENT)) {
+        fputs($sock, "STARTTLS{$nl}");
+        $code = _smtp_read($sock, $timeout); // 220
+        if ($code !== 220) {
+            error_log("SMTP: STARTTLS refusé (code={$code})");
             fclose($sock); return false;
         }
-        fputs($sock, "EHLO localhost$nl");
-        while ($line = fgets($sock, 512)) { if (substr($line, 3, 1) === ' ') break; }
+        $ctx = stream_context_create([
+            'ssl' => [
+                'verify_peer'       => false,
+                'verify_peer_name'  => false,
+                'allow_self_signed' => true,
+            ],
+        ]);
+        stream_context_set_option($sock, $ctx);
+        if (!stream_socket_enable_crypto($sock, true, STREAM_CRYPTO_METHOD_TLS_CLIENT)) {
+            error_log("SMTP: upgrade TLS échoué");
+            fclose($sock); return false;
+        }
+        fputs($sock, "EHLO localhost{$nl}");
+        _smtp_read($sock, $timeout); // 250-...
     }
 
-    fputs($sock, "AUTH LOGIN$nl"); fgets($sock, 512);
-    fputs($sock, base64_encode($user) . $nl); fgets($sock, 512);
-    fputs($sock, base64_encode($pass) . $nl); fgets($sock, 512);
+    fputs($sock, "AUTH LOGIN{$nl}");
+    _smtp_read($sock, $timeout); // 334
+    fputs($sock, base64_encode($user) . $nl);
+    _smtp_read($sock, $timeout); // 334
+    fputs($sock, base64_encode($pass) . $nl);
+    $auth_code = _smtp_read($sock, $timeout); // 235 = OK, 5xx = échec
+    if ($auth_code !== 235) {
+        error_log("SMTP: authentification échouée (code={$auth_code} user={$user})");
+        fclose($sock); return false;
+    }
 
-    fputs($sock, "MAIL FROM:<$from>$nl"); fgets($sock, 512);
-    fputs($sock, "RCPT TO:<$to>$nl");     fgets($sock, 512);
-    fputs($sock, "DATA$nl");              fgets($sock, 512);
+    fputs($sock, "MAIL FROM:<{$from}>{$nl}");
+    $code = _smtp_read($sock, $timeout); // 250
+    if ($code !== 250) {
+        error_log("SMTP: MAIL FROM rejeté (code={$code})");
+        fclose($sock); return false;
+    }
+
+    fputs($sock, "RCPT TO:<{$to}>{$nl}");
+    $code = _smtp_read($sock, $timeout); // 250
+    if ($code !== 250 && $code !== 251) {
+        error_log("SMTP: RCPT TO rejeté (code={$code} to={$to})");
+        fclose($sock); return false;
+    }
+
+    fputs($sock, "DATA{$nl}");
+    $code = _smtp_read($sock, $timeout); // 354
+    if ($code !== 354) {
+        error_log("SMTP: DATA refusé (code={$code})");
+        fclose($sock); return false;
+    }
 
     $encoded_subject = '=?UTF-8?B?' . base64_encode($subject) . '?=';
-    $headers  = "From: =?UTF-8?B?" . base64_encode($fname) . "?= <$from>$nl";
-    $headers .= "To: $to$nl";
-    $headers .= "Subject: $encoded_subject$nl";
-    $headers .= "MIME-Version: 1.0$nl";
-    $headers .= "Content-Type: text/html; charset=UTF-8$nl";
-    $headers .= "Content-Transfer-Encoding: quoted-printable$nl";
+    $headers  = "From: =?UTF-8?B?" . base64_encode($fname) . "?= <{$from}>{$nl}";
+    $headers .= "To: {$to}{$nl}";
+    $headers .= "Subject: {$encoded_subject}{$nl}";
+    $headers .= "MIME-Version: 1.0{$nl}";
+    $headers .= "Content-Type: text/html; charset=UTF-8{$nl}";
+    $headers .= "Content-Transfer-Encoding: quoted-printable{$nl}";
 
-    fputs($sock, $headers . $nl . quoted_printable_encode($htmlBody) . $nl . ".$nl");
-    $res = fgets($sock, 512);
+    fputs($sock, $headers . $nl . quoted_printable_encode($htmlBody) . $nl . ".{$nl}");
+    $code = _smtp_read($sock, $timeout); // 250
 
-    fputs($sock, "QUIT$nl");
+    fputs($sock, "QUIT{$nl}");
     fclose($sock);
 
-    $ok = (strpos($res, '250') !== false || strpos($res, '354') !== false);
-    if (!$ok) error_log("SMTP: réponse inattendue: $res");
-    return $ok;
+    if ($code !== 250) {
+        error_log("SMTP: message rejeté (code={$code})");
+        return false;
+    }
+    return true;
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
