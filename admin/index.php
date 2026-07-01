@@ -78,10 +78,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                   . '<hr style="border-color:#ffffff20;margin:24px 0;">'
                   . '<p style="color:#6b7280;font-size:12px;">OrinHeberge — Infrastructure OrinStone</p>'
                   . '</div>';
-            $ok = send_smtp_mail($to, $subject, $html, 'OrinHeberge', 'no-reply@deepstone.fr');
+            $ok = send_smtp_mail($to, $subject, $html);
             $flash = $ok
                 ? "<div class='bg-green-500/20 text-green-400 border border-green-500/30 p-4 rounded-xl text-sm'>✅ Email envoyé à <strong>" . htmlspecialchars($to) . "</strong>.</div>"
-                : "<div class='bg-red-500/20 text-red-400 border border-red-500/30 p-4 rounded-xl text-sm'>❌ Échec de l'envoi SMTP.</div>";
+                : "<div class='bg-red-500/20 text-red-400 border border-red-500/30 p-4 rounded-xl text-sm'>❌ Échec de l'envoi SMTP. Vérifiez les logs PHP (<code>error_log</code>) et la config SMTP (onglet Paramètres).</div>";
         } else {
             $flash = "<div class='bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 p-4 rounded-xl text-sm'>⚠️ Remplissez tous les champs.</div>";
         }
