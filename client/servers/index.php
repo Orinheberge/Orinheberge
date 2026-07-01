@@ -57,15 +57,20 @@ function adminApi($pu, $h, $ep, $m = 'GET') {
     return $r ? json_decode($r, true) : ['error' => true];
 }
 
-// ── Actions power/delete ──────────────────────────────────────────────────────
+// ── Actions power/delete (bloquées si suspendu) ───────────────────────────────
 $api_message = '';
 if (isset($_GET['action'], $_GET['uuid'])) {
     $uuid   = $_GET['uuid'];
     $action = $_GET['action'];
-    $s = $pdo->prepare('SELECT uuid, server_id FROM orders WHERE user_id=? AND uuid=?');
+    $s = $pdo->prepare('SELECT uuid, server_id, status FROM orders WHERE user_id=? AND uuid=?');
     $s->execute([$_SESSION['user_id'], $uuid]);
     $sv = $s->fetch();
     if ($sv) {
+        // Bloquer toutes les actions si le serveur est suspendu ou supprimé
+        if (in_array($sv['status'], ['suspended', 'deleted'])) {
+            $_SESSION['api_error'] = '🔒 Serveur suspendu — renouvelez pour le réactiver.';
+            header('Location: /client/servers/'); exit();
+        }
         $short = substr($sv['uuid'], 0, 8);
         switch ($action) {
             case 'start':   clientApi($panel_url, $headers_client, "servers/$short/power", 'POST', ['signal' => 'start']); break;
