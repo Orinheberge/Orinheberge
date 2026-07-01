@@ -165,30 +165,72 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $server_id = (int)($_POST['server_id'] ?? 0);
         if ($server_id) {
             $ep = $action === 'suspend_server' ? "servers/$server_id/suspend" : "servers/$server_id/unsuspend";
-            $ch = curl_init($panel_url . '/api/application/' . $ep);
-            curl_setopt_array($ch, [CURLOPT_HTTPHEADER => $headers_admin, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 15, CURLOPT_SSL_VERIFYPEER => false, CURLOPT_POST => true, CURLOPT_POSTFIELDS => '{}']);
-            curl_exec($ch); curl_close($ch);
+            adminApiCall($panel_url, $headers_admin, $ep, 'POST', []);
             if ($action === 'suspend_server' && $uuid) {
-                $pdo->prepare("UPDATE orders SET status='suspended', suspended_at=NOW(), delete_after=DATE_ADD(NOW(), INTERVAL 15 DAY) WHERE uuid=?")->execute([$uuid]);
+                $delete_days = max(1, min(365, (int)($_POST['delete_after_days'] ?? 15)));
+                $pdo->prepare("
+                    UPDATE orders
+                    SET status='suspended',
+                        suspended_at=NOW(),
+                        delete_after=DATE_ADD(NOW(), INTERVAL $delete_days DAY)
+                    WHERE uuid=?
+                ")->execute([$uuid]);
+                $flash = adminFlash('ok', "Serveur suspendu. Suppression automatique prevue dans <strong>{$delete_days} jour(s)</strong> si rien n'est fait.");
             } elseif ($uuid) {
                 $pdo->prepare("UPDATE orders SET status='paid', suspended_at=NULL, delete_after=NULL WHERE uuid=?")->execute([$uuid]);
+                $flash = adminFlash('ok', 'Serveur reactive et cycle de suppression annule.');
             }
-            $flash = "<div class='bg-green-500/20 text-green-400 border border-green-500/30 p-4 rounded-xl text-sm'>✅ Serveur " . ($action==='suspend_server'?'suspendu':'réactivé') . " — suppression auto dans 15 jours si non renouvelé.</div>";
         }
     }
 
-    // Modifier l'expiration d'un serveur
-    if ($action === 'set_expiry') {
+    // Modifier les details visibles d'un serveur
+    if ($action === 'update_server') {
         $uuid       = trim($_POST['server_uuid'] ?? '');
+        $server_id  = (int)($_POST['server_id'] ?? 0);
+        $name       = trim($_POST['service_name'] ?? '');
         $new_expiry = trim($_POST['new_expiry'] ?? '');
         $new_price  = trim($_POST['new_price'] ?? '');
-        if ($uuid && $new_expiry) {
-            $updates = "expires_at=?, next_payment_date=DATE(?)";
-            $params  = [$new_expiry, $new_expiry];
-            if ($new_price !== '') { $updates .= ", renewal_price=?"; $params[] = (float)$new_price; }
-            $params[] = $uuid;
-            $pdo->prepare("UPDATE orders SET $updates WHERE uuid=?")->execute($params);
-            $flash = "<div class='bg-green-500/20 text-green-400 border border-green-500/30 p-4 rounded-xl text-sm'>✅ Expiration mise à jour : <strong>" . htmlspecialchars($new_expiry) . "</strong>.</div>";
+        if ($uuid) {
+            $updates = [];
+            $params  = [];
+
+            if ($name !== '') {
+                $updates[] = 'service_name=?';
+                $params[] = $name;
+
+                if ($server_id) {
+                    $details = adminApiCall($panel_url, $headers_admin, 'servers/' . $server_id);
+                    $attrs = $details['attributes'] ?? [];
+                    $payload = [
+                        'name'        => $name,
+                        'user'        => $attrs['user'] ?? null,
+                        'external_id' => $attrs['external_id'] ?? null,
+                        'description' => $attrs['description'] ?? '',
+                    ];
+                    if ($payload['user']) {
+                        adminApiCall($panel_url, $headers_admin, "servers/$server_id/details", 'PATCH', $payload);
+                    }
+                }
+            }
+
+            if ($new_expiry !== '') {
+                $updates[] = 'expires_at=?';
+                $params[] = $new_expiry;
+                $updates[] = 'next_payment_date=DATE(?)';
+                $params[] = $new_expiry;
+            }
+            if ($new_price !== '') {
+                $updates[] = 'renewal_price=?';
+                $params[] = (float)$new_price;
+            }
+
+            if (!empty($updates)) {
+                $params[] = $uuid;
+                $pdo->prepare('UPDATE orders SET ' . implode(', ', $updates) . ' WHERE uuid=?')->execute($params);
+                $flash = adminFlash('ok', 'Serveur mis a jour.');
+            } else {
+                $flash = adminFlash('warn', 'Aucune modification a appliquer.');
+            }
         }
         header('Location: /admin/?view=servers'); exit();
     }
@@ -589,6 +631,9 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_sidebar.php';
                     </td>
                     <td class="px-5 py-4 text-xs <?php echo $is_free ? 'text-gray-500' : 'text-gray-300'; ?>">
                         <?php echo $is_free ? '∞ À vie' : htmlspecialchars($sv['expires_at'] ? date('d/m/Y', strtotime($sv['expires_at'])) : '—'); ?>
+                        <?php if (!empty($sv['delete_after'])): ?>
+                            <div class="mt-1 text-[10px] text-orange-400">Suppression: <?php echo htmlspecialchars(date('d/m/Y', strtotime($sv['delete_after']))); ?></div>
+                        <?php endif; ?>
                     </td>
                     <td class="px-5 py-4">
                         <div class="flex flex-wrap gap-1.5">
