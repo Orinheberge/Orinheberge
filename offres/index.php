@@ -26,29 +26,102 @@ try {
     $db_status = false;
 }
 
-// ── 1. RÉCUPÉRATION ET REGROUPEMENT DES OFFRES DEPUIS LA BDD ──
-$products_by_tier = [
-    'free' => [],
-    'paid' => []
+// ── 1. INITIALISATION DE LA STRUCTURE DES SECTIONS VISUELLES (TIERS) ──
+$sections = [
+    'free'    => [
+        'title_key'    => 'tier.free.title',    
+        'subtitle_key' => 'tier.free.subtitle',    
+        'label_key'    => 'tier.free.label',    
+        'accent'       => 'bg-green-500',  
+        'bg'           => 'bg-white/[0.01] border-y border-white/5',
+        'offers'       => []
+    ],
+    'basic'   => [
+        'title_key'    => 'tier.basic.title',   
+        'subtitle_key' => 'tier.basic.subtitle',   
+        'label_key'    => 'tier.basic.label',   
+        'accent'       => 'bg-blue-500',   
+        'bg'           => 'bg-black/10',
+        'offers'       => []
+    ],
+    'medium'  => [
+        'title_key'    => 'tier.medium.title',  
+        'subtitle_key' => 'tier.medium.subtitle',  
+        'label_key'    => 'tier.medium.label',  
+        'accent'       => 'bg-purple-500', 
+        'bg'           => 'bg-white/[0.02] border-y border-white/5',
+        'offers'       => []
+    ],
+    'premium' => [
+        'title_key'    => 'tier.premium.title', 
+        'subtitle_key' => 'tier.premium.subtitle', 
+        'label_key'    => 'tier.premium.label', 
+        'accent'       => 'bg-yellow-500', 
+        'bg'           => 'bg-black/20',
+        'offers'       => []
+    ],
 ];
 
+// ── 2. REMPLISSAGE DYNAMIQUE DEPUIS LA BASE DE DONNÉES ──
 if ($db_status) {
     try {
         $stmt = $pdo->query("SELECT * FROM products WHERE is_active = 1 ORDER BY sort_order ASC, id ASC");
         $all_products = $stmt->fetchAll();
 
         foreach ($all_products as $product) {
-            $db_type = strtolower($product['type']); // 'free' ou 'paid' d'après ta BDD
-            if (array_key_exists($db_type, $products_by_tier)) {
-                $products_by_tier[$db_type][] = $product;
+            $slug = $product['slug'];
+            
+            // Extraction de la catégorie à partir du début du slug (ex: 'minecraft' ou 'fivem')
+            $slug_parts = explode('-', $slug);
+            $category = strtolower($slug_parts[0]); 
+
+            // Détermination du bon palier d'affichage (tier) d'après le mot-clé présent dans le slug
+            $tier_found = 'premium'; // Par défaut
+            if (strpos($slug, 'free') !== false) {
+                $tier_found = 'free';
+            } elseif (strpos($slug, 'basic') !== false) {
+                $tier_found = 'basic';
+            } elseif (strpos($slug, 'medium') !== false) {
+                $tier_found = 'medium';
             }
+
+            // Reconstruction dynamique des clés de traduction pour name_key et desc_key
+            // Exemples générés : 'offer.mc_free.name', 'offer.fivem_basic.name', 'offer.php_premium.desc'
+            $short_cat = ($category === 'minecraft') ? 'mc' : (($category === 'python') ? 'py' : (($category === 'nodejs') ? 'node' : $category));
+            $name_key = "offer.{$short_cat}_{$tier_found}.name";
+            $desc_key = "offer.{$short_cat}_{$tier_found}.desc";
+
+            // Formatage propre des specs RAM et NVMe
+            $ram_text = ($product['ram'] >= 1024) ? number_format($product['ram'] / 1024, 0) . ' GB' : $product['ram'] . ' MB';
+            $disk_text = ($product['disk'] >= 1024) ? number_format($product['disk'] / 1024, 0) . ' GB' : $product['disk'] . ' MB';
+
+            // Icônes de liste adaptées au design premium ou classique
+            $bullet_icon = ($tier_found === 'premium') ? 'fas fa-check' : 'fas fa-arrow-right';
+
+            // Ajout de l'offre BDD formatée dans le tableau $sections
+            $sections[$tier_found]['offers'][] = [
+                'category'   => $category,
+                'slug'       => $slug,
+                'name_key'   => $name_key,
+                'desc_key'   => $desc_key,
+                'price'      => ($product['type'] === 'free') ? '0€' : number_format($product['price'], 2, ',', '') . '€',
+                'period_key' => ($product['type'] === 'free') ? 'offers.period.free' : 'offers.period.month',
+                'plan'       => $slug,
+                'free'       => ($product['type'] === 'free'),
+                'features'   => [
+                    ['icon' => 'fas fa-memory',     'text' => $ram_text . ' RAM'],
+                    ['icon' => 'fas fa-hard-drive', 'text' => $disk_text . ' SSD NVMe'],
+                    ['icon' => 'fas fa-microchip',  'text' => $product['cpu'] . '% CPU'],
+                    ['icon' => 'fas fa-database',   'text' => $product['databases'] . ' Database(s)']
+                ]
+            ];
         }
     } catch (PDOException $e) {
-        // Sécurité
+        // Fallback en cas de soucis SQL
     }
 }
 
-// Images et Icônes associées aux catégories (extraites du début du slug)
+// Images et Icônes associées aux catégories graphiques
 $images = [
     'minecraft' => 'https://www.4netplayers.com/images/minecraft/blog/teaser-image.jpg',
     'fivem'     => 'https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=600&auto=format&fit=crop',
@@ -64,23 +137,17 @@ $icons = [
     'php' => 'fas fa-code', 'nodejs' => 'fab fa-node-js', 'java' => 'fab fa-java', 'python' => 'fab fa-python'
 ];
 
-// Configuration visuelle des cartes selon le type de plan détecté dans le slug
-function getCardStyle($slug) {
-    if (strpos($slug, 'free') !== false) {
-        return ['label' => 'Offre Gratuite', 'badge_bg'=>'bg-green-500/20', 'badge_text'=>'text-green-400', 'badge_border'=>'border-green-500/30', 'icon_color'=>'text-green-400', 'card_border'=>'border-white/10', 'btn'=>'bg-green-500 hover:bg-green-400', 'period_key'=>'offers.period.free'];
-    } elseif (strpos($slug, 'basic') !== false) {
-        return ['label' => 'Offre Basic', 'badge_bg'=>'bg-blue-500/20', 'badge_text'=>'text-blue-400', 'badge_border'=>'border-blue-500/30', 'icon_color'=>'text-blue-400', 'card_border'=>'border-blue-400/20', 'btn'=>'bg-blue-500 hover:bg-blue-400', 'period_key'=>'offers.period.month'];
-    } elseif (strpos($slug, 'medium') !== false) {
-        return ['label' => 'Offre Medium', 'badge_bg'=>'bg-purple-500/20', 'badge_text'=>'text-purple-400', 'badge_border'=>'border-purple-500/30', 'icon_color'=>'text-purple-400', 'card_border'=>'border-purple-400/20', 'btn'=>'bg-purple-500 hover:bg-purple-400', 'period_key'=>'offers.period.month'];
+function getCardStyle($tier_key) {
+    if ($tier_key === 'free') {
+        return ['label' => 'Offre Gratuite', 'badge_bg'=>'bg-green-500/20', 'badge_text'=>'text-green-400', 'badge_border'=>'border-green-500/30', 'icon_color'=>'text-green-400', 'card_border'=>'border-white/10', 'btn'=>'bg-green-500 hover:bg-green-400'];
+    } elseif ($tier_key === 'basic') {
+        return ['label' => 'Offre Basic', 'badge_bg'=>'bg-blue-500/20', 'badge_text'=>'text-blue-400', 'badge_border'=>'border-blue-500/30', 'icon_color'=>'text-blue-400', 'card_border'=>'border-blue-400/20', 'btn'=>'bg-blue-500 hover:bg-blue-400'];
+    } elseif ($tier_key === 'medium') {
+        return ['label' => 'Offre Medium', 'badge_bg'=>'bg-purple-500/20', 'badge_text'=>'text-purple-400', 'badge_border'=>'border-purple-500/30', 'icon_color'=>'text-purple-400', 'card_border'=>'border-purple-400/20', 'btn'=>'bg-purple-500 hover:bg-purple-400'];
     } else {
-        return ['label' => 'Offre Premium', 'badge_bg'=>'bg-yellow-500/20', 'badge_text'=>'text-yellow-400', 'badge_border'=>'border-yellow-500/30', 'icon_color'=>'text-yellow-400', 'card_border'=>'border-yellow-400/20', 'btn'=>'bg-yellow-500 hover:bg-yellow-400', 'period_key'=>'offers.period.month'];
+        return ['label' => 'Offre Premium', 'badge_bg'=>'bg-yellow-500/20', 'badge_text'=>'text-yellow-400', 'badge_border'=>'border-yellow-500/30', 'icon_color'=>'text-yellow-400', 'card_border'=>'border-yellow-400/20', 'btn'=>'bg-yellow-500 hover:bg-yellow-400'];
     }
 }
-
-$sections_meta = [
-    'free' => ['title_key'=>'tier.free.title', 'subtitle_key'=>'tier.free.subtitle', 'accent'=>'bg-green-500', 'bg'=>'bg-white/[0.01] border-y border-white/5'],
-    'paid' => ['title_key'=>'tier.paid.title', 'subtitle_key'=>'tier.paid.subtitle', 'accent'=>'bg-blue-500', 'bg'=>'bg-black/10']
-];
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo $lang; ?>">
@@ -130,7 +197,6 @@ function filterCategory(catId) {
     catTitle.textContent = labels[catId] || catId;
     
     const cards = Array.from(document.querySelectorAll('#all-sections .offer-card[data-category="' + catId + '"]'));
-    cards.sort((a,b) => (parseFloat(a.dataset.price)||0) - (parseFloat(b.dataset.price)||0));
     
     catGrid.innerHTML = '';
     cards.forEach(card => { 
@@ -169,67 +235,63 @@ window.addEventListener('DOMContentLoaded', () => filterCategory('all'));
     </section>
 
     <div id="all-sections">
-    <?php foreach ($products_by_tier as $tier_key => $products): ?>
-        <?php if (empty($products)) continue; $meta = $sections_meta[$tier_key]; ?>
-        <section class="offers-section py-20 px-6 <?php echo $meta['bg']; ?>">
+    <?php foreach ($sections as $tier_key => $tier_data): ?>
+        <?php if (empty($tier_data['offers'])) continue; ?>
+        <section class="offers-section py-20 px-6 <?php echo $tier_data['bg']; ?>">
             <div class="text-center mb-16">
-                <h2 class="text-4xl md:text-5xl font-black uppercase tracking-wider mb-3"><?php echo t($meta['title_key']); ?></h2>
-                <div class="h-1 w-20 <?php echo $meta['accent']; ?> mx-auto rounded-full"></div>
+                <h2 class="text-4xl md:text-5xl font-black uppercase tracking-wider mb-3"><?php echo t($tier_data['title_key']); ?></h2>
+                <div class="h-1 w-20 <?php echo $tier_data['accent']; ?> mx-auto rounded-full"></div>
             </div>
             
             <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <?php foreach ($products as $product): ?>
+            <?php foreach ($tier_data['offers'] as $offer): ?>
             <?php
-                // On isole la catégorie d'après le début du slug (ex: 'minecraft' depuis 'minecraft-free')
-                $slug_parts = explode('-', $product['slug']);
-                $cat = strtolower($slug_parts[0]); 
-                
+                $cat = $offer['category'];
                 $img = isset($images[$cat]) ? $images[$cat] : $images['minecraft'];
                 $icon = isset($icons[$cat]) ? $icons[$cat] : 'fas fa-server';
+                $style = getCardStyle($tier_key);
                 
-                $style = getCardStyle($product['slug']);
-                $is_free = ($product['type'] === 'free');
-                $price_display = $is_free ? '0€' : number_format($product['price'], 2, ',', '') . '€';
-                
-                // ── 2. RÉCUPÉRATION DU SLUG POUR LA GENERATION DU LIEN DE COMMANDE ──
-                if ($is_free) {
-                    $route = '/shop/process_free/?type=' . urlencode($product['slug']);
+                // Routage dynamique basé sur le slug récupéré 
+                if ($offer['free']) {
+                    $route = '/shop/process_free/?type=' . urlencode($offer['slug']);
                     $btn_text = $is_logged_in ? t('btn.deploy') : t('btn.login_to_buy');
                 } else {
-                    $route = '/shop/order/?plan=' . urlencode($product['slug']);
+                    $route = '/shop/order/?plan=' . urlencode($offer['slug']);
                     $btn_text = $is_logged_in ? t('btn.buy') : t('btn.login_to_buy');
                 }
-                
                 $link = $is_logged_in ? $route : '/login/';
             ?>
-            <div data-category="<?php echo $cat; ?>" data-price="<?php echo $product['price']; ?>"
+            <div data-category="<?php echo $cat; ?>" 
                  class="offer-card glass rounded-3xl border <?php echo $style['card_border']; ?> flex flex-col card-hover overflow-hidden relative">
                 
                 <div class="h-44 w-full bg-cover bg-center relative" style="background-image: url('<?php echo $img; ?>');">
                     <div class="absolute inset-0 bg-gradient-to-t from-[#070a13] to-transparent"></div>
                     <div class="absolute top-4 left-4 right-4 flex justify-between items-center">
                         <span class="<?php echo $style['badge_bg'].' '.$style['badge_text'].' '.$style['badge_border']; ?> px-3 py-1 rounded-full text-xs font-bold backdrop-blur-md border uppercase tracking-wide">
-                            <?php echo $style['label']; ?>
+                            <?php echo t($tier_data['label_key']); ?>
                         </span>
                         <i class="<?php echo $icon.' '.$style['icon_color']; ?> text-2xl drop-shadow"></i>
                     </div>
                 </div>
                 
                 <div class="p-6 flex flex-col flex-grow">
-                    <h3 class="text-xl font-bold text-white"><?php echo htmlspecialchars($product['name']); ?></h3>
+                    <h3 class="text-xl font-bold text-white"><?php echo t($offer['name_key']); ?></h3>
                     <p class="text-gray-400 mt-2 mb-6 text-sm flex-grow">
-                        <?php echo !empty($product['description']) ? htmlspecialchars($product['description']) : "Aucune description fournie."; ?>
+                        <?php echo t($offer['desc_key']); ?>
                     </p>
                     
                     <div class="flex items-baseline mb-6">
-                        <span class="text-3xl font-black text-white"><?php echo $price_display; ?></span>
-                        <span class="text-gray-500 text-xs ml-1"><?php echo t($style['period_key']); ?></span>
+                        <span class="text-3xl font-black text-white"><?php echo $offer['price']; ?></span>
+                        <span class="text-gray-500 text-xs ml-1"><?php echo t($offer['period_key']); ?></span>
                     </div>
                     
                     <ul class="space-y-3 text-gray-300 text-sm border-t border-white/5 pt-4">
-                        <li><i class="fas fa-memory <?php echo $style['icon_color']; ?> mr-2 w-4"></i><?php echo ($product['ram'] >= 1024) ? number_format($product['ram'] / 1024, 1) . ' GB' : $product['ram'] . ' MB'; ?> RAM</li>
-                        <li><i class="fas fa-hard-drive <?php echo $style['icon_color']; ?> mr-2 w-4"></i><?php echo ($product['disk'] >= 1024) ? number_format($product['disk'] / 1024, 0) . ' GB' : $product['disk'] . ' MB'; ?> NVMe</li>
-                        <li><i class="fas fa-microchip <?php echo $style['icon_color']; ?> mr-2 w-4"></i><?php echo $product['cpu']; ?>% CPU</li>
+                        <?php foreach ($offer['features'] as $feat): ?>
+                        <li>
+                            <i class="<?php echo $feat['icon'].' '.$style['icon_color']; ?> mr-2 w-4"></i>
+                            <?php echo $feat['text']; ?>
+                        </li>
+                        <?php endforeach; ?>
                     </ul>
                     
                     <a href="<?php echo $link; ?>" class="mt-6 w-full <?php echo $style['btn']; ?> text-slate-950 font-bold py-3 rounded-2xl transition text-sm text-center block">
