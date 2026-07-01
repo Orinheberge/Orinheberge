@@ -638,21 +638,51 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_sidebar.php';
                     <td class="px-5 py-4">
                         <div class="flex flex-wrap gap-1.5">
                             <?php if (!$is_free): ?>
-                            <form method="POST" action="/admin/?view=servers">
+                            <form method="POST" action="/admin/?view=servers" class="flex items-center gap-1">
                                 <input type="hidden" name="action" value="renew_server">
                                 <input type="hidden" name="server_uuid" value="<?php echo htmlspecialchars($sv['uuid']); ?>">
+                                <input type="number" name="renew_days" value="30" min="1" max="3650" class="!w-16 !px-2 !py-1 text-xs" title="Jours à ajouter">
                                 <button type="submit" class="bg-blue-500/15 hover:bg-blue-500/30 text-blue-400 border border-blue-500/20 px-2.5 py-1 rounded-lg text-xs font-semibold transition whitespace-nowrap">
-                                    <i class="fas fa-redo mr-1"></i>+30j
+                                    <i class="fas fa-redo mr-1"></i>Ajouter
                                 </button>
                             </form>
                             <?php endif; ?>
-                            <form method="POST" action="/admin/?view=servers">
+                            <form method="POST" action="/admin/?view=servers" class="flex items-center gap-1">
                                 <input type="hidden" name="action" value="<?php echo $status === 'suspended' ? 'unsuspend_server' : 'suspend_server'; ?>">
+                                <input type="hidden" name="server_uuid" value="<?php echo htmlspecialchars($sv['uuid']); ?>">
                                 <input type="hidden" name="server_id" value="<?php echo htmlspecialchars($sv['server_id']); ?>">
+                                <?php if ($status !== 'suspended'): ?>
+                                <input type="number" name="delete_after_days" value="15" min="1" max="365" class="!w-16 !px-2 !py-1 text-xs" title="Jours avant suppression définitive">
+                                <?php endif; ?>
                                 <button type="submit" class="bg-orange-500/15 hover:bg-orange-500/30 text-orange-400 border border-orange-500/20 px-2.5 py-1 rounded-lg text-xs font-semibold transition whitespace-nowrap">
                                     <i class="fas fa-<?php echo $status === 'suspended' ? 'play' : 'pause'; ?> mr-1"></i><?php echo $status === 'suspended' ? 'Réactiver' : 'Suspendre'; ?>
                                 </button>
                             </form>
+                            <details class="relative">
+                                <summary class="list-none cursor-pointer bg-sky-500/15 hover:bg-sky-500/30 text-sky-400 border border-sky-500/20 px-2.5 py-1 rounded-lg text-xs font-semibold transition whitespace-nowrap">
+                                    <i class="fas fa-pen mr-1"></i>Modifier
+                                </summary>
+                                <form method="POST" action="/admin/?view=servers" class="absolute right-0 z-20 mt-2 w-72 rounded-xl border border-white/10 bg-[#161a22] p-3 shadow-2xl space-y-2">
+                                    <input type="hidden" name="action" value="update_server">
+                                    <input type="hidden" name="server_uuid" value="<?php echo htmlspecialchars($sv['uuid']); ?>">
+                                    <input type="hidden" name="server_id" value="<?php echo htmlspecialchars($sv['server_id']); ?>">
+                                    <label class="block text-[10px] font-bold uppercase tracking-wide text-gray-500">Nom du serveur</label>
+                                    <input type="text" name="service_name" value="<?php echo htmlspecialchars($sv['service_name'] ?? ''); ?>" class="!px-2 !py-1.5 text-xs">
+                                    <div class="grid grid-cols-2 gap-2">
+                                        <div>
+                                            <label class="block text-[10px] font-bold uppercase tracking-wide text-gray-500">Expiration</label>
+                                            <input type="date" name="new_expiry" value="<?php echo htmlspecialchars(!empty($sv['expires_at']) ? date('Y-m-d', strtotime($sv['expires_at'])) : ''); ?>" class="!px-2 !py-1.5 text-xs">
+                                        </div>
+                                        <div>
+                                            <label class="block text-[10px] font-bold uppercase tracking-wide text-gray-500">Prix/mois</label>
+                                            <input type="number" name="new_price" value="<?php echo htmlspecialchars((string)($sv['renewal_price'] ?? '')); ?>" min="0" step="0.01" class="!px-2 !py-1.5 text-xs">
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="w-full bg-sky-600 hover:bg-sky-500 text-white px-3 py-2 rounded-lg text-xs font-bold transition">
+                                        Enregistrer
+                                    </button>
+                                </form>
+                            </details>
                             <form method="POST" action="/admin/?view=servers" onsubmit="return confirmDel('Supprimer ce serveur définitivement ?')">
                                 <input type="hidden" name="action" value="delete_server">
                                 <input type="hidden" name="server_uuid" value="<?php echo htmlspecialchars($sv['uuid']); ?>">
