@@ -284,6 +284,9 @@ $open_tickets = (int)$t_stmt->fetchColumn();
         <a href="/profil/" class="nav-item">
             <i class="fas fa-user icon"></i> Mon profil
         </a>
+        <a href="/client/billing/" class="nav-item">
+            <i class="fas fa-file-invoice-dollar icon"></i> Facturation
+        </a>
         <a href="/support/" class="nav-item">
             <i class="fas fa-headset icon"></i> Support
             <?php if ($open_tickets > 0): ?>
@@ -293,17 +296,6 @@ $open_tickets = (int)$t_stmt->fetchColumn();
         <a href="/status/" class="nav-item">
             <i class="fas fa-signal icon"></i> Statut
         </a>
-
-        <?php if ($is_admin): ?>
-        <div class="nav-separator"></div>
-        <div class="nav-section">Administration</div>
-        <a href="/admin/" class="nav-item" style="color:#f43f5e;border-color:rgba(244,63,94,.1);">
-            <i class="fas fa-shield-alt icon"></i> Admin Panel
-        </a>
-        <a href="/support/admin_tickets/" class="nav-item">
-            <i class="fas fa-ticket-alt icon"></i> Tickets
-        </a>
-        <?php endif; ?>
 
         <div class="nav-separator"></div>
         <div class="nav-section">Outils</div>

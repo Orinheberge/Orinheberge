@@ -59,6 +59,15 @@ $_tickets_count  = isset($open_tickets) ? $open_tickets      : ($pdo->query("SEL
       <i class="fas fa-server icon"></i> Serveurs
       <span class="ml-auto text-[10px] bg-white/5 text-gray-500 px-1.5 py-0.5 rounded-full"><?= $_servers_count ?></span>
     </a>
+    <a href="/admin/?view=invoices" class="nav-item <?= $active_nav === 'invoices' ? 'active' : '' ?>">
+      <i class="fas fa-file-invoice-dollar icon"></i> Factures
+      <?php
+        $_inv_count = $pdo->query("SELECT COUNT(*) FROM invoices WHERE status='pending'")->fetchColumn();
+        if ($_inv_count > 0):
+      ?>
+        <span class="ml-auto text-[10px] bg-amber-500/15 text-amber-400 border border-amber-500/20 px-1.5 py-0.5 rounded-full font-bold"><?= $_inv_count ?></span>
+      <?php endif; ?>
+    </a>
     <a href="/support/admin_tickets/" class="nav-item <?= $active_nav === 'tickets' ? 'active' : '' ?>">
       <i class="fas fa-ticket-alt icon"></i> Tickets
       <?php if ($_tickets_count > 0): ?>
@@ -82,6 +91,9 @@ $_tickets_count  = isset($open_tickets) ? $open_tickets      : ($pdo->query("SEL
     </a>
     <a href="/client/servers/" class="nav-item">
       <i class="fas fa-server icon"></i> Mes serveurs
+    </a>
+    <a href="/client/billing/" class="nav-item">
+      <i class="fas fa-file-invoice-dollar icon"></i> Facturation
     </a>
 
   </nav>

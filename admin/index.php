@@ -143,7 +143,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // ─── Récupérer données ───────────────────────────────────────────────────────
-$view = $_GET['view'] ?? 'clients';
+$view = $_GET['view'] ?? 'dashboard';
+
+// Action toggle admin
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'toggle_admin') {
+    $uid = (int)($_POST['user_id'] ?? 0);
+    if ($uid && $uid !== (int)$_SESSION['user_id']) {
+        $cur = $pdo->prepare('SELECT is_admin FROM users WHERE id=?');
+        $cur->execute([$uid]);
+        $was_admin = (int)$cur->fetchColumn();
+        $pdo->prepare('UPDATE users SET is_admin=? WHERE id=?')->execute([$was_admin ? 0 : 1, $uid]);
+        $flash = "<div class='bg-green-500/20 text-green-400 border border-green-500/30 p-4 rounded-xl text-sm'>✅ Rôle mis à jour.</div>";
+        header('Location: /admin/?view=clients'); exit();
+    }
+}
 
 $all_users = $pdo->query('SELECT u.id, u.pseudo, u.firstname, u.lastname, u.email, u.is_admin, u.avatar, u.created_at,
     (SELECT COUNT(*) FROM orders o WHERE o.user_id = u.id) AS server_count
@@ -152,9 +165,11 @@ $all_users = $pdo->query('SELECT u.id, u.pseudo, u.firstname, u.lastname, u.emai
 $all_servers = $pdo->query('SELECT o.*, u.email AS user_email, u.pseudo, u.firstname FROM orders o
     LEFT JOIN users u ON u.id = o.user_id ORDER BY o.created_at DESC')->fetchAll();
 
-$total_revenue = $pdo->query('SELECT COALESCE(SUM(amount),0) FROM orders WHERE status="paid"')->fetchColumn();
-$active_servers = $pdo->query('SELECT COUNT(*) FROM orders WHERE status="paid" OR renewal_price=0')->fetchColumn();
-$open_tickets = $pdo->query("SELECT COUNT(*) FROM support_tickets WHERE status != 'Fermé'")->fetchColumn();
+$total_revenue   = (float)$pdo->query('SELECT COALESCE(SUM(renewal_price),0) FROM orders WHERE status="paid"')->fetchColumn();
+$invoice_revenue = (float)$pdo->query('SELECT COALESCE(SUM(amount),0) FROM invoices WHERE status="paid"')->fetchColumn();
+$active_servers  = $pdo->query('SELECT COUNT(*) FROM orders WHERE status="paid" OR renewal_price=0')->fetchColumn();
+$open_tickets    = $pdo->query("SELECT COUNT(*) FROM support_tickets WHERE status != 'Fermé'")->fetchColumn();
+$total_invoices  = $pdo->query("SELECT COUNT(*) FROM invoices")->fetchColumn();
 
 $is_logged_in = true;
 ?>
@@ -254,6 +269,7 @@ $is_logged_in = true;
 $active_nav = match($view) {
     'clients'  => 'clients',
     'servers'  => 'servers',
+    'invoices' => 'invoices',
     'email'    => 'email',
     'settings' => 'settings',
     default    => 'dashboard',
@@ -270,7 +286,7 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_sidebar.php';
             <button onclick="toggleSidebar()" class="md:hidden text-gray-400 hover:text-white text-lg w-8"><i class="fas fa-bars"></i></button>
             <div>
                 <div class="text-sm font-bold text-white">
-                    <?php $titles = ['clients'=>'Clients','servers'=>'Serveurs','email'=>'Emails','settings'=>'Paramètres']; echo $titles[$view] ?? 'Vue d\'ensemble'; ?>
+                    <?php $titles = ['clients'=>'Clients','servers'=>'Serveurs','invoices'=>'Factures','email'=>'Emails','settings'=>'Paramètres','dashboard'=>'Vue d\'ensemble']; echo $titles[$view] ?? 'Vue d\'ensemble'; ?>
                 </div>
                 <div class="text-xs text-gray-500">Administration OrinHeberge</div>
             </div>
