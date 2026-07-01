@@ -279,12 +279,6 @@ $paypalme_url = getPaypalMeLink($paypalme_username, $final_price);
             </div>
 
             <div class="hidden lg:flex gap-2.5 items-center shrink-0">
-                <?php if(isset($_SESSION['is_admin']) && $_SESSION['is_admin']): ?>
-                    <a href="/support/admin_tickets/" class="bg-rose-600/20 hover:bg-rose-600 border border-rose-500/30 text-rose-400 hover:text-white px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium shadow-md shadow-rose-900/20 whitespace-nowrap">
-                        <i class="fas fa-unlock-keyhole"></i> Gérer les tickets (Admin)
-                    </a>
-                <?php endif; ?>
-
                 <a href="/status/" class="bg-emerald-600/20 hover:bg-emerald-600 border border-emerald-500/30 text-emerald-400 hover:text-white px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium shadow-md shadow-emerald-900/20 whitespace-nowrap">
                     <i class="fas fa-signal"></i> Statut
                 </a>
@@ -330,10 +324,6 @@ $paypalme_url = getPaypalMeLink($paypalme_username, $final_price);
             <a href="/support/" class="bg-white/[0.02] border border-white/5 text-gray-300 block py-2 px-4 rounded-xl flex items-center gap-2 text-sm font-medium"><i class="fas fa-headset w-5 text-center"></i> Support</a>
             <a href="/status/" class="bg-emerald-600/20 border border-emerald-500/30 text-emerald-400 block py-2 px-4 rounded-xl flex items-center gap-2 text-sm font-medium"><i class="fas fa-signal w-5 text-center"></i> Statut</a>
             
-            <?php if(isset($_SESSION['is_admin']) && $_SESSION['is_admin']): ?>
-                <a href="/support/admin_tickets/" class="bg-rose-600/20 border border-rose-500/30 text-rose-400 block py-2 px-4 rounded-xl flex items-center gap-2 text-sm font-semibold"><i class="fas fa-unlock-keyhole w-5 text-center"></i> Gérer les tickets</a>
-            <?php endif; ?>
-
             <hr class="border-white/10">
 
             <?php if(isset($_SESSION['user_id'])): ?>

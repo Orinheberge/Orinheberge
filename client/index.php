@@ -189,34 +189,6 @@ $is_admin = (bool)($stmt3->fetchColumn());
             <i class="fas fa-signal icon"></i> Statut
         </a>
 
-        <?php if ($is_admin): ?>
-        <div class="nav-separator"></div>
-        <div class="nav-section">Administration</div>
-        <a href="/admin/" class="nav-item" style="color:#f43f5e;border-color:rgba(244,63,94,.1);">
-            <i class="fas fa-shield-alt icon"></i> Vue d'ensemble
-        </a>
-        <a href="/admin/nodes/" class="nav-item">
-            <i class="fas fa-network-wired icon"></i> Nodes
-        </a>
-        <a href="/admin/eggs/" class="nav-item">
-            <i class="fas fa-egg icon"></i> Eggs
-        </a>
-        <a href="/admin/products/" class="nav-item">
-            <i class="fas fa-box icon"></i> Produits
-        </a>
-        <a href="/admin/extensions/" class="nav-item">
-            <i class="fas fa-puzzle-piece icon"></i> Extensions
-        </a>
-        <a href="/admin/?view=clients" class="nav-item">
-            <i class="fas fa-users icon"></i> Clients
-        </a>
-        <a href="/support/admin_tickets/" class="nav-item">
-            <i class="fas fa-ticket-alt icon"></i> Tickets
-        </a>
-        <a href="/admin/?view=settings" class="nav-item">
-            <i class="fas fa-sliders-h icon"></i> Paramètres
-        </a>
-        <?php endif; ?>
 
         <div class="nav-separator"></div>
         <div class="nav-section">Outils</div>
@@ -321,26 +293,6 @@ $is_admin = (bool)($stmt3->fetchColumn());
                 <div class="text-xs text-sky-400 mt-1">Modifier le profil →</div>
             </a>
         </div>
-
-        <?php if ($is_admin): ?>
-        <!-- Admin bar -->
-        <div class="admin-bar mb-6">
-            <div class="flex flex-wrap items-center justify-between gap-3">
-                <div class="flex items-center gap-2.5">
-                    <div class="w-8 h-8 rounded-lg bg-rose-500/20 flex items-center justify-center shrink-0">
-                        <i class="fas fa-shield-alt text-rose-400 text-sm"></i>
-                    </div>
-                    <div>
-                        <div class="text-sm font-bold text-white">Accès Administrateur</div>
-                        <div class="text-xs text-gray-500">Panneau de gestion complet</div>
-                    </div>
-                </div>
-                <a href="/admin/" class="flex items-center gap-2 bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold px-4 py-2 rounded-lg transition">
-                    <i class="fas fa-cogs text-[10px]"></i> Ouvrir l'Admin Panel
-                </a>
-            </div>
-        </div>
-        <?php endif; ?>
 
         <!-- Services list -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">

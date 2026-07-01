@@ -59,15 +59,6 @@ $active_nav = $active_nav ?? '';
                 </a>
             <?php endif; ?>
 
-            <?php if (isset($_SESSION['is_admin']) && $_SESSION['is_admin']): ?>
-                <a href="/admin/" class="bg-rose-600/20 hover:bg-rose-600 border border-rose-500/30 text-rose-400 hover:text-white px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium shadow-md shadow-rose-900/20 whitespace-nowrap">
-                    <i class="fas fa-shield-alt"></i> Admin Panel
-                </a>
-                <a href="/support/admin_tickets/" class="bg-orange-600/20 hover:bg-orange-600 border border-orange-500/30 text-orange-400 hover:text-white px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium shadow-md shadow-orange-900/20 whitespace-nowrap">
-                    <i class="fas fa-unlock-keyhole"></i> <?php echo t('nav.admin_tickets'); ?>
-                </a>
-            <?php endif; ?>
-
             <a href="/status/" class="bg-emerald-600/20 hover:bg-emerald-600 border border-emerald-500/30 text-emerald-400 hover:text-white px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium shadow-md shadow-emerald-900/20 whitespace-nowrap">
                 <i class="fas fa-signal"></i> <?php echo t('status.nav'); ?>
             </a>
@@ -97,15 +88,6 @@ $active_nav = $active_nav ?? '';
             <i class="fas fa-signal w-5 text-center"></i> <?php echo t('status.nav'); ?>
         </a>
 
-
-        <?php if (isset($_SESSION['is_admin']) && $_SESSION['is_admin']): ?>
-            <a href="/admin/" class="block py-2 px-4 rounded-xl bg-rose-600/20 border border-rose-500/30 text-rose-400 flex items-center gap-2 text-sm font-semibold">
-                <i class="fas fa-shield-alt w-5 text-center"></i> Admin Panel
-            </a>
-            <a href="/support/admin_tickets/" class="block py-2 px-4 rounded-xl bg-orange-600/20 border border-orange-500/30 text-orange-400 flex items-center gap-2 text-sm font-semibold">
-                <i class="fas fa-unlock-keyhole w-5 text-center"></i> <?php echo t('nav.admin_tickets_short'); ?>
-            </a>
-        <?php endif; ?>
 
         <hr class="border-white/10">
 
