@@ -50,6 +50,20 @@ if (isset($_GET['session_id'])) {
 
     renewOrder($pdo, $order_row_id, $_GET['session_id']);
 
+    // ── Si le serveur était suspendu, le réactiver sur le panel ─────────────────
+    $order_fresh = $pdo->prepare('SELECT server_id, status FROM orders WHERE id=? LIMIT 1');
+    $order_fresh->execute([$order_row_id]);
+    $fresh = $order_fresh->fetch();
+    if ($fresh && $fresh['status'] === 'suspended' && !empty($fresh['server_id'])) {
+        $cfg2 = [];
+        foreach ($pdo->query('SELECT `key`,`value` FROM settings') as $r) $cfg2[$r['key']] = $r['value'];
+        $unsuspend_url = ($cfg2['panel_url'] ?? '') . '/api/application/servers/' . $fresh['server_id'] . '/unsuspend';
+        $ch2 = curl_init($unsuspend_url);
+        curl_setopt_array($ch2, [CURLOPT_HTTPHEADER => ["Authorization: Bearer ".($cfg2['api_key_admin']??''),"Accept: application/vnd.pterodactyl.v1+json","Content-Type: application/json"], CURLOPT_RETURNTRANSFER=>true, CURLOPT_TIMEOUT=>15, CURLOPT_SSL_VERIFYPEER=>false, CURLOPT_POST=>true, CURLOPT_POSTFIELDS=>'{}']);
+        curl_exec($ch2); curl_close($ch2);
+        $pdo->prepare("UPDATE orders SET status='paid', suspended_at=NULL, delete_after=NULL WHERE id=?")->execute([$order_row_id]);
+    }
+
     // ── Générer la facture de renouvellement ─────────────────────────────────
     $invoice_count = (int)$pdo->query("SELECT COUNT(*)+1 FROM invoices")->fetchColumn();
     $invoice_id    = 'INV-' . date('Y') . '-' . str_pad($invoice_count, 5, '0', STR_PAD_LEFT);
