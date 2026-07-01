@@ -600,10 +600,15 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_sidebar.php';
         $inv_filter  = $_GET['status'] ?? 'all';
         if ($inv_filter !== 'all') {
             $inv_stmt = $pdo->prepare("SELECT i.*, u.email AS user_email, u.pseudo, u.firstname FROM invoices i LEFT JOIN users u ON u.id=i.user_id WHERE i.status=? ORDER BY i.created_at DESC LIMIT ? OFFSET ?");
-            $inv_stmt->execute([$inv_filter, $inv_perpage, $inv_offset]);
+            $inv_stmt->bindValue(1, $inv_filter,  PDO::PARAM_STR);
+            $inv_stmt->bindValue(2, $inv_perpage, PDO::PARAM_INT);
+            $inv_stmt->bindValue(3, $inv_offset,  PDO::PARAM_INT);
+            $inv_stmt->execute();
         } else {
             $inv_stmt = $pdo->prepare("SELECT i.*, u.email AS user_email, u.pseudo, u.firstname FROM invoices i LEFT JOIN users u ON u.id=i.user_id ORDER BY i.created_at DESC LIMIT ? OFFSET ?");
-            $inv_stmt->execute([$inv_perpage, $inv_offset]);
+            $inv_stmt->bindValue(1, $inv_perpage, PDO::PARAM_INT);
+            $inv_stmt->bindValue(2, $inv_offset,  PDO::PARAM_INT);
+            $inv_stmt->execute();
         }
         $all_invoices = $inv_stmt->fetchAll();
         $inv_stats = $pdo->query("SELECT
