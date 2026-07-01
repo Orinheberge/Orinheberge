@@ -1,10 +1,55 @@
 <?php
 session_start();
 require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/lang.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/db.php';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/shop/order/lib/promo/promo.php';
 
 $active_nav = 'cart';
 $page_title = 'Panier';
+
+function processFreeOrder(PDO $pdo, array $user, array $product, array $headers_admin, string $panel_url): array {
+    $panelUser = getOrCreatePanelUser($panel_url, $headers_admin, $user, $pdo);
+    $pass = $panelUser['pass'];
+    if ($pass) {
+        $_SESSION['panel_password'] = $pass;
+    }
+
+    $srv = createPanelServer($panel_url, $headers_admin, $product, $panelUser['id']);
+    $order_id = strtoupper(substr(md5(uniqid('', true)), 0, 8));
+
+    $pdo->prepare('
+        INSERT INTO orders
+          (user_id, product_id, order_id, service_name, ram, disk, cpu,
+           server_id, uuid, id_server_panel, status, renewal_price, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, \'pending\', 0, NOW())
+    ')->execute([
+        $_SESSION['user_id'],
+        $product['id'],
+        $order_id,
+        $product['name'],
+        $product['ram'],
+        $product['disk'],
+        $product['cpu'],
+        $srv['id'],
+        $srv['uuid'],
+        $srv['identifier'],
+    ]);
+
+    require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/smtp.php';
+    $username_display = !empty($user['pseudo']) ? $user['pseudo'] : $user['firstname'];
+    send_order_confirmation_email(
+        $pdo, $user['email'], $username_display,
+        $order_id, $product['name'], 0.0,
+        $srv['identifier'], $pass ?? null, $panel_url
+    );
+
+    return [
+        'order_id' => $order_id,
+        'server_id' => $srv['id'],
+        'offer_name' => $product['name'],
+        'panel_password' => $pass ?? ($user['panel_password'] ?? null),
+    ];
+}
 
 if (!isset($_SESSION['cart']) || !is_array($_SESSION['cart'])) {
     $_SESSION['cart'] = [];
@@ -50,6 +95,70 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($action === 'apply_promo') {
         $promo_code = trim($_POST['promo_code'] ?? '');
         $_SESSION['promo_code'] = $promo_code;
+    } elseif ($action === 'checkout') {
+        if (!isset($_SESSION['user_id'])) {
+            header('Location: /login/');
+            exit();
+        }
+
+        if (empty($_SESSION['cart'])) {
+            header('Location: /shop/cart/');
+            exit();
+        }
+
+        $stmt = $pdo->prepare('SELECT * FROM users WHERE id=? LIMIT 1');
+        $stmt->execute([$_SESSION['user_id']]);
+        $user = $stmt->fetch();
+        if (!$user) {
+            header('Location: /login/');
+            exit();
+        }
+
+        $free_items = [];
+        $paid_items = [];
+        foreach ($_SESSION['cart'] as $slug => $item) {
+            if ((int)($item['quantity'] ?? 0) <= 0) {
+                continue;
+            }
+
+            $product = getProductBySlug($pdo, $slug);
+            if (!$product) {
+                continue;
+            }
+
+            if (($product['type'] ?? '') === 'free') {
+                $free_items[] = ['product' => $product, 'quantity' => (int)($item['quantity'] ?? 0)];
+            } else {
+                $paid_items[] = ['slug' => $slug, 'product' => $product];
+            }
+        }
+
+        if (!empty($free_items) && empty($paid_items)) {
+            foreach ($free_items as $entry) {
+                for ($i = 0; $i < $entry['quantity']; $i++) {
+                    $result = processFreeOrder($pdo, $user, $entry['product'], $headers_admin, $panel_url);
+                    $_SESSION['success_order_id'] = $result['order_id'];
+                    $_SESSION['success_email'] = $user['email'];
+                    $_SESSION['success_server_id'] = $result['server_id'];
+                    $_SESSION['success_offer'] = $result['offer_name'];
+                    $_SESSION['success_panel_password'] = $result['panel_password'];
+                }
+            }
+
+            $_SESSION['cart'] = [];
+            header('Location: /shop/success/?type=free');
+            exit();
+        }
+
+        if (!empty($paid_items)) {
+            $selected_slug = $paid_items[0]['slug'];
+            $_SESSION['cart'] = [];
+            header('Location: /shop/order/?plan=' . urlencode($selected_slug));
+            exit();
+        }
+
+        header('Location: /shop/cart/');
+        exit();
     }
 
     header('Location: /shop/cart/');
@@ -246,9 +355,12 @@ $total = max(0.50, $subtotal - $discount_amount + $shipping);
                             <i class="fas fa-info-circle mr-2"></i> Le paiement sera poursuivi depuis la suite du tunnel de commande.
                         </div>
 
-                        <a href="/offres/" class="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-sky-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-sky-500">
-                            <i class="fas fa-credit-card"></i> Finaliser ma commande
-                        </a>
+                        <form method="post" class="mt-6">
+                            <input type="hidden" name="action" value="checkout">
+                            <button type="submit" class="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-sky-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-sky-500">
+                                <i class="fas fa-credit-card"></i> Finaliser ma commande
+                            </button>
+                        </form>
                     </div>
                 </aside>
             </div>
