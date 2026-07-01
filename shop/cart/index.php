@@ -107,87 +107,94 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $promo_code = trim($_POST['promo_code'] ?? '');
         $_SESSION['promo_code'] = $promo_code;
     } elseif ($action === 'checkout') {
-        if (!isset($_SESSION['user_id'])) {
-            header('Location: /login/');
-            exit();
-        }
+        try {
+            if (!isset($_SESSION['user_id'])) {
+                header('Location: /login/');
+                exit();
+            }
 
-        if (empty($_SESSION['cart'])) {
+            if (empty($_SESSION['cart'])) {
+                header('Location: /shop/cart/');
+                exit();
+            }
+
+            $stmt = $pdo->prepare('SELECT * FROM users WHERE id=? LIMIT 1');
+            $stmt->execute([$_SESSION['user_id']]);
+            $user = $stmt->fetch();
+            if (!$user) {
+                header('Location: /login/');
+                exit();
+            }
+
+            $free_items = [];
+            $paid_items = [];
+            $paid_total = 0.0;
+            foreach ($_SESSION['cart'] as $slug => $item) {
+                if ((int)($item['quantity'] ?? 0) <= 0) {
+                    continue;
+                }
+
+                $product = loadCartProduct($pdo, $slug);
+                if (!$product) {
+                    continue;
+                }
+
+                $product_type = strtolower((string)($product['type'] ?? ''));
+                $product_price = (float)($product['price'] ?? 0);
+                $is_free = $product_type === 'free' || $product_price <= 0;
+
+                if ($is_free) {
+                    $free_items[] = ['product' => $product, 'quantity' => (int)($item['quantity'] ?? 0)];
+                } else {
+                    $quantity = (int)($item['quantity'] ?? 0);
+                    $paid_items[] = ['slug' => $slug, 'product' => $product, 'quantity' => $quantity];
+                    $paid_total += $product_price * $quantity;
+                }
+            }
+
+            if (!empty($free_items)) {
+                foreach ($free_items as $entry) {
+                    for ($i = 0; $i < $entry['quantity']; $i++) {
+                        $result = processFreeOrder($pdo, $user, $entry['product'], $headers_admin, $panel_url);
+                        $_SESSION['success_order_id'] = $result['order_id'];
+                        $_SESSION['success_email'] = $user['email'];
+                        $_SESSION['success_server_id'] = $result['server_id'];
+                        $_SESSION['success_offer'] = $result['offer_name'];
+                        $_SESSION['success_panel_password'] = $result['panel_password'];
+                    }
+                }
+            }
+
+            if (!empty($paid_items)) {
+                $bundle_slugs = [];
+                foreach ($paid_items as $entry) {
+                    $bundle_slugs[] = $entry['slug'];
+                }
+
+                $_SESSION['checkout_bundle'] = [
+                    'items' => $paid_items,
+                    'total' => round($paid_total, 2),
+                    'label' => count($paid_items) > 1 ? 'Offres combinées' : ($paid_items[0]['product']['name'] ?? 'Offre')
+                ];
+                $_SESSION['cart'] = [];
+                header('Location: /shop/order/?plan=' . urlencode(implode($bundle_slugs, ',')));
+                exit();
+            }
+
+            if (!empty($free_items)) {
+                $_SESSION['cart'] = [];
+                header('Location: /shop/success/?type=free');
+                exit();
+            }
+
+            header('Location: /shop/cart/');
+            exit();
+        } catch (Throwable $e) {
+            error_log('Cart checkout error: ' . $e->getMessage());
+            $_SESSION['checkout_error'] = 'La finalisation de la commande a échoué. Veuillez réessayer.';
             header('Location: /shop/cart/');
             exit();
         }
-
-        $stmt = $pdo->prepare('SELECT * FROM users WHERE id=? LIMIT 1');
-        $stmt->execute([$_SESSION['user_id']]);
-        $user = $stmt->fetch();
-        if (!$user) {
-            header('Location: /login/');
-            exit();
-        }
-
-        $free_items = [];
-        $paid_items = [];
-        $paid_total = 0.0;
-        foreach ($_SESSION['cart'] as $slug => $item) {
-            if ((int)($item['quantity'] ?? 0) <= 0) {
-                continue;
-            }
-
-            $product = loadCartProduct($pdo, $slug);
-            if (!$product) {
-                continue;
-            }
-
-            $product_type = strtolower((string)($product['type'] ?? ''));
-            $product_price = (float)($product['price'] ?? 0);
-            $is_free = $product_type === 'free' || $product_price <= 0;
-
-            if ($is_free) {
-                $free_items[] = ['product' => $product, 'quantity' => (int)($item['quantity'] ?? 0)];
-            } else {
-                $quantity = (int)($item['quantity'] ?? 0);
-                $paid_items[] = ['slug' => $slug, 'product' => $product, 'quantity' => $quantity];
-                $paid_total += $product_price * $quantity;
-            }
-        }
-
-        if (!empty($free_items)) {
-            foreach ($free_items as $entry) {
-                for ($i = 0; $i < $entry['quantity']; $i++) {
-                    $result = processFreeOrder($pdo, $user, $entry['product'], $headers_admin, $panel_url);
-                    $_SESSION['success_order_id'] = $result['order_id'];
-                    $_SESSION['success_email'] = $user['email'];
-                    $_SESSION['success_server_id'] = $result['server_id'];
-                    $_SESSION['success_offer'] = $result['offer_name'];
-                    $_SESSION['success_panel_password'] = $result['panel_password'];
-                }
-            }
-        }
-
-        if (!empty($paid_items)) {
-            $bundle_slugs = [];
-            foreach ($paid_items as $entry) {
-                $bundle_slugs[] = $entry['slug'];
-            }
-
-            $_SESSION['checkout_bundle'] = [
-                'items' => $paid_items,
-                'total' => round($paid_total, 2),
-                'label' => count($paid_items) > 1 ? 'Offres combinées' : ($paid_items[0]['product']['name'] ?? 'Offre')
-            ];
-            $_SESSION['cart'] = [];
-            header('Location: /shop/order/?plan=' . urlencode(implode($bundle_slugs, ',')));
-            exit();
-        }
-
-        if (!empty($free_items)) {
-            $_SESSION['cart'] = [];
-            header('Location: /shop/success/?type=free');
-            exit();
-        }
-
-        header('Location: /shop/cart/');
-        exit();
     }
 
     header('Location: /shop/cart/');
@@ -256,6 +263,13 @@ $total = max(0.50, $subtotal - $discount_amount + $shipping);
                 <i class="fas fa-arrow-left"></i> Continuer les achats
             </a>
         </div>
+
+        <?php if (!empty($_SESSION['checkout_error'])): ?>
+            <div class="mb-6 rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-300">
+                <i class="fas fa-exclamation-triangle mr-2"></i> <?= htmlspecialchars($_SESSION['checkout_error']) ?>
+            </div>
+            <?php unset($_SESSION['checkout_error']); ?>
+        <?php endif; ?>
 
         <?php if (empty($cart)): ?>
             <div class="glass rounded-3xl border border-white/10 p-10 text-center">
