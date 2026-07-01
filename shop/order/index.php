@@ -68,7 +68,8 @@ if (empty($selected_slugs) && !empty($_SESSION['checkout_bundle']['items']) && i
 }
 
 if (empty($selected_slugs)) {
-    die("Aucune offre spécifiée.");
+    header('Location: /shop/cart/');
+    exit();
 }
 
 foreach ($selected_slugs as $slug) {
@@ -92,7 +93,8 @@ foreach ($selected_slugs as $slug) {
 }
 
 if (empty($bundle_items)) {
-    die("Aucune offre payante valide n'a été trouvée.");
+    header('Location: /shop/cart/');
+    exit();
 }
 
 $offer = $bundle_items[0]['product'];
@@ -292,11 +294,17 @@ if (!isset($_SESSION['current_pending_order_id'])) {
         ->execute([$final_price, $bundle_label, $order_id]);
 }
 
+$checkout_offer = array_merge($offer, [
+    'name' => $bundle_label,
+    'price' => $final_price,
+    'slug' => $bundle_param ?: $type,
+]);
+
 $stripe_session = createStripeSession(
     $stripe_secret_key,
-    array_merge($offer, ['price' => $final_price]),
-    $type,
-    "https://heberge.orinstone.deepstone.fr/shop/order/?plan=" . urlencode($type) . "&session_id={CHECKOUT_SESSION_ID}",
+    $checkout_offer,
+    $bundle_param ?: $type,
+    "https://heberge.orinstone.deepstone.fr/shop/order/?plan=" . urlencode($bundle_param ?: $type) . "&session_id={CHECKOUT_SESSION_ID}",
     "https://heberge.orinstone.deepstone.fr/shop/"
 );
 $stripe_url = $stripe_session['checkout_url'];
