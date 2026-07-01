@@ -7,6 +7,17 @@ require_once $_SERVER['DOCUMENT_ROOT'] . '/shop/order/lib/promo/promo.php';
 $active_nav = 'cart';
 $page_title = 'Panier';
 
+function loadCartProduct(PDO $pdo, string $slug): ?array {
+    $product = getProductBySlug($pdo, $slug);
+    if ($product) {
+        return $product;
+    }
+
+    $stmt = $pdo->prepare('SELECT * FROM products WHERE slug = ? AND is_active = 1 LIMIT 1');
+    $stmt->execute([$slug]);
+    return $stmt->fetch() ?: null;
+}
+
 function processFreeOrder(PDO $pdo, array $user, array $product, array $headers_admin, string $panel_url): array {
     $panelUser = getOrCreatePanelUser($panel_url, $headers_admin, $user, $pdo);
     $pass = $panelUser['pass'];
@@ -121,12 +132,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 continue;
             }
 
-            $product = getProductBySlug($pdo, $slug);
+            $product = loadCartProduct($pdo, $slug);
             if (!$product) {
                 continue;
             }
 
-            if (($product['type'] ?? '') === 'free') {
+            $product_type = strtolower((string)($product['type'] ?? ''));
+            $product_price = (float)($product['price'] ?? 0);
+            $is_free = $product_type === 'free' || $product_price <= 0;
+
+            if ($is_free) {
                 $free_items[] = ['product' => $product, 'quantity' => (int)($item['quantity'] ?? 0)];
             } else {
                 $paid_items[] = ['slug' => $slug, 'product' => $product];
