@@ -1,4 +1,5 @@
 <?php
+ini_set('display_errors', 1); error_reporting(E_ALL);
 session_start();
 require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/lang.php';
 
@@ -62,18 +63,35 @@ $sections = [
     ],
 ];
 
+// Conteneurs pour les données dynamiques des catégories
+$dynamic_categories = [];
+
 // ── 2. REMPLISSAGE DYNAMIQUE DEPUIS LA BASE DE DONNÉES ──
 if ($db_status) {
     try {
-        $stmt = $pdo->query("SELECT * FROM products WHERE is_active = 1 ORDER BY sort_order ASC, id ASC");
+        // A. Récupérer toutes les configurations de catégories uniques définies par l'admin
+        $cat_stmt = $pdo->query("SELECT category_slug, name_key, icon, image_url FROM categories_products GROUP BY category_slug ORDER BY sort_order ASC");
+        while ($c_row = $cat_stmt->fetch()) {
+            $dynamic_categories[$c_row['category_slug']] = [
+                'name_key'  => $c_row['name_key'],
+                'icon'      => $c_row['icon'],
+                'image_url' => $c_row['image_url']
+            ];
+        }
+
+        // B. Récupérer les produits actifs reliés à leurs métadonnées de catégorie
+        $stmt = $pdo->query("
+            SELECT p.*, cp.category_slug, cp.name_key AS cat_name_key, cp.icon AS cat_icon, cp.image_url AS cat_image
+            FROM products p
+            INNER JOIN categories_products cp ON p.id = cp.product_id
+            WHERE p.is_active = 1 
+            ORDER BY p.sort_order ASC, p.id ASC
+        ");
         $all_products = $stmt->fetchAll();
 
         foreach ($all_products as $product) {
             $slug = $product['slug'];
-            
-            // Extraction de la catégorie à partir du début du slug (ex: 'minecraft' ou 'fivem')
-            $slug_parts = explode('-', $slug);
-            $category = strtolower($slug_parts[0]); 
+            $category = strtolower($product['category_slug']); 
 
             // Détermination du bon palier d'affichage (tier) d'après le mot-clé présent dans le slug
             $tier_found = 'premium'; // Par défaut
@@ -85,8 +103,8 @@ if ($db_status) {
                 $tier_found = 'medium';
             }
 
-            // Reconstruction dynamique des clés de traduction pour name_key et desc_key
-            // Exemples générés : 'offer.mc_free.name', 'offer.fivem_basic.name', 'offer.php_premium.desc'
+            
+            // Reconstruction des clés de traduction pour les textes descriptifs des offres
             $short_cat = ($category === 'minecraft') ? 'mc' : (($category === 'python') ? 'py' : (($category === 'nodejs') ? 'node' : $category));
             $name_key = "offer.{$short_cat}_{$tier_found}.name";
             $desc_key = "offer.{$short_cat}_{$tier_found}.desc";
@@ -94,9 +112,6 @@ if ($db_status) {
             // Formatage propre des specs RAM et NVMe
             $ram_text = ($product['ram'] >= 1024) ? number_format($product['ram'] / 1024, 0) . ' GB' : $product['ram'] . ' MB';
             $disk_text = ($product['disk'] >= 1024) ? number_format($product['disk'] / 1024, 0) . ' GB' : $product['disk'] . ' MB';
-
-            // Icônes de liste adaptées au design premium ou classique
-            $bullet_icon = ($tier_found === 'premium') ? 'fas fa-check' : 'fas fa-arrow-right';
 
             // Ajout de l'offre BDD formatée dans le tableau $sections
             $sections[$tier_found]['offers'][] = [
@@ -108,6 +123,8 @@ if ($db_status) {
                 'period_key' => ($product['type'] === 'free') ? 'offers.period.free' : 'offers.period.month',
                 'plan'       => $slug,
                 'free'       => ($product['type'] === 'free'),
+                'icon'       => $product['cat_icon'] ?: 'fas fa-server',
+                'image_url'  => $product['cat_image'] ?: 'https://www.4netplayers.com/images/minecraft/blog/teaser-image.jpg',
                 'features'   => [
                     ['icon' => 'fas fa-memory',     'text' => $ram_text . ' RAM'],
                     ['icon' => 'fas fa-hard-drive', 'text' => $disk_text . ' SSD NVMe'],
@@ -117,25 +134,9 @@ if ($db_status) {
             ];
         }
     } catch (PDOException $e) {
-        // Fallback en cas de soucis SQL
+        // Fallback
     }
 }
-
-// Images et Icônes associées aux catégories graphiques
-$images = [
-    'minecraft' => 'https://www.4netplayers.com/images/minecraft/blog/teaser-image.jpg',
-    'fivem'     => 'https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=600&auto=format&fit=crop',
-    'hytale'    => 'https://cdn.minestrator.com/blog/articles/155/thumbnail.webp',
-    'php'       => 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=600&auto=format&fit=crop',
-    'nodejs'    => 'https://images.unsplash.com/photo-1607799279861-4dd421887fb3?q=80&w=600&auto=format&fit=crop',
-    'java'      => 'https://images.unsplash.com/photo-1607799279861-4dd421887fb3?q=80&w=600&auto=format&fit=crop',
-    'python'    => 'https://images.unsplash.com/photo-1542831371-29b0f74f9713?q=80&w=600&auto=format&fit=crop',
-];
-
-$icons = [
-    'minecraft' => 'fas fa-cube', 'fivem' => 'fas fa-car', 'hytale' => 'fas fa-gamepad',
-    'php' => 'fas fa-code', 'nodejs' => 'fab fa-node-js', 'java' => 'fab fa-java', 'python' => 'fab fa-python'
-];
 
 function getCardStyle($tier_key) {
     if ($tier_key === 'free') {
@@ -164,7 +165,6 @@ function getCardStyle($tier_key) {
         .gradient-text { background: linear-gradient(90deg, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .card-hover { transition: transform .3s, box-shadow .3s; }
         .card-hover:hover { transform: translateY(-6px); box-shadow: 0 20px 40px rgba(0,0,0,0.3); }
-        #mobileMenu { display: none; } #mobileMenu.active { display: block; }
         .tab-btn { padding: 0.6rem 1.5rem; border-radius: 9999px; font-size: 0.85rem; font-weight: 600; transition: all .2s; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.04); color: #9ca3af; cursor: pointer; white-space: nowrap; }
         .tab-btn:hover { background: rgba(255,255,255,0.08); color: #e5e7eb; }
         .tab-btn.active { background: rgba(56,189,248,0.15); border-color: rgba(56,189,248,0.4); color: #38bdf8; box-shadow: 0 0 15px rgba(56,189,248,0.1); }
@@ -175,9 +175,14 @@ function getCardStyle($tier_key) {
 <body class="text-gray-200 font-sans min-h-screen flex flex-col justify-between antialiased">
 
 <script>
+// Passer l'objet des traductions de catégories de PHP à JavaScript
+const categoryLabels = <?php echo json_encode(array_map(fn($cat) => t($cat['name_key']), $dynamic_categories), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+
 function filterCategory(catId) {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById('tab-' + catId).classList.add('active');
+    if(document.getElementById('tab-' + catId)) {
+        document.getElementById('tab-' + catId).classList.add('active');
+    }
     
     const catView = document.getElementById('cat-view');
     const catTitle = document.getElementById('cat-view-title');
@@ -193,8 +198,8 @@ function filterCategory(catId) {
     allSections.style.display = 'none'; 
     catView.style.display = 'block';
     
-    const labels = { minecraft:'Minecraft', fivem:'FiveM', hytale:'Hytale', php:'Web / PHP', python:'Python', nodejs:'Node.js', java:'Java' };
-    catTitle.textContent = labels[catId] || catId;
+    // Titre dynamique traduit
+    catTitle.textContent = categoryLabels[catId] || catId.toUpperCase();
     
     const cards = Array.from(document.querySelectorAll('#all-sections .offer-card[data-category="' + catId + '"]'));
     
@@ -215,14 +220,12 @@ window.addEventListener('DOMContentLoaded', () => filterCategory('all'));
         <h1 class="text-5xl md:text-7xl font-black tracking-tight leading-none gradient-text"><?php echo t('offers.title'); ?></h1>
         
         <div class="max-w-4xl mx-auto flex flex-wrap justify-center gap-3 px-4 mt-10">
-            <button onclick="filterCategory('all')"       id="tab-all"       class="tab-btn active"><?php echo t('offers.tab.all'); ?></button>
-            <button onclick="filterCategory('minecraft')" id="tab-minecraft" class="tab-btn">Minecraft</button>
-            <button onclick="filterCategory('fivem')"     id="tab-fivem"     class="tab-btn">FiveM</button>
-            <button onclick="filterCategory('hytale')"    id="tab-hytale"    class="tab-btn">Hytale</button>
-            <button onclick="filterCategory('php')"       id="tab-php"       class="tab-btn">Web / PHP</button>
-            <button onclick="filterCategory('python')"    id="tab-python"    class="tab-btn">Python</button>
-            <button onclick="filterCategory('nodejs')"    id="tab-nodejs"    class="tab-btn">Node.js</button>
-            <button onclick="filterCategory('java')"      id="tab-java"      class="tab-btn">Java</button>
+            <button onclick="filterCategory('all')" id="tab-all" class="tab-btn active"><?php echo t('offers.tab.all'); ?></button>
+            <?php foreach ($dynamic_categories as $slug => $cat_info): ?>
+                <button onclick="filterCategory('<?= htmlspecialchars($slug) ?>')" id="tab-<?= htmlspecialchars($slug) ?>" class="tab-btn">
+                    <?php echo t($cat_info['name_key']); ?>
+                </button>
+            <?php endforeach; ?>
         </div>
     </header>
 
@@ -247,11 +250,8 @@ window.addEventListener('DOMContentLoaded', () => filterCategory('all'));
             <?php foreach ($tier_data['offers'] as $offer): ?>
             <?php
                 $cat = $offer['category'];
-                $img = isset($images[$cat]) ? $images[$cat] : $images['minecraft'];
-                $icon = isset($icons[$cat]) ? $icons[$cat] : 'fas fa-server';
                 $style = getCardStyle($tier_key);
                 
-                // Routage dynamique basé sur le slug récupéré 
                 if ($offer['free']) {
                     $route = '/shop/process_free/?type=' . urlencode($offer['slug']);
                     $btn_text = $is_logged_in ? t('btn.deploy') : t('btn.login_to_buy');
@@ -264,13 +264,13 @@ window.addEventListener('DOMContentLoaded', () => filterCategory('all'));
             <div data-category="<?php echo $cat; ?>" 
                  class="offer-card glass rounded-3xl border <?php echo $style['card_border']; ?> flex flex-col card-hover overflow-hidden relative">
                 
-                <div class="h-44 w-full bg-cover bg-center relative" style="background-image: url('<?php echo $img; ?>');">
+                <div class="h-44 w-full bg-cover bg-center relative" style="background-image: url('<?php echo htmlspecialchars($offer['image_url']); ?>');">
                     <div class="absolute inset-0 bg-gradient-to-t from-[#070a13] to-transparent"></div>
                     <div class="absolute top-4 left-4 right-4 flex justify-between items-center">
                         <span class="<?php echo $style['badge_bg'].' '.$style['badge_text'].' '.$style['badge_border']; ?> px-3 py-1 rounded-full text-xs font-bold backdrop-blur-md border uppercase tracking-wide">
                             <?php echo t($tier_data['label_key']); ?>
                         </span>
-                        <i class="<?php echo $icon.' '.$style['icon_color']; ?> text-2xl drop-shadow"></i>
+                        <i class="<?php echo htmlspecialchars($offer['icon']).' '.$style['icon_color']; ?> text-2xl drop-shadow"></i>
                     </div>
                 </div>
                 
