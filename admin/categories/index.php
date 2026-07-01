@@ -26,15 +26,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $icon          = trim($_POST['icon'] ?? 'fas fa-server');
         $image_url     = trim($_POST['image_url'] ?? null);
         $sort_order    = (int)($_POST['sort_order'] ?? 0);
+        $is_active     = isset($_POST['is_active']) ? 1 : 0;
 
         if ($category_slug && $name_key) {
             try {
                 if ($action == 'add') {
                     $pdo->prepare("
                         INSERT INTO categories_products
-                        (product_id, category_slug, name_key, icon, image_url, sort_order)
-                        VALUES (?,?,?,?,?,?)
-                    ")->execute([$product_id, $category_slug, $name_key, $icon, $image_url, $sort_order]);
+                        (product_id, category_slug, name_key, icon, image_url, sort_order, is_active)
+                        VALUES (?,?,?,?,?,?,?)
+                    ")->execute([$product_id, $category_slug, $name_key, $icon, $image_url, $sort_order, $is_active]);
 
                     $flash = '<div class="bg-green-500/15 text-green-400 border border-green-500/25 p-3 rounded-xl text-sm mb-4">
                     ✅ Catégorie créée avec succès.
@@ -42,9 +43,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 } else {
                     $pdo->prepare("
                         UPDATE categories_products
-                        SET product_id=?, category_slug=?, name_key=?, icon=?, image_url=?, sort_order=?
+                        SET product_id=?, category_slug=?, name_key=?, icon=?, image_url=?, sort_order=?, is_active=?
                         WHERE id=?
-                    ")->execute([$product_id, $category_slug, $name_key, $icon, $image_url, $sort_order, $id]);
+                    ")->execute([$product_id, $category_slug, $name_key, $icon, $image_url, $sort_order, $is_active, $id]);
 
                     $flash = '<div class="bg-green-500/15 text-green-400 border border-green-500/25 p-3 rounded-xl text-sm mb-4">
                     ✅ Catégorie modifiée avec succès.
@@ -60,6 +61,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ❌ Tous les champs obligatoires doivent être remplis.
             </div>';
         }
+    }
+
+    if ($action === 'toggle') {
+        $id = (int)($_POST['id'] ?? 0);
+        $pdo->prepare("UPDATE categories_products SET is_active = NOT is_active WHERE id = ?")->execute([$id]);
+        $flash = '<div class="bg-green-500/15 text-green-400 border border-green-500/25 p-3 rounded-xl text-sm mb-4">
+        🔄 Statut de la catégorie mis à jour.
+        </div>';
     }
 
     if ($action == 'delete') {
@@ -109,7 +118,7 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_layout.php';
       <div class="overflow-x-auto">
       <table class="tbl">
         <thead>
-          <tr><th>Slug</th><th>Clé de Nom</th><th>Icône</th><th>Produit Lié</th><th>Ordre</th><th>Actions</th></tr>
+          <tr><th>Slug</th><th>Clé de Nom</th><th>Icône</th><th>Produit Lié</th><th>Ordre</th><th>Statut</th><th>Actions</th></tr>
         </thead>
         <tbody>
           <?php foreach ($categories as $c): ?>
@@ -127,9 +136,19 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_layout.php';
               <?php endif; ?>
             </td>
             <td class="text-gray-400 text-xs"><?= $c['sort_order'] ?></td>
+            <td><?= !empty($c['is_active']) ? '<span class="badge badge-green">Actif</span>' : '<span class="badge badge-gray">Inactif</span>' ?></td>
             <td>
               <div class="flex items-center gap-1.5">
                 <button onclick='openEditModal(<?= htmlspecialchars(json_encode($c), ENT_QUOTES) ?>)' class="btn btn-ghost text-xs"><i class="fas fa-edit"></i></button>
+                
+                <form method="POST" class="inline">
+                  <input type="hidden" name="action" value="toggle">
+                  <input type="hidden" name="id" value="<?= $c['id'] ?>">
+                  <button type="submit" class="btn btn-ghost text-xs" title="<?= !empty($c['is_active']) ? 'Désactiver' : 'Activer' ?>">
+                    <?= !empty($c['is_active']) ? '<i class="fas fa-eye-slash text-amber-500"></i>' : '<i class="fas fa-eye text-green-400"></i>' ?>
+                  </button>
+                </form>
+
                 <form method="POST" class="inline" onsubmit="return confirm('Supprimer la catégorie « <?= htmlspecialchars($c['category_slug'], ENT_QUOTES) ?> » ?')">
                   <input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="<?= $c['id'] ?>">
                   <button class="btn btn-danger text-xs"><i class="fas fa-trash"></i></button>
@@ -193,6 +212,11 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_layout.php';
         <input name="image_url" id="cImageUrl" class="input" placeholder="https://...">
       </div>
 
+      <div class="flex items-center gap-2">
+        <input type="checkbox" name="is_active" id="cActive" value="1" checked class="w-4 h-4 accent-sky-500">
+        <label for="cActive" class="text-xs text-gray-300 font-medium">Catégorie active (visible en boutique)</label>
+      </div>
+
       <div class="flex gap-3 pt-2">
         <button type="submit" class="btn btn-primary flex-1">Sauvegarder</button>
         <button type="button" onclick="document.getElementById('modalCategory').classList.add('hidden')" class="btn btn-ghost flex-1">Annuler</button>
@@ -212,6 +236,7 @@ function openAddModal() {
     document.getElementById('cSort').value = '0';
     document.getElementById('cProductId').value = '';
     document.getElementById('cImageUrl').value = '';
+    document.getElementById('cActive').checked = true;
     document.getElementById('modalCategory').classList.remove('hidden');
 }
 
@@ -225,6 +250,7 @@ function openEditModal(c) {
     document.getElementById('cSort').value = c.sort_order;
     document.getElementById('cProductId').value = c.product_id || '';
     document.getElementById('cImageUrl').value = c.image_url || '';
+    document.getElementById('cActive').checked = c.is_active == 1;
     document.getElementById('modalCategory').classList.remove('hidden');
 }
 </script>
