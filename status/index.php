@@ -16,6 +16,7 @@ $is_logged_in = isset($_SESSION['user_id']);
 $my_services = [
     'Site Web'              => 'heberge.orinstone.deepstone.fr',
     'Panel de gestion'      => 'panel.orinstone.deepstone.fr',
+    'Panel de Plesk'      => 'plesk.orinstone.deepstone.fr',
     'phpMyAdmin'            => 'php.orinstone.deepstone.fr',
     'Node OrinStone'        => 'node.orinstone.deepstone.fr',
     'Node DeepStone Global' => 'node.deepstone.fr'
