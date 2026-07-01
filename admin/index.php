@@ -714,6 +714,109 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_sidebar.php';
     <!-- ═══════════════════════════════════════════════════
          VUE FACTURES (ADMIN)
     ════════════════════════════════════════════════════ -->
+    <?php elseif ($view === 'server'): ?>
+    <?php
+        $server_row_id = max(0, (int)($_GET['id'] ?? 0));
+        $detail_stmt = $pdo->prepare('
+            SELECT o.*, u.email AS user_email, u.pseudo, u.firstname, u.lastname, u.created_at AS user_created_at
+            FROM orders o
+            LEFT JOIN users u ON u.id = o.user_id
+            WHERE o.id = ?
+            LIMIT 1
+        ');
+        $detail_stmt->execute([$server_row_id]);
+        $server_detail = $detail_stmt->fetch();
+        $panel_detail = null;
+        if ($server_detail && !empty($server_detail['server_id'])) {
+            $panel_detail = adminApiCall($panel_url, $headers_admin, 'servers/' . (int)$server_detail['server_id']);
+        }
+        $panel_attrs = $panel_detail['attributes'] ?? [];
+        $panel_limits = $panel_attrs['limits'] ?? [];
+        $panel_features = $panel_attrs['feature_limits'] ?? [];
+    ?>
+    <?php if (!$server_detail): ?>
+        <div class="card p-8 text-center">
+            <div class="text-lg font-bold text-white mb-2">Serveur introuvable</div>
+            <a href="/admin/?view=servers" class="btn-action btn-sky">Retour aux serveurs</a>
+        </div>
+    <?php else: ?>
+        <div class="mb-5 flex items-center justify-between gap-3">
+            <a href="/admin/?view=servers" class="btn-action btn-blue"><i class="fas fa-arrow-left"></i> Retour</a>
+            <?php if (!empty($server_detail['uuid'])): ?>
+                <a href="/client/servers/gérer/?uuid=<?php echo urlencode($server_detail['uuid']); ?>" target="_blank" class="btn-action btn-sky"><i class="fas fa-terminal"></i> Console client</a>
+            <?php endif; ?>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+            <div class="card p-5 lg:col-span-2">
+                <div class="flex items-start justify-between gap-4 mb-5">
+                    <div>
+                        <div class="text-xs text-gray-500 uppercase tracking-wider font-bold">Serveur</div>
+                        <h2 class="text-xl font-black text-white mt-1"><?php echo htmlspecialchars($server_detail['service_name']); ?></h2>
+                        <div class="text-xs text-gray-500 font-mono mt-1"><?php echo htmlspecialchars($server_detail['uuid'] ?? ''); ?></div>
+                    </div>
+                    <span class="badge <?php echo ($server_detail['status'] ?? '') === 'paid' ? 'badge-green' : (($server_detail['status'] ?? '') === 'suspended' ? 'badge-orange' : 'badge-gray'); ?>">
+                        <?php echo htmlspecialchars($server_detail['status'] ?? 'unknown'); ?>
+                    </span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
+                    <div class="stat-card"><div class="text-xs text-gray-500">RAM commandée</div><div class="text-2xl font-black text-white"><?php echo (int)$server_detail['ram']; ?> MB</div></div>
+                    <div class="stat-card"><div class="text-xs text-gray-500">CPU commandé</div><div class="text-2xl font-black text-white"><?php echo (int)$server_detail['cpu']; ?>%</div></div>
+                    <div class="stat-card"><div class="text-xs text-gray-500">Disque commandé</div><div class="text-2xl font-black text-white"><?php echo (int)$server_detail['disk']; ?> MB</div></div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div class="rounded-xl border border-white/5 bg-white/[.02] p-4">
+                        <div class="text-xs text-gray-500 font-bold uppercase tracking-wider mb-3">Commande</div>
+                        <div class="space-y-2 text-xs">
+                            <div class="flex justify-between gap-3"><span class="text-gray-500">Order ID</span><span class="text-white font-mono"><?php echo htmlspecialchars($server_detail['order_id']); ?></span></div>
+                            <div class="flex justify-between gap-3"><span class="text-gray-500">Produit</span><span class="text-white"><?php echo htmlspecialchars((string)($server_detail['product_id'] ?? '—')); ?></span></div>
+                            <div class="flex justify-between gap-3"><span class="text-gray-500">Prix achat</span><span class="text-white"><?php echo number_format((float)($server_detail['amount'] ?? 0), 2, ',', ''); ?>€</span></div>
+                            <div class="flex justify-between gap-3"><span class="text-gray-500">Renouvellement</span><span class="text-white"><?php echo number_format((float)($server_detail['renewal_price'] ?? 0), 2, ',', ''); ?>€</span></div>
+                            <div class="flex justify-between gap-3"><span class="text-gray-500">Créé le</span><span class="text-white"><?php echo htmlspecialchars($server_detail['created_at'] ?? '—'); ?></span></div>
+                        </div>
+                    </div>
+                    <div class="rounded-xl border border-white/5 bg-white/[.02] p-4">
+                        <div class="text-xs text-gray-500 font-bold uppercase tracking-wider mb-3">Cycle de vie</div>
+                        <div class="space-y-2 text-xs">
+                            <div class="flex justify-between gap-3"><span class="text-gray-500">Expiration</span><span class="text-white"><?php echo htmlspecialchars($server_detail['expires_at'] ?? '—'); ?></span></div>
+                            <div class="flex justify-between gap-3"><span class="text-gray-500">Prochain paiement</span><span class="text-white"><?php echo htmlspecialchars($server_detail['next_payment_date'] ?? '—'); ?></span></div>
+                            <div class="flex justify-between gap-3"><span class="text-gray-500">Suspendu le</span><span class="text-white"><?php echo htmlspecialchars($server_detail['suspended_at'] ?? '—'); ?></span></div>
+                            <div class="flex justify-between gap-3"><span class="text-gray-500">Fin suspension</span><span class="text-white"><?php echo htmlspecialchars($server_detail['suspension_until'] ?? '—'); ?></span></div>
+                            <div class="flex justify-between gap-3"><span class="text-gray-500">Suppression</span><span class="text-white"><?php echo htmlspecialchars($server_detail['delete_after'] ?? '—'); ?></span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card p-5">
+                <div class="text-xs text-gray-500 font-bold uppercase tracking-wider mb-3">Client</div>
+                <div class="text-sm font-bold text-white"><?php echo htmlspecialchars($server_detail['pseudo'] ?: trim(($server_detail['firstname'] ?? '') . ' ' . ($server_detail['lastname'] ?? '')) ?: '—'); ?></div>
+                <div class="text-xs text-gray-500 mb-4"><?php echo htmlspecialchars($server_detail['user_email'] ?? '—'); ?></div>
+
+                <div class="text-xs text-gray-500 font-bold uppercase tracking-wider mb-3">Pterodactyl</div>
+                <div class="space-y-2 text-xs">
+                    <div class="flex justify-between gap-3"><span class="text-gray-500">Server ID</span><span class="text-white font-mono"><?php echo htmlspecialchars((string)($server_detail['server_id'] ?? '—')); ?></span></div>
+                    <div class="flex justify-between gap-3"><span class="text-gray-500">Identifier</span><span class="text-white font-mono"><?php echo htmlspecialchars((string)($server_detail['id_server_panel'] ?? ($panel_attrs['identifier'] ?? '—'))); ?></span></div>
+                    <div class="flex justify-between gap-3"><span class="text-gray-500">UUID court</span><span class="text-white font-mono"><?php echo htmlspecialchars(substr($server_detail['uuid'] ?? '', 0, 8)); ?></span></div>
+                    <div class="flex justify-between gap-3"><span class="text-gray-500">Node</span><span class="text-white"><?php echo htmlspecialchars((string)($panel_attrs['node'] ?? '—')); ?></span></div>
+                    <div class="flex justify-between gap-3"><span class="text-gray-500">Mémoire panel</span><span class="text-white"><?php echo htmlspecialchars((string)($panel_limits['memory'] ?? '—')); ?> MB</span></div>
+                    <div class="flex justify-between gap-3"><span class="text-gray-500">Disque panel</span><span class="text-white"><?php echo htmlspecialchars((string)($panel_limits['disk'] ?? '—')); ?> MB</span></div>
+                    <div class="flex justify-between gap-3"><span class="text-gray-500">Databases</span><span class="text-white"><?php echo htmlspecialchars((string)($panel_features['databases'] ?? '—')); ?></span></div>
+                    <div class="flex justify-between gap-3"><span class="text-gray-500">Backups</span><span class="text-white"><?php echo htmlspecialchars((string)($panel_features['backups'] ?? '—')); ?></span></div>
+                    <div class="flex justify-between gap-3"><span class="text-gray-500">Ports</span><span class="text-white"><?php echo htmlspecialchars((string)($panel_features['allocations'] ?? '—')); ?></span></div>
+                </div>
+
+                <?php if (!empty($server_detail['server_id'])): ?>
+                    <a href="<?php echo htmlspecialchars($panel_url); ?>/admin/servers/view/<?php echo (int)$server_detail['server_id']; ?>" target="_blank" class="mt-5 w-full justify-center btn-action btn-orange">
+                        <i class="fas fa-external-link-alt"></i> Ouvrir panel
+                    </a>
+                <?php endif; ?>
+            </div>
+        </div>
+    <?php endif; ?>
+
     <?php elseif ($view === 'invoices'): ?>
     <?php
         // Actions factures
