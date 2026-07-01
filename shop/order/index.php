@@ -121,6 +121,18 @@ if (isset($_GET['session_id'])) {
         $_GET['session_id'], $offer['price'], $next_pay
     ]);
 
+    // ── Générer la facture ────────────────────────────────────────────────────
+    $invoice_count = (int)$pdo->query("SELECT COUNT(*)+1 FROM invoices")->fetchColumn();
+    $invoice_id    = 'INV-' . date('Y') . '-' . str_pad($invoice_count, 5, '0', STR_PAD_LEFT);
+    $pdo->prepare("
+        INSERT INTO invoices (invoice_id, user_id, order_id, service_name, amount, type,
+            status, payment_method, payment_ref, paid_at, created_at)
+        VALUES (?, ?, ?, ?, ?, 'purchase', 'paid', 'stripe', ?, NOW(), NOW())
+    ")->execute([
+        $invoice_id, $_SESSION['user_id'], $order_id, $offer['name'],
+        $offer['price'], $_GET['session_id']
+    ]);
+
     sendDiscordWebhook(
         $discord_webhook_url, $order_id, $offer['name'],
         $offer['price'], $user['email'], $srv['uuid'], $srv['identifier']
