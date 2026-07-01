@@ -121,10 +121,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'delete_server') {
         $uuid      = trim($_POST['server_uuid'] ?? '');
         $server_id = (int)($_POST['server_id'] ?? 0);
-        if ($uuid && $server_id) {
-            adminApiCall($panel_url, $headers_admin, 'servers/' . $server_id, 'DELETE');
-            $pdo->prepare('DELETE FROM orders WHERE uuid=?')->execute([$uuid]);
-            $flash = "<div class='bg-green-500/20 text-green-400 border border-green-500/30 p-4 rounded-xl text-sm'>✅ Serveur supprimé.</div>";
+        if ($uuid) {
+            if ($server_id) adminApiCall($panel_url, $headers_admin, 'servers/' . $server_id, 'DELETE');
+            $pdo->prepare("
+                UPDATE orders
+                SET status='deleted',
+                    suspended_at=NULL,
+                    delete_after=NULL,
+                    server_id=NULL
+                WHERE uuid=?
+            ")->execute([$uuid]);
+            $flash = adminFlash('ok', 'Serveur supprime du panel et archive dans les commandes.');
         }
     }
 
