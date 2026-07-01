@@ -573,6 +573,135 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_sidebar.php';
     </div>
 
     <!-- ═══════════════════════════════════════════════════
+         VUE FACTURES (ADMIN)
+    ════════════════════════════════════════════════════ -->
+    <?php elseif ($view === 'invoices'): ?>
+    <?php
+        // Actions factures
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $inv_action = $_POST['inv_action'] ?? '';
+            $inv_id     = trim($_POST['inv_id'] ?? '');
+            if ($inv_id) {
+                if ($inv_action === 'mark_paid') {
+                    $pdo->prepare("UPDATE invoices SET status='paid', paid_at=NOW() WHERE invoice_id=?")->execute([$inv_id]);
+                } elseif ($inv_action === 'mark_refunded') {
+                    $pdo->prepare("UPDATE invoices SET status='refunded' WHERE invoice_id=?")->execute([$inv_id]);
+                } elseif ($inv_action === 'delete_invoice') {
+                    $pdo->prepare("DELETE FROM invoices WHERE invoice_id=?")->execute([$inv_id]);
+                }
+                header('Location: /admin/?view=invoices'); exit();
+            }
+        }
+        $inv_page    = max(1,(int)($_GET['p'] ?? 1));
+        $inv_perpage = 20;
+        $inv_total   = (int)$pdo->query("SELECT COUNT(*) FROM invoices")->fetchColumn();
+        $inv_pages   = max(1,(int)ceil($inv_total / $inv_perpage));
+        $inv_offset  = ($inv_page - 1) * $inv_perpage;
+        $inv_filter  = $_GET['status'] ?? 'all';
+        if ($inv_filter !== 'all') {
+            $inv_stmt = $pdo->prepare("SELECT i.*, u.email AS user_email, u.pseudo, u.firstname FROM invoices i LEFT JOIN users u ON u.id=i.user_id WHERE i.status=? ORDER BY i.created_at DESC LIMIT ? OFFSET ?");
+            $inv_stmt->execute([$inv_filter, $inv_perpage, $inv_offset]);
+        } else {
+            $inv_stmt = $pdo->prepare("SELECT i.*, u.email AS user_email, u.pseudo, u.firstname FROM invoices i LEFT JOIN users u ON u.id=i.user_id ORDER BY i.created_at DESC LIMIT ? OFFSET ?");
+            $inv_stmt->execute([$inv_perpage, $inv_offset]);
+        }
+        $all_invoices = $inv_stmt->fetchAll();
+        $inv_stats = $pdo->query("SELECT
+            SUM(CASE WHEN status='paid' THEN amount ELSE 0 END) AS revenue,
+            COUNT(CASE WHEN status='paid' THEN 1 END) AS paid_count,
+            COUNT(CASE WHEN status='pending' THEN 1 END) AS pending_count,
+            COUNT(CASE WHEN status='refunded' THEN 1 END) AS refunded_count
+            FROM invoices")->fetch();
+    ?>
+    <!-- Sous-stats -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+        <div class="stat-card"><div class="flex items-center justify-between mb-2"><span class="text-xs text-gray-500">Total factures</span><div class="w-7 h-7 rounded-lg bg-sky-500/15 flex items-center justify-center"><i class="fas fa-file-invoice text-sky-400 text-xs"></i></div></div><div class="text-2xl font-black text-white"><?= $inv_total ?></div><div class="text-xs text-gray-500 mt-1">Émises</div></div>
+        <div class="stat-card"><div class="flex items-center justify-between mb-2"><span class="text-xs text-gray-500">Revenus</span><div class="w-7 h-7 rounded-lg bg-green-500/15 flex items-center justify-center"><i class="fas fa-euro-sign text-green-400 text-xs"></i></div></div><div class="text-2xl font-black text-green-400"><?= number_format((float)($inv_stats['revenue']??0),2,',','') ?>€</div><div class="text-xs text-gray-500 mt-1"><?= (int)$inv_stats['paid_count'] ?> payées</div></div>
+        <div class="stat-card"><div class="flex items-center justify-between mb-2"><span class="text-xs text-gray-500">En attente</span><div class="w-7 h-7 rounded-lg bg-amber-500/15 flex items-center justify-center"><i class="fas fa-clock text-amber-400 text-xs"></i></div></div><div class="text-2xl font-black text-amber-400"><?= (int)$inv_stats['pending_count'] ?></div><div class="text-xs text-gray-500 mt-1">À encaisser</div></div>
+        <div class="stat-card"><div class="flex items-center justify-between mb-2"><span class="text-xs text-gray-500">Remboursées</span><div class="w-7 h-7 rounded-lg bg-blue-500/15 flex items-center justify-center"><i class="fas fa-rotate-left text-blue-400 text-xs"></i></div></div><div class="text-2xl font-black text-blue-400"><?= (int)$inv_stats['refunded_count'] ?></div><div class="text-xs text-gray-500 mt-1">Refunds</div></div>
+    </div>
+    <!-- Filtres -->
+    <div class="flex gap-2 mb-4 flex-wrap">
+        <?php foreach (['all'=>'Toutes','paid'=>'Payées','pending'=>'En attente','refunded'=>'Remboursées'] as $k=>$lbl): ?>
+        <a href="?view=invoices&status=<?= $k ?>" class="text-xs font-semibold px-3 py-1.5 rounded-lg border transition <?= $inv_filter===$k ? 'bg-rose-500/15 text-rose-400 border-rose-500/25' : 'bg-white/5 text-gray-400 border-white/10 hover:bg-white/10' ?>"><?= $lbl ?></a>
+        <?php endforeach; ?>
+    </div>
+    <div class="card overflow-hidden">
+        <div class="px-5 py-4 border-b border-white/[0.05] flex items-center justify-between">
+            <h2 class="text-sm font-bold text-white flex items-center gap-2"><i class="fas fa-file-invoice-dollar text-yellow-400 text-xs"></i> Factures (<?= $inv_total ?>)</h2>
+        </div>
+        <?php if (empty($all_invoices)): ?>
+        <div class="px-5 py-12 text-center text-gray-500 text-sm">Aucune facture trouvée.</div>
+        <?php else: ?>
+        <div class="overflow-x-auto">
+        <table>
+            <thead><tr>
+                <th>N° Facture</th><th>Client</th><th>Service</th><th>Type</th>
+                <th>Montant</th><th>Méthode</th><th>Date</th><th>Statut</th><th>Actions</th>
+            </tr></thead>
+            <tbody>
+            <?php foreach ($all_invoices as $inv):
+                $ist = match($inv['status']) { 'paid'=>['badge-green','Payée'],'pending'=>['badge-orange','En attente'],'refunded'=>['badge-blue','Remboursée'],default=>['badge-gray','Inconnu'] };
+                $itype = match($inv['type']) { 'renewal'=>'Renouvellement','purchase'=>'Achat',default=>ucfirst($inv['type']) };
+                $ipay = match($inv['payment_method']??'') { 'stripe'=>'<i class="fas fa-credit-card text-indigo-400 mr-1"></i>Stripe','paypal'=>'<i class="fab fa-paypal text-blue-400 mr-1"></i>PayPal',default=>'Manuel' };
+            ?>
+            <tr>
+                <td class="font-mono text-xs text-sky-400"><?= htmlspecialchars($inv['invoice_id']) ?></td>
+                <td>
+                    <div class="text-xs font-semibold text-white"><?= htmlspecialchars($inv['pseudo'] ?: ($inv['firstname']??'')) ?></div>
+                    <div class="text-[10px] text-gray-500"><?= htmlspecialchars($inv['user_email']??'') ?></div>
+                </td>
+                <td class="text-xs text-gray-300 max-w-[140px] truncate"><?= htmlspecialchars($inv['service_name']) ?></td>
+                <td><span class="badge badge-gray text-[10px]"><?= $itype ?></span></td>
+                <td class="font-bold text-white"><?= number_format((float)$inv['amount'],2,',','') ?>€</td>
+                <td class="text-xs text-gray-400"><?= $ipay ?></td>
+                <td class="text-xs text-gray-500"><?= date('d/m/Y',strtotime($inv['created_at'])) ?></td>
+                <td><span class="badge <?= $ist[0] ?>"><?= $ist[1] ?></span></td>
+                <td>
+                    <div class="flex items-center gap-1.5">
+                        <a href="/client/billing/invoice/?id=<?= urlencode($inv['invoice_id']) ?>" target="_blank" class="btn-action btn-sky" title="Voir"><i class="fas fa-eye"></i></a>
+                        <a href="/client/billing/invoice/print/?id=<?= urlencode($inv['invoice_id']) ?>" target="_blank" class="btn-action btn-blue" title="Imprimer"><i class="fas fa-print"></i></a>
+                        <?php if ($inv['status'] === 'pending'): ?>
+                        <form method="POST" action="/admin/?view=invoices" style="display:inline">
+                            <input type="hidden" name="inv_action" value="mark_paid">
+                            <input type="hidden" name="inv_id" value="<?= htmlspecialchars($inv['invoice_id']) ?>">
+                            <button class="btn-action btn-sky" title="Marquer payée"><i class="fas fa-check"></i></button>
+                        </form>
+                        <?php endif; ?>
+                        <?php if ($inv['status'] === 'paid'): ?>
+                        <form method="POST" action="/admin/?view=invoices" style="display:inline">
+                            <input type="hidden" name="inv_action" value="mark_refunded">
+                            <input type="hidden" name="inv_id" value="<?= htmlspecialchars($inv['invoice_id']) ?>">
+                            <button class="btn-action btn-orange" title="Rembourser" onclick="return confirm('Marquer comme remboursée ?')"><i class="fas fa-rotate-left"></i></button>
+                        </form>
+                        <?php endif; ?>
+                        <form method="POST" action="/admin/?view=invoices" style="display:inline" onsubmit="return confirmDel('Supprimer cette facture ?')">
+                            <input type="hidden" name="inv_action" value="delete_invoice">
+                            <input type="hidden" name="inv_id" value="<?= htmlspecialchars($inv['invoice_id']) ?>">
+                            <button class="btn-action btn-red"><i class="fas fa-trash"></i></button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table>
+        </div>
+        <?php if ($inv_pages > 1): ?>
+        <div class="flex items-center justify-center gap-2 px-5 py-4 border-t border-white/[0.04]">
+            <?php if ($inv_page > 1): ?>
+            <a href="?view=invoices&status=<?= $inv_filter ?>&p=<?= $inv_page-1 ?>" class="btn-action btn-blue"><i class="fas fa-chevron-left"></i></a>
+            <?php endif; ?>
+            <span class="text-xs text-gray-500">Page <?= $inv_page ?> / <?= $inv_pages ?></span>
+            <?php if ($inv_page < $inv_pages): ?>
+            <a href="?view=invoices&status=<?= $inv_filter ?>&p=<?= $inv_page+1 ?>" class="btn-action btn-blue"><i class="fas fa-chevron-right"></i></a>
+            <?php endif; ?>
+        </div>
+        <?php endif; ?>
+        <?php endif; ?>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
          VUE EMAIL BROADCAST
     ════════════════════════════════════════════════════ -->
     <?php elseif ($view === 'email'): ?>
