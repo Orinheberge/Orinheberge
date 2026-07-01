@@ -51,6 +51,10 @@ $_tickets_count  = isset($open_tickets) ? $open_tickets      : ($pdo->query("SEL
       <i class="fas fa-puzzle-piece icon"></i> Extensions
     </a>
 
+     <a href="/admin/categories/" class="nav-item <?= $active_nav === 'categories' ? 'active' : '' ?>">
+      <i class="fas fa-folder icon"></i> Catégories
+    </a>
+
     <div class="nav-separator"></div>
     <div class="nav-section">Gestion</div>
     <a href="/admin/servers/create/" class="nav-item <?= $active_nav === 'create_server' ? 'active' : '' ?>" style="<?= $active_nav === 'create_server' ? '' : 'color:#f43f5e;' ?>">
