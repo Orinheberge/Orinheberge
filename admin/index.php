@@ -386,7 +386,7 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_sidebar.php';
             <button onclick="toggleSidebar()" class="md:hidden text-gray-400 hover:text-white text-lg w-8"><i class="fas fa-bars"></i></button>
             <div>
                 <div class="text-sm font-bold text-white">
-                    <?php $titles = ['clients'=>'Clients','servers'=>'Serveurs','invoices'=>'Factures','email'=>'Emails','settings'=>'Paramètres','dashboard'=>'Vue d\'ensemble']; echo $titles[$view] ?? 'Vue d\'ensemble'; ?>
+                    <?php $titles = ['clients'=>'Clients','servers'=>'Serveurs','server'=>'Détail serveur','invoices'=>'Factures','email'=>'Emails','settings'=>'Paramètres','dashboard'=>'Vue d\'ensemble']; echo $titles[$view] ?? 'Vue d\'ensemble'; ?>
                 </div>
                 <div class="text-xs text-gray-500">Administration OrinHeberge</div>
             </div>
