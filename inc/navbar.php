@@ -26,12 +26,13 @@ $active_nav = $active_nav ?? '';
             </a>
  <div class="relative group">
                     <button class="text-gray-300 hover:text-sky-400 font-bold flex items-center gap-2.5 transition bg-white/5 hover:bg-white/10 px-4 py-2 rounded-full border border-white/5 focus:outline-none text-xs whitespace-nowrap">
-                     <a href="/shop/" class="<?php echo $active_nav === 'offers' ? 'bg-amber-600/30 text-amber-400 border-amber-500/50 font-bold' : 'bg-amber-600/5 text-amber-400/70 hover:text-amber-300 border-amber-500/10 hover:bg-amber-600/20'; ?> px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium shadow-md border whitespace-nowrap">
-                <i class="fas fa-tags"></i> <?php echo t('nav.offers'); ?>
-            </a>
+                        <i class="fas fa-tags"></i> Boutique
                     </button>
 
                     <div class="absolute right-0 mt-2 w-56 rounded-2xl border border-white/10 bg-[#11151d] shadow-2xl shadow-black/30 py-2 hidden group-hover:block group-focus-within:block">
+                            <a href="/shop/" class="<?php echo $active_nav === 'offers' ? 'bg-amber-600/30 text-amber-400 border-amber-500/50 font-bold' : 'bg-amber-600/5 text-amber-400/70 hover:text-amber-300 border-amber-500/10 hover:bg-amber-600/20'; ?> px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium shadow-md border whitespace-nowrap">
+                <i class="fas fa-tags"></i> <?php echo t('nav.offers'); ?>
+            </a>
                         <a href="/shop/cart/" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white">
                             <i class="fas fa-shopping-cart w-4"></i> Mon panier
                         </a>
