@@ -69,8 +69,8 @@ $dynamic_categories = [];
 // ── 2. REMPLISSAGE DYNAMIQUE DEPUIS LA BASE DE DONNÉES ──
 if ($db_status) {
     try {
-        // A. Récupérer TOUTES les catégories configurées par l'admin (même celles sans produit)
-        $cat_stmt = $pdo->query("SELECT category_slug, name_key, icon, image_url FROM categories_products GROUP BY category_slug ORDER BY sort_order ASC");
+        // A. Récupérer uniquement les catégories ACTIVES configurées par l'admin
+        $cat_stmt = $pdo->query("SELECT category_slug, name_key, icon, image_url FROM categories_products WHERE is_active = 1 GROUP BY category_slug ORDER BY sort_order ASC");
         while ($c_row = $cat_stmt->fetch()) {
             $dynamic_categories[$c_row['category_slug']] = [
                 'name_key'  => $c_row['name_key'],
@@ -79,12 +79,12 @@ if ($db_status) {
             ];
         }
 
-        // B. Utilisation d'un LEFT JOIN pour ne pas cacher les catégories vides et lister tous les produits actifs
+        // B. Récupérer uniquement les produits reliés à des catégories ACTIVES et dont le produit lui-même est actif
         $stmt = $pdo->query("
             SELECT p.*, cp.category_slug, cp.name_key AS cat_name_key, cp.icon AS cat_icon, cp.image_url AS cat_image
             FROM categories_products cp
             LEFT JOIN products p ON p.id = cp.product_id
-            WHERE p.is_active = 1 OR p.id IS NULL
+            WHERE cp.is_active = 1 AND (p.is_active = 1 OR p.id IS NULL)
             ORDER BY p.sort_order ASC, p.id ASC
         ");
         $all_rows = $stmt->fetchAll();
@@ -179,7 +179,6 @@ function getCardStyle($tier_key) {
 <body class="text-gray-200 font-sans min-h-screen flex flex-col justify-between antialiased">
 
 <script>
-// Transfert propre des traductions de catégories de PHP à JS
 const categoryLabels = <?php echo json_encode(array_map(fn($cat) => t($cat['name_key']), $dynamic_categories), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
 
 function filterCategory(catId) {
@@ -202,7 +201,6 @@ function filterCategory(catId) {
     allSections.style.display = 'none'; 
     catView.style.display = 'block';
     
-    // Titre dynamique traduit (Prend le slug en fallback s'il n'y a pas de traduction)
     catTitle.textContent = categoryLabels[catId] || catId.toUpperCase();
     
     const cards = Array.from(document.querySelectorAll('#all-sections .offer-card[data-category="' + catId + '"]'));
