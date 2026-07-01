@@ -149,37 +149,37 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_sidebar.php';
 ?>
 <!-- ══ MAIN ══ -->
 <div class="main-content">
-    <div class="topbar" style="background:#111318;border-bottom:1px solid rgba(255,255,255,.06);padding:.875rem 1.75rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:30;">
+    <div class="sticky top-0 z-30 flex items-center justify-between border-b border-white/[.06] bg-[#111318] px-7 py-3.5">
         <div class="flex items-center gap-3">
-            <button onclick="toggleSidebar()" class="md:hidden text-gray-400 hover:text-white text-lg w-8"><i class="fas fa-bars"></i></button>
+            <button onclick="toggleSidebar()" class="w-8 text-lg text-gray-400 hover:text-white md:hidden"><i class="fas fa-bars"></i></button>
             <div>
                 <div class="text-sm font-bold text-white">Créer un serveur pour un client</div>
                 <div class="text-xs text-gray-500">Provisionnement manuel admin</div>
             </div>
         </div>
-        <a href="/admin/?view=servers" class="text-xs text-gray-400 hover:text-white font-semibold px-3 py-1.5 rounded-lg hover:bg-white/5 flex items-center gap-1.5">
+        <a href="/admin/?view=servers" class="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-gray-400 hover:bg-white/5 hover:text-white">
             <i class="fas fa-arrow-left text-[10px]"></i> Retour
         </a>
     </div>
 
-    <div style="padding:1.75rem;max-width:680px;">
+    <div class="max-w-[680px] p-7">
         <?php if ($fm): ?>
-        <div class="mb-5 p-4 rounded-xl text-sm font-medium flex items-center gap-2" style="<?= $ft==='ok' ? 'background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);color:#22c55e;' : 'background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);color:#ef4444;' ?>">
+        <div class="mb-5 flex items-center gap-2 rounded-xl p-4 text-sm font-medium <?= $ft==='ok' ? 'bg-green-500/[.08] border border-green-500/20 text-green-500' : 'bg-red-500/[.08] border border-red-500/20 text-red-500' ?>">
             <i class="fas fa-<?= $ft==='ok' ? 'check-circle' : 'exclamation-circle' ?>"></i> <?= htmlspecialchars($fm) ?>
         </div>
         <?php endif; ?>
 
-        <div style="background:#161a22;border:1px solid rgba(255,255,255,.07);border-radius:.875rem;padding:1.75rem;">
-            <h2 style="font-size:.95rem;font-weight:800;color:#fff;margin-bottom:1.5rem;display:flex;align-items:center;gap:.5rem;">
-                <i class="fas fa-server" style="color:#f43f5e;font-size:.85rem;"></i> Nouveau serveur
+        <div class="rounded-2xl border border-white/[.07] bg-[#161a22] p-7">
+            <h2 class="mb-6 flex items-center gap-2 text-[.95rem] font-extrabold text-white">
+                <i class="fas fa-server text-[.85rem] text-rose-500"></i> Nouveau serveur
             </h2>
 
             <form method="POST" id="createForm">
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+                <div class="mb-4 grid grid-cols-2 gap-4">
                     <!-- Client -->
-                    <div style="grid-column:1/-1;">
-                        <label style="display:block;font-size:.7rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#6b7280;margin-bottom:.4rem;">Client *</label>
-                        <select name="user_id" required style="background:#1e2330;border:1px solid rgba(255,255,255,.08);color:#e2e8f0;border-radius:.625rem;padding:.6rem .875rem;font-size:.83rem;width:100%;">
+                    <div class="col-span-2">
+                        <label class="mb-1.5 block text-[.7rem] font-bold uppercase tracking-wider text-gray-500">Client *</label>
+                        <select name="user_id" required class="w-full rounded-lg border border-white/[.08] bg-[#1e2330] px-3.5 py-2.5 text-[.83rem] text-slate-200">
                             <option value="">— Sélectionner un client —</option>
                             <?php foreach ($all_users as $u): ?>
                             <option value="<?= $u['id'] ?>"><?= htmlspecialchars($u['email']) ?> (<?= htmlspecialchars($u['pseudo'] ?: $u['firstname'].' '.$u['lastname']) ?>)</option>
@@ -188,9 +188,9 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_sidebar.php';
                     </div>
 
                     <!-- Offre -->
-                    <div style="grid-column:1/-1;">
-                        <label style="display:block;font-size:.7rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#6b7280;margin-bottom:.4rem;">Offre / Produit *</label>
-                        <select name="product_id" required id="productSelect" onchange="updatePrice()" style="background:#1e2330;border:1px solid rgba(255,255,255,.08);color:#e2e8f0;border-radius:.625rem;padding:.6rem .875rem;font-size:.83rem;width:100%;">
+                    <div class="col-span-2">
+                        <label class="mb-1.5 block text-[.7rem] font-bold uppercase tracking-wider text-gray-500">Offre / Produit *</label>
+                        <select name="product_id" required id="productSelect" onchange="updatePrice()" class="w-full rounded-lg border border-white/[.08] bg-[#1e2330] px-3.5 py-2.5 text-[.83rem] text-slate-200">
                             <option value="">— Sélectionner une offre —</option>
                             <?php foreach ($all_products as $p): ?>
                             <option value="<?= $p['id'] ?>" data-price="<?= $p['price'] ?>">
@@ -203,36 +203,36 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_sidebar.php';
 
                     <!-- Durée -->
                     <div>
-                        <label style="display:block;font-size:.7rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#6b7280;margin-bottom:.4rem;">Durée (jours) *</label>
-                        <input type="number" name="days" value="30" min="1" max="3650" required style="background:#1e2330;border:1px solid rgba(255,255,255,.08);color:#e2e8f0;border-radius:.625rem;padding:.6rem .875rem;font-size:.83rem;width:100%;">
-                        <div style="font-size:.7rem;color:#6b7280;margin-top:.3rem;">Expiration automatique dans X jours</div>
+                        <label class="mb-1.5 block text-[.7rem] font-bold uppercase tracking-wider text-gray-500">Durée (jours) *</label>
+                        <input type="number" name="days" value="30" min="1" max="3650" required class="w-full rounded-lg border border-white/[.08] bg-[#1e2330] px-3.5 py-2.5 text-[.83rem] text-slate-200">
+                        <div class="mt-1 text-[.7rem] text-gray-500">Expiration automatique dans X jours</div>
                     </div>
 
                     <!-- Prix -->
                     <div>
-                        <label style="display:block;font-size:.7rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#6b7280;margin-bottom:.4rem;">Prix facturé (€)</label>
-                        <input type="number" name="price" id="priceInput" value="0" min="0" step="0.01" style="background:#1e2330;border:1px solid rgba(255,255,255,.08);color:#e2e8f0;border-radius:.625rem;padding:.6rem .875rem;font-size:.83rem;width:100%;">
-                        <div style="font-size:.7rem;color:#6b7280;margin-top:.3rem;">0€ = gratuit, pas de facture générée</div>
+                        <label class="mb-1.5 block text-[.7rem] font-bold uppercase tracking-wider text-gray-500">Prix facturé (€)</label>
+                        <input type="number" name="price" id="priceInput" value="0" min="0" step="0.01" class="w-full rounded-lg border border-white/[.08] bg-[#1e2330] px-3.5 py-2.5 text-[.83rem] text-slate-200">
+                        <div class="mt-1 text-[.7rem] text-gray-500">0€ = gratuit, pas de facture générée</div>
                     </div>
 
                     <!-- Note interne -->
-                    <div style="grid-column:1/-1;">
-                        <label style="display:block;font-size:.7rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#6b7280;margin-bottom:.4rem;">Note interne (optionnel)</label>
-                        <input type="text" name="note" placeholder="Ex: client VIP, offre spéciale…" style="background:#1e2330;border:1px solid rgba(255,255,255,.08);color:#e2e8f0;border-radius:.625rem;padding:.6rem .875rem;font-size:.83rem;width:100%;">
+                    <div class="col-span-2">
+                        <label class="mb-1.5 block text-[.7rem] font-bold uppercase tracking-wider text-gray-500">Note interne (optionnel)</label>
+                        <input type="text" name="note" placeholder="Ex: client VIP, offre spéciale…" class="w-full rounded-lg border border-white/[.08] bg-[#1e2330] px-3.5 py-2.5 text-[.83rem] text-slate-200">
                     </div>
                 </div>
 
                 <!-- Récap -->
-                <div id="recap" style="background:rgba(244,63,94,.05);border:1px solid rgba(244,63,94,.15);border-radius:.75rem;padding:1rem 1.25rem;margin-bottom:1.25rem;font-size:.8rem;color:#f1f5f9;display:none;">
-                    <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#f43f5e;margin-bottom:.5rem;">Récapitulatif</div>
+                <div id="recap" class="mb-5 hidden rounded-xl border border-rose-500/[.15] bg-rose-500/[.05] px-5 py-4 text-[.8rem] text-slate-100">
+                    <div class="mb-2 text-[.7rem] font-bold uppercase tracking-wider text-rose-500">Récapitulatif</div>
                     <div id="recap-content"></div>
                 </div>
 
-                <div style="display:flex;gap:.75rem;">
-                    <button type="submit" style="flex:1;background:#f43f5e;color:#fff;font-weight:700;padding:.75rem 1.25rem;border-radius:.625rem;font-size:.83rem;border:none;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='#e11d48'" onmouseout="this.style.background='#f43f5e'">
-                        <i class="fas fa-rocket" style="margin-right:.4rem;font-size:.75rem;"></i> Créer le serveur
+                <div class="flex gap-3">
+                    <button type="submit" class="flex-1 rounded-lg border-none bg-rose-500 px-5 py-3 text-[.83rem] font-bold text-white transition-colors hover:bg-rose-600">
+                        <i class="fas fa-rocket mr-1.5 text-[.75rem]"></i> Créer le serveur
                     </button>
-                    <a href="/admin/?view=servers" style="padding:.75rem 1.25rem;border-radius:.625rem;font-size:.83rem;font-weight:600;color:#6b7280;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);text-decoration:none;display:flex;align-items:center;">
+                    <a href="/admin/?view=servers" class="flex items-center rounded-lg border border-white/[.07] bg-white/[.04] px-5 py-3 text-[.83rem] font-semibold text-gray-500 no-underline">
                         Annuler
                     </a>
                 </div>
@@ -247,7 +247,7 @@ const products = <?= json_encode(array_column($all_products, null, 'id')) ?>;
 function updatePrice() {
     const sel = document.getElementById('productSelect');
     const opt = sel.options[sel.selectedIndex];
-    if (!opt.value) { document.getElementById('recap').style.display='none'; return; }
+    if (!opt.value) { document.getElementById('recap').classList.add('hidden'); return; }
     const price = opt.dataset.price || '0';
     document.getElementById('priceInput').value = parseFloat(price).toFixed(2);
     const p = products[opt.value];
@@ -256,7 +256,7 @@ function updatePrice() {
             `<b>${p.name}</b> · ${p.egg_name} sur ${p.node_name}<br>
              RAM: <b>${p.ram} MB</b> · CPU: <b>${p.cpu}%</b> · Disque: <b>${p.disk} MB</b><br>
              BDD: ${p.databases} · Backups: ${p.backups} · Ports: ${p.allocations}`;
-        document.getElementById('recap').style.display = 'block';
+        document.getElementById('recap').classList.remove('hidden');
     }
 }
 </script>
