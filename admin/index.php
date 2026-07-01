@@ -157,16 +157,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $uuid      = trim($_POST['server_uuid'] ?? '');
         $server_id = (int)($_POST['server_id'] ?? 0);
         if ($uuid) {
-            if ($server_id) adminApiCall($panel_url, $headers_admin, 'servers/' . $server_id, 'DELETE');
+            $srv_stmt = $pdo->prepare('SELECT o.*, u.email AS user_email FROM orders o LEFT JOIN users u ON u.id=o.user_id WHERE o.uuid=? LIMIT 1');
+            $srv_stmt->execute([$uuid]);
+            $server = $srv_stmt->fetch();
+            $backup_uuid = $server ? requestServerBackup($panel_url, $headers_client, $server) : null;
+            $delete_after = date('Y-m-d H:i:s', strtotime('+15 days'));
             $pdo->prepare("
                 UPDATE orders
-                SET status='deleted',
-                    suspended_at=NULL,
-                    delete_after=NULL,
-                    server_id=NULL
+                SET status='pending_deletion',
+                    deletion_reason='admin_delete',
+                    deletion_requested_at=NOW(),
+                    backup_requested_at=NOW(),
+                    backup_uuid=?,
+                    delete_after=?
                 WHERE uuid=?
-            ")->execute([$uuid]);
-            $flash = adminFlash('ok', 'Serveur supprime du panel et archive dans les commandes.');
+            ")->execute([$backup_uuid, $delete_after, $uuid]);
+            if ($server && !empty($server['user_email'])) {
+                sendServerDeletionScheduledEmail($server, $delete_after, $backup_uuid);
+            }
+            $flash = adminFlash('ok', 'Suppression programmee dans 15 jours. Backup demande et email client envoye si SMTP disponible.');
         }
     }
 
@@ -272,6 +281,81 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
         header('Location: /admin/?view=servers'); exit();
+    }
+
+    if ($action === 'update_server_build') {
+        $order_id = (int)($_POST['order_id'] ?? 0);
+        $server_id = (int)($_POST['server_id'] ?? 0);
+        $ram = max(128, min(262144, (int)($_POST['ram'] ?? 512)));
+        $disk = max(512, min(1048576, (int)($_POST['disk'] ?? 5000)));
+        $cpu = max(10, min(10000, (int)($_POST['cpu'] ?? 100)));
+        $databases = max(0, min(50, (int)($_POST['databases'] ?? 1)));
+        $backups = max(0, min(50, (int)($_POST['backups'] ?? 1)));
+        $allocations = max(1, min(50, (int)($_POST['allocations'] ?? 1)));
+        $price = max(0, (float)($_POST['renewal_price'] ?? 0));
+        $add_days = max(0, min(3650, (int)($_POST['add_days'] ?? 0)));
+        $egg_id = (int)($_POST['egg_id'] ?? 0);
+
+        $stmt = $pdo->prepare('SELECT * FROM orders WHERE id=? LIMIT 1');
+        $stmt->execute([$order_id]);
+        $order = $stmt->fetch();
+
+        if ($order) {
+            if ($server_id) {
+                $details = adminApiCall($panel_url, $headers_admin, 'servers/' . $server_id);
+                $attrs = $details['attributes'] ?? [];
+                $allocation = $attrs['allocation'] ?? null;
+
+                if ($allocation) {
+                    adminApiCall($panel_url, $headers_admin, "servers/$server_id/build", 'PATCH', [
+                        'allocation' => $allocation,
+                        'memory' => $ram,
+                        'swap' => 0,
+                        'disk' => $disk,
+                        'io' => 500,
+                        'cpu' => $cpu,
+                        'threads' => null,
+                        'feature_limits' => [
+                            'databases' => $databases,
+                            'backups' => $backups,
+                            'allocations' => $allocations,
+                        ],
+                    ]);
+                }
+
+                if ($egg_id > 0) {
+                    $egg_stmt = $pdo->prepare('SELECT * FROM eggs WHERE id=? AND is_active=1 LIMIT 1');
+                    $egg_stmt->execute([$egg_id]);
+                    $egg = $egg_stmt->fetch();
+                    if ($egg) {
+                        $env = json_decode($egg['env_vars'] ?? '{}', true) ?: [];
+                        adminApiCall($panel_url, $headers_admin, "servers/$server_id/startup", 'PATCH', [
+                            'startup' => $egg['startup'],
+                            'environment' => $env,
+                            'egg' => (int)$egg['panel_egg_id'],
+                            'image' => $egg['docker_image'],
+                            'skip_scripts' => false,
+                        ]);
+                    }
+                }
+            }
+
+            $new_expiry = $order['expires_at'];
+            if ($add_days > 0) {
+                $base = $new_expiry ? max(strtotime($new_expiry), time()) : time();
+                $new_expiry = date('Y-m-d H:i:s', strtotime("+{$add_days} days", $base));
+            }
+
+            $pdo->prepare("
+                UPDATE orders
+                SET ram=?, disk=?, cpu=?, renewal_price=?, expires_at=?, next_payment_date=DATE(?), status='paid', suspended_at=NULL, suspension_until=NULL, delete_after=NULL
+                WHERE id=?
+            ")->execute([$ram, $disk, $cpu, $price, $new_expiry, $new_expiry, $order_id]);
+
+            $flash = adminFlash('ok', 'Configuration serveur mise a jour.');
+            header('Location: /admin/?view=server&id=' . $order_id); exit();
+        }
+        $flash = adminFlash('err', 'Serveur introuvable.');
     }
 }
 
