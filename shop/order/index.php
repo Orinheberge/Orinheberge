@@ -42,6 +42,41 @@ $stmt->execute([$_SESSION['user_id']]);
 $user = $stmt->fetch();
 if (!$user) die("Utilisateur introuvable.");
 
+// ─── Nodes disponibles pour cette offre ──────────────────────
+$avail_nodes_stmt = $pdo->prepare("
+    SELECT n.id, n.name, n.fqdn, n.location_id
+    FROM product_nodes pn
+    JOIN nodes n ON n.id = pn.node_id
+    WHERE pn.product_id = ? AND n.is_active = 1
+    ORDER BY n.id
+");
+$avail_nodes_stmt->execute([$offer['id']]);
+$avail_nodes = $avail_nodes_stmt->fetchAll();
+
+// Si pas de pivot, fallback sur node_id du produit
+if (empty($avail_nodes)) {
+    $fn = $pdo->prepare("SELECT id, name, fqdn, location_id FROM nodes WHERE id=? AND is_active=1");
+    $fn->execute([$offer['node_id']]);
+    $avail_nodes = array_filter([$fn->fetch()]);
+}
+
+// Node choisi par le client (via POST ou GET)
+$chosen_node_id = (int)($_POST['chosen_node_id'] ?? $_GET['node'] ?? ($avail_nodes[0]['id'] ?? $offer['node_id']));
+// Valider que le node choisi est bien autorisé
+$valid_node_ids = array_column($avail_nodes, 'id');
+if (!in_array($chosen_node_id, $valid_node_ids)) {
+    $chosen_node_id = $avail_nodes[0]['id'] ?? $offer['node_id'];
+}
+// Charger les infos du node choisi pour createPanelServer
+$cn_stmt = $pdo->prepare("SELECT * FROM nodes WHERE id=?");
+$cn_stmt->execute([$chosen_node_id]);
+$chosen_node = $cn_stmt->fetch();
+// Surcharger offer avec le node choisi
+if ($chosen_node) {
+    $offer['location_id']  = $chosen_node['location_id'];
+    $offer['panel_node_id'] = $chosen_node['panel_node_id'] ?? $offer['panel_node_id'];
+}
+
 $check = $pdo->prepare("SELECT COUNT(*) FROM orders WHERE user_id=? AND service_name=?");
 $check->execute([$_SESSION['user_id'], $offer['name']]);
 if ($check->fetchColumn() >= 5) die("❌ Limite de 5 serveurs atteinte.");
