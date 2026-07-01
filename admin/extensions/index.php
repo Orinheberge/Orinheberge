@@ -41,7 +41,9 @@ $ext_fields = [
         ['key'=>'from',      'label'=>'Email expéditeur',    'type'=>'email',    'placeholder'=>'no-reply@exemple.fr'],
         ['key'=>'from_name', 'label'=>'Nom expéditeur',      'type'=>'text',     'placeholder'=>'OrinHeberge'],
     ],
-    'promo' => [],
+    'promo' => [
+        ['key'=>'promo_enabled', 'label'=>'Activer les promotions', 'type'=>'checkbox', 'placeholder'=>''],
+    ],
 ];
 
 // ── Actions POST ──────────────────────────────────────────────
@@ -81,6 +83,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if (isset($_POST[$fk])) $sync->execute([$sk, trim($_POST[$fk])]);
                 }
             }
+
+              if ($slug === 'promo') {
+                $sync = $pdo->prepare('INSERT INTO settings (`key`,`value`) VALUES (?,?) ON DUPLICATE KEY UPDATE `value`=VALUES(`value`)');
+                if (isset($_POST['promo_enabled'])) {
+                    $sync->execute(['promo_enabled', '1']);
+                } else {
+                    $sync->execute(['promo_enabled', '0']);
+                }
 
             $flash = '<div class="bg-green-500/15 text-green-400 border border-green-500/25 p-3 rounded-xl text-sm mb-4">✅ Configuration sauvegardée.</div>';
         }
