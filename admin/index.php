@@ -168,16 +168,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             adminApiCall($panel_url, $headers_admin, $ep, 'POST', []);
             if ($action === 'suspend_server' && $uuid) {
                 $delete_days = max(1, min(365, (int)($_POST['delete_after_days'] ?? 15)));
+                $suspend_days = max(0, min(365, (int)($_POST['suspend_until_days'] ?? 0)));
+                $suspend_until = $suspend_days > 0 ? date('Y-m-d H:i:s', strtotime("+{$suspend_days} days")) : null;
                 $pdo->prepare("
                     UPDATE orders
                     SET status='suspended',
                         suspended_at=NOW(),
+                        suspension_until=?,
                         delete_after=DATE_ADD(NOW(), INTERVAL $delete_days DAY)
                     WHERE uuid=?
-                ")->execute([$uuid]);
-                $flash = adminFlash('ok', "Serveur suspendu. Suppression automatique prevue dans <strong>{$delete_days} jour(s)</strong> si rien n'est fait.");
+                ")->execute([$suspend_until, $uuid]);
+                $until_text = $suspend_until ? " Suspension indiquee jusqu'au <strong>" . htmlspecialchars($suspend_until) . "</strong>." : '';
+                $flash = adminFlash('ok', "Serveur suspendu.{$until_text} Suppression automatique prevue dans <strong>{$delete_days} jour(s)</strong> si rien n'est fait.");
             } elseif ($uuid) {
-                $pdo->prepare("UPDATE orders SET status='paid', suspended_at=NULL, delete_after=NULL WHERE uuid=?")->execute([$uuid]);
+                $pdo->prepare("UPDATE orders SET status='paid', suspended_at=NULL, suspension_until=NULL, delete_after=NULL WHERE uuid=?")->execute([$uuid]);
                 $flash = adminFlash('ok', 'Serveur reactive et cycle de suppression annule.');
             }
         }
@@ -631,6 +635,9 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_sidebar.php';
                     </td>
                     <td class="px-5 py-4 text-xs <?php echo $is_free ? 'text-gray-500' : 'text-gray-300'; ?>">
                         <?php echo $is_free ? '∞ À vie' : htmlspecialchars($sv['expires_at'] ? date('d/m/Y', strtotime($sv['expires_at'])) : '—'); ?>
+                        <?php if (!empty($sv['suspension_until'])): ?>
+                            <div class="mt-1 text-[10px] text-sky-400">Suspendu jusqu'au: <?php echo htmlspecialchars(date('d/m/Y', strtotime($sv['suspension_until']))); ?></div>
+                        <?php endif; ?>
                         <?php if (!empty($sv['delete_after'])): ?>
                             <div class="mt-1 text-[10px] text-orange-400">Suppression: <?php echo htmlspecialchars(date('d/m/Y', strtotime($sv['delete_after']))); ?></div>
                         <?php endif; ?>
@@ -652,6 +659,7 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_sidebar.php';
                                 <input type="hidden" name="server_uuid" value="<?php echo htmlspecialchars($sv['uuid']); ?>">
                                 <input type="hidden" name="server_id" value="<?php echo htmlspecialchars($sv['server_id']); ?>">
                                 <?php if ($status !== 'suspended'): ?>
+                                <input type="number" name="suspend_until_days" value="0" min="0" max="365" class="!w-16 !px-2 !py-1 text-xs" title="Durée indicative de suspension, 0 = indéfinie">
                                 <input type="number" name="delete_after_days" value="15" min="1" max="365" class="!w-16 !px-2 !py-1 text-xs" title="Jours avant suppression définitive">
                                 <?php endif; ?>
                                 <button type="submit" class="bg-orange-500/15 hover:bg-orange-500/30 text-orange-400 border border-orange-500/20 px-2.5 py-1 rounded-lg text-xs font-semibold transition whitespace-nowrap">
