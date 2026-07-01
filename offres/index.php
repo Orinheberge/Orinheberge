@@ -69,7 +69,7 @@ $dynamic_categories = [];
 // ── 2. REMPLISSAGE DYNAMIQUE DEPUIS LA BASE DE DONNÉES ──
 if ($db_status) {
     try {
-        // A. Récupérer toutes les configurations de catégories uniques définies par l'admin
+        // A. Récupérer TOUTES les catégories configurées par l'admin (même celles sans produit)
         $cat_stmt = $pdo->query("SELECT category_slug, name_key, icon, image_url FROM categories_products GROUP BY category_slug ORDER BY sort_order ASC");
         while ($c_row = $cat_stmt->fetch()) {
             $dynamic_categories[$c_row['category_slug']] = [
@@ -79,17 +79,22 @@ if ($db_status) {
             ];
         }
 
-        // B. Récupérer les produits actifs reliés à leurs métadonnées de catégorie
+        // B. Utilisation d'un LEFT JOIN pour ne pas cacher les catégories vides et lister tous les produits actifs
         $stmt = $pdo->query("
             SELECT p.*, cp.category_slug, cp.name_key AS cat_name_key, cp.icon AS cat_icon, cp.image_url AS cat_image
-            FROM products p
-            INNER JOIN categories_products cp ON p.id = cp.product_id
-            WHERE p.is_active = 1 
+            FROM categories_products cp
+            LEFT JOIN products p ON p.id = cp.product_id
+            WHERE p.is_active = 1 OR p.id IS NULL
             ORDER BY p.sort_order ASC, p.id ASC
         ");
-        $all_products = $stmt->fetchAll();
+        $all_rows = $stmt->fetchAll();
 
-        foreach ($all_products as $product) {
+        foreach ($all_rows as $product) {
+            // Si la catégorie n'a pas encore de produit associé, on passe à la ligne suivante
+            if (empty($product['id'])) {
+                continue;
+            }
+
             $slug = $product['slug'];
             $category = strtolower($product['category_slug']); 
 
@@ -103,7 +108,6 @@ if ($db_status) {
                 $tier_found = 'medium';
             }
 
-            
             // Reconstruction des clés de traduction pour les textes descriptifs des offres
             $short_cat = ($category === 'minecraft') ? 'mc' : (($category === 'python') ? 'py' : (($category === 'nodejs') ? 'node' : $category));
             $name_key = "offer.{$short_cat}_{$tier_found}.name";
@@ -175,7 +179,7 @@ function getCardStyle($tier_key) {
 <body class="text-gray-200 font-sans min-h-screen flex flex-col justify-between antialiased">
 
 <script>
-// Passer l'objet des traductions de catégories de PHP à JavaScript
+// Transfert propre des traductions de catégories de PHP à JS
 const categoryLabels = <?php echo json_encode(array_map(fn($cat) => t($cat['name_key']), $dynamic_categories), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
 
 function filterCategory(catId) {
@@ -198,17 +202,21 @@ function filterCategory(catId) {
     allSections.style.display = 'none'; 
     catView.style.display = 'block';
     
-    // Titre dynamique traduit
+    // Titre dynamique traduit (Prend le slug en fallback s'il n'y a pas de traduction)
     catTitle.textContent = categoryLabels[catId] || catId.toUpperCase();
     
     const cards = Array.from(document.querySelectorAll('#all-sections .offer-card[data-category="' + catId + '"]'));
     
     catGrid.innerHTML = '';
-    cards.forEach(card => { 
-        const clone = card.cloneNode(true); 
-        clone.style.display = 'flex'; 
-        catGrid.appendChild(clone); 
-    });
+    if (cards.length === 0) {
+        catGrid.innerHTML = '<div class="col-span-full py-12 text-center text-gray-500 text-sm">Aucune offre disponible pour le moment dans cette catégorie.</div>';
+    } else {
+        cards.forEach(card => { 
+            const clone = card.cloneNode(true); 
+            clone.style.display = 'flex'; 
+            catGrid.appendChild(clone); 
+        });
+    }
 }
 window.addEventListener('DOMContentLoaded', () => filterCategory('all'));
 </script>
