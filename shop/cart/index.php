@@ -18,6 +18,34 @@ function loadCartProduct(PDO $pdo, string $slug): ?array {
     return $stmt->fetch() ?: null;
 }
 
+function loadCartFromDatabase(PDO $pdo, int $userId): array {
+    $stmt = $pdo->prepare('SELECT cart_data FROM carts WHERE user_id = ? LIMIT 1');
+    $stmt->execute([$userId]);
+    $row = $stmt->fetch();
+    if (!$row || empty($row['cart_data'])) {
+        return [];
+    }
+
+    $data = json_decode($row['cart_data'], true);
+    return is_array($data) ? $data : [];
+}
+
+function saveCartToDatabase(PDO $pdo, int $userId, array $cart): void {
+    if ($userId <= 0) {
+        return;
+    }
+
+    $payload = json_encode($cart, JSON_UNESCAPED_UNICODE);
+    $stmt = $pdo->prepare('INSERT INTO carts (user_id, cart_data, updated_at) VALUES (?, ?, NOW()) ON DUPLICATE KEY UPDATE cart_data = VALUES(cart_data), updated_at = NOW()');
+    $stmt->execute([$userId, $payload]);
+}
+
+function syncCartWithStorage(PDO $pdo, array $cart): void {
+    if (!empty($_SESSION['user_id'])) {
+        saveCartToDatabase($pdo, (int)$_SESSION['user_id'], $cart);
+    }
+}
+
 function processFreeOrder(PDO $pdo, array $user, array $product, array $headers_admin, string $panel_url): array {
     $panelUser = getOrCreatePanelUser($panel_url, $headers_admin, $user, $pdo);
     $pass = $panelUser['pass'];
@@ -66,6 +94,14 @@ if (!isset($_SESSION['cart']) || !is_array($_SESSION['cart'])) {
     $_SESSION['cart'] = [];
 }
 
+if (!empty($_SESSION['user_id']) && empty($_SESSION['cart'])) {
+    $_SESSION['cart'] = loadCartFromDatabase($pdo, (int)$_SESSION['user_id']);
+}
+
+if (!is_array($_SESSION['cart'])) {
+    $_SESSION['cart'] = [];
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
@@ -87,6 +123,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             $_SESSION['cart'][$slug]['quantity'] += 1;
         }
+        syncCartWithStorage($pdo, $_SESSION['cart']);
     } elseif ($action === 'update_cart') {
         foreach ($_POST['items'] ?? [] as $slug => $quantity) {
             $quantity = max(0, (int)$quantity);
@@ -96,16 +133,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['cart'][$slug]['quantity'] = $quantity;
             }
         }
+        syncCartWithStorage($pdo, $_SESSION['cart']);
     } elseif ($action === 'remove_item') {
         $slug = trim($_POST['slug'] ?? '');
         if ($slug !== '') {
             unset($_SESSION['cart'][$slug]);
         }
+        syncCartWithStorage($pdo, $_SESSION['cart']);
     } elseif ($action === 'clear_cart') {
         $_SESSION['cart'] = [];
+        syncCartWithStorage($pdo, $_SESSION['cart']);
     } elseif ($action === 'apply_promo') {
         $promo_code = trim($_POST['promo_code'] ?? '');
         $_SESSION['promo_code'] = $promo_code;
+        syncCartWithStorage($pdo, $_SESSION['cart']);
     } elseif ($action === 'checkout') {
         try {
             if (!isset($_SESSION['user_id'])) {
@@ -177,12 +218,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'label' => count($paid_items) > 1 ? 'Offres combinées' : ($paid_items[0]['product']['name'] ?? 'Offre')
                 ];
                 $_SESSION['cart'] = [];
+                syncCartWithStorage($pdo, $_SESSION['cart']);
                 header('Location: /shop/order/?plan=' . urlencode(implode($bundle_slugs, ',')));
                 exit();
             }
 
             if (!empty($free_items)) {
                 $_SESSION['cart'] = [];
+                syncCartWithStorage($pdo, $_SESSION['cart']);
                 header('Location: /shop/success/?type=free');
                 exit();
             }
