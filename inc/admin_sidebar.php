@@ -11,6 +11,8 @@ $_users_count    = isset($all_users)   ? count($all_users)   : ($pdo->query('SEL
 $_servers_count  = isset($all_servers) ? count($all_servers) : ($pdo->query('SELECT COUNT(*) FROM orders')->fetchColumn());
 $_tickets_count  = isset($open_tickets) ? $open_tickets      : ($pdo->query("SELECT COUNT(*) FROM support_tickets WHERE status != 'Fermé'")->fetchColumn());
 ?>
+
+<script src="https://cdn.tailwindcss.com"></script>
 <aside id="sidebar" class="sidebar">
   <div class="sidebar-logo">
     <a href="/admin/" class="flex items-center gap-2.5">
