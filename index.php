@@ -133,67 +133,13 @@ try {
             <h2 class="text-3xl md:text-4xl font-black mb-3">Choisissez votre <span class="gradient-text">Environnement</span></h2>
             <p class="text-gray-500 text-sm">Déployez votre projet instantanément sur l'une de nos configurations.</p>
         </div>
-
-        <div class="flex justify-center gap-2 overflow-x-auto pb-6 mb-8 mask-gradient">
-            <button id="tab-all" onclick="filterCategory('all')" class="tab-btn active">Tout voir</button>
-            <button id="tab-minecraft" onclick="filterCategory('minecraft')" class="tab-btn"><i class="text-green-400 fab fa-cube mr-1"></i> Minecraft</button>
-            <button id="tab-php" onclick="filterCategory('php')" class="tab-btn"><i class="text-blue-400 fab fa-php mr-1"></i> Web / PHP</button>
-            <button id="tab-nodejs" onclick="filterCategory('nodejs')" class="tab-btn"><i class="text-green-500 fab fa-node-js mr-1"></i> Node.js</button>
-            <button id="tab-python" onclick="filterCategory('python')" class="tab-btn"><i class="text-yellow-400 fab fa-python mr-1"></i> Python</button>
-        </div>
-
         <div id="cat-view">
             <h3 class="text-xl font-bold mb-6 flex items-center gap-2"><span class="h-2 w-2 rounded-full bg-sky-400"></span> Offres <span id="cat-view-title" class="text-sky-400"></span></h3>
             <div id="cat-view-grid" class="grid grid-cols-1 md:grid-cols-3 gap-6"></div>
         </div>
 
-        <div id="all-sections" class="space-y-12">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="offer-card glass card-hover p-6 rounded-2xl border border-white/[0.05] relative flex flex-col justify-between" data-category="minecraft" data-price="0">
-                    <span class="offer-badge bg-green-500/20 text-green-400 border border-green-500/30">Découverte</span>
-                    <div>
-                        <h4 class="text-xl font-bold text-white mb-1">Minecraft Free</h4>
-                        <div class="text-3xl font-black mb-4">0€ <span class="text-xs font-normal text-gray-500">/mois</span></div>
-                        <ul class="space-y-2.5 text-xs text-gray-400 mb-6">
-                            <li><i class="fas fa-check text-green-400 mr-2"></i> 2 Go RAM DDR5</li>
-                            <li><i class="fas fa-check text-green-400 mr-2"></i> 1 vCPU (Ryzen)</li>
-                            <li><i class="fas fa-check text-green-400 mr-2"></i> 10 Go Stockage NVMe</li>
-                            <li><i class="fas fa-check text-green-400 mr-2"></i> Protection Anti-DDoS</li>
-                        </ul>
-                    </div>
-                    <a href="/register/" class="w-full text-center py-3 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.05] text-xs font-bold transition">Commander</a>
-                </div>
-
-                <div class="offer-card glass card-hover p-6 rounded-2xl border border-white/[0.05] relative flex flex-col justify-between" data-category="nodejs" data-price="2">
-                    <span class="offer-badge bg-sky-500/20 text-sky-400 border border-sky-500/30">Populaire</span>
-                    <div>
-                        <h4 class="text-xl font-bold text-white mb-1">Node.js Starter</h4>
-                        <div class="text-3xl font-black mb-4">2.49€ <span class="text-xs font-normal text-gray-500">/mois</span></div>
-                        <ul class="space-y-2.5 text-xs text-gray-400 mb-6">
-                            <li><i class="fas fa-check text-sky-400 mr-2"></i> 4 Go RAM DDR5</li>
-                            <li><i class="fas fa-check text-sky-400 mr-2"></i> 2 vCPU Haute Fréquence</li>
-                            <li><i class="fas fa-check text-sky-400 mr-2"></i> 30 Go Stockage NVMe</li>
-                            <li><i class="fas fa-check text-sky-400 mr-2"></i> Bases de données MySQL illimitées</li>
-                        </ul>
-                    </div>
-                    <a href="/register/" class="w-full text-center py-3 rounded-xl bg-gradient-to-r from-sky-600 to-indigo-600 text-white text-xs font-bold transition shadow-lg shadow-sky-900/20">Acheter maintenant</a>
-                </div>
-
-                <div class="offer-card glass card-hover p-6 rounded-2xl border border-white/[0.05] relative flex flex-col justify-between" data-category="php" data-price="0">
-                    <span class="offer-badge bg-purple-500/20 text-purple-400 border border-purple-500/30">Web Cloud</span>
-                    <div>
-                        <h4 class="text-xl font-bold text-white mb-1">Hébergement Web</h4>
-                        <div class="text-3xl font-black mb-4">0€ <span class="text-xs font-normal text-gray-500">/sans limite</span></div>
-                        <ul class="space-y-2.5 text-xs text-gray-400 mb-6">
-                            <li><i class="fas fa-check text-purple-400 mr-2"></i> PHP 8.1 / 8.2 / 8.3 supportés</li>
-                            <li><i class="fas fa-check text-purple-400 mr-2"></i> Certificats SSL Let's Encrypt</li>
-                            <li><i class="fas fa-check text-purple-400 mr-2"></i> Accès FTP / Panel complet</li>
-                            <li><i class="fas fa-check text-purple-400 mr-2"></i> Sous-domaine gratuit fourni</li>
-                        </ul>
-                    </div>
-                    <a href="/register/" class="w-full text-center py-3 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.05] text-xs font-bold transition">Lancer mon site</a>
-                </div>
-            </div>
+        <div id="all-sections" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <?php include __DIR__ . '/inc/offers.php'; ?>
         </div>
     </section>
 
@@ -255,36 +201,36 @@ try {
                 </div>
             </div>
 
-            <!-- <div class="glass p-6 rounded-2xl border border-white/[0.05] text-center flex flex-col items-center">
+             <div class="glass p-6 rounded-2xl border border-white/[0.05] text-center flex flex-col items-center">
                 <div class="relative mb-4">
                     <div class="w-20 h-20 bg-gradient-to-tr from-purple-500 to-pink-500 rounded-full p-0.5 shadow-xl">
-                        <img src="https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=150&h=150&q=80" alt="Avatar" class="w-full h-full object-cover rounded-full bg-[#060911]">
+                        <img src="/inc/uploads/avatar_6a429369a50850.32324639.png" alt="Avatar" class="w-full h-full object-cover rounded-full bg-[#060911]">
                     </div>
                     <span class="absolute bottom-0 right-1 h-3 w-3 rounded-full bg-green-400 border-2 border-[#060911]"></span>
                 </div>
-                <h4 class="font-bold text-white text-lg">Maxime</h4>
-                <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20 mt-1 mb-3">Développeur UI/UX</span>
+                <h4 class="font-bold text-white text-lg">WixyMc</h4>
+                <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20 mt-1 mb-3">Co Fondateur & Dev SysAdmin</span>
                 <p class="text-gray-500 text-xs leading-relaxed max-w-xs">Conçoit l'interface utilisateur pour la rendre fluide et accessible à tous.</p>
                 <div class="flex gap-3 mt-4 text-gray-400 text-sm">
                     <a href="#" class="hover:text-white transition"><i class="fab fa-github"></i></a>
                     <a href="#" class="hover:text-purple-400 transition"><i class="fab fa-discord"></i></a>
                 </div>
-            </div>-->
+            </div>
 
-           <!-- <div class="glass p-6 rounded-2xl border border-white/[0.05] text-center flex flex-col items-center sm:col-span-2 lg:col-span-1">
+            <div class="glass p-6 rounded-2xl border border-white/[0.05] text-center flex flex-col items-center sm:col-span-2 lg:col-span-1">
                 <div class="relative mb-4">
                     <div class="w-20 h-20 bg-gradient-to-tr from-amber-400 to-orange-500 rounded-full p-0.5 shadow-xl">
-                        <img src="https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=150&h=150&q=80" alt="Avatar" class="w-full h-full object-cover rounded-full bg-[#060911]">
+                        <img src="/img/staff/20f950c5ed0b3e9110e136671b8d428f.webp" alt="Avatar" class="w-full h-full object-cover rounded-full bg-[#060911]">
                     </div>
                     <span class="absolute bottom-0 right-1 h-3 w-3 rounded-full bg-green-400 border-2 border-[#060911]"></span>
                 </div>
-                <h4 class="font-bold text-white text-lg">Sarah</h4>
+                <h4 class="font-bold text-white text-lg">Nexium</h4>
                 <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 mt-1 mb-3">Responsable Support</span>
                 <p class="text-gray-500 text-xs leading-relaxed max-w-xs">Supervise la communauté sur Discord et s'assure de l'aide technique 24/7.</p>
                 <div class="flex gap-3 mt-4 text-gray-400 text-sm">
                     <a href="#" class="hover:text-amber-400 transition"><i class="fab fa-discord"></i></a>
                 </div>
-            </div>-->
+            </div>
         </div>
     </section>
 
