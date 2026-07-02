@@ -1,5 +1,7 @@
 <?php
 
+
+
 ?>
 <aside id="sidebar" class="sidebar">
     <div class="sidebar-logo">
@@ -58,7 +60,7 @@
     <div class="sidebar-footer">
                 <?php if (!empty($_SESSION['is_admin'])): ?>
                             <a href="/admin/" class="flex items-center gap-2 px-4 py-2 text-sm text-amber-400 hover:bg-white/5 hover:text-amber-300">
-                                <i class="fas fa-shield-halved text-sky-400 w-4"></i> Administration
+                                <i class="fas fa-shield-halved"></i> Administration
                             </a>
                              <?php endif; ?>
         <a href="/profil/" class="flex items-center gap-2.5 group mb-2">
