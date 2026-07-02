@@ -23,7 +23,7 @@
             <i class="fas fa-tags icon"></i> Nos offres
         </a>
         <a href="/shop/cart/" class="nav-item">
-            <i class="fas fa-tags icon"></i> Nos offres
+            <i class="fas fa-tags icon"></i> Panier
         </a>
 
         <div class="nav-separator"></div>
