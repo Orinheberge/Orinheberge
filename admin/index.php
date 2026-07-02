@@ -82,17 +82,38 @@ function requestServerBackup(string $panel_url, array $headers_client, array $se
     return $backup['attributes']['uuid'] ?? null;
 }
 
-function sendServerDeletionScheduledEmail(array $server, string $delete_after, ?string $backup_uuid): void {
+// Email : suppression définitive immédiate (pas de backup)
+function sendServerPermanentDeletionEmail(array $server): void {
+    $name = htmlspecialchars($server['service_name'] ?? 'Serveur');
+    $body = '
+        <p>Bonjour,</p>
+        <p>Votre serveur <strong>' . $name . '</strong> a été <strong>supprimé définitivement</strong> par l\'équipe OrinHeberge.</p>
+        <div class="box">
+            <div class="row"><span class="label">Serveur</span><span class="val">' . $name . '</span></div>
+            <div class="row"><span class="label">Supprimé le</span><span class="val">' . date('d/m/Y à H:i') . '</span></div>
+        </div>
+        <p>Aucune sauvegarde n\'a été réalisée. Si vous pensez qu\'il s\'agit d\'une erreur, contactez le support.</p>
+        <p><a href="https://heberge.orinstone.deepstone.fr/discord/" class="btn">Contacter le support →</a></p>';
+    send_smtp_mail($server['user_email'], '🗑️ Serveur ' . ($server['service_name'] ?? 'Serveur') . ' supprimé', email_layout('Suppression définitive', $body));
+}
+
+// Email : suspension + suppression dans N jours avec backup
+function sendServerSuspendedEmail(array $server, string $delete_after, ?string $backup_uuid): void {
+    $name = htmlspecialchars($server['service_name'] ?? 'Serveur');
     $backup_text = $backup_uuid
-        ? '<p>Un backup a ete demande avant suppression. Reference backup : <strong>' . htmlspecialchars($backup_uuid) . '</strong>.</p>'
-        : '<p>La demande de backup automatique n\'a pas pu etre confirmee. Contactez le support si vous souhaitez une archive manuelle.</p>';
-
-    $body = '<p>Bonjour,</p>'
-        . '<p>Le serveur <strong>' . htmlspecialchars($server['service_name'] ?? 'Serveur') . '</strong> est programme pour suppression le <strong>' . htmlspecialchars($delete_after) . '</strong>.</p>'
-        . $backup_text
-        . '<p>Vous pouvez contacter le support avant cette date si vous souhaitez annuler la suppression ou recuperer vos fichiers.</p>';
-
-    send_smtp_mail($server['user_email'], 'Suppression programmee - ' . ($server['service_name'] ?? 'Serveur'), email_layout('Suppression programmee', $body));
+        ? '<div class="row"><span class="label">Réf. backup</span><span class="val mono">' . htmlspecialchars($backup_uuid) . '</span></div>'
+        : '<div class="row"><span class="label">Backup</span><span class="val" style="color:#f59e0b;">Non disponible — contactez le support</span></div>';
+    $body = '
+        <p>Bonjour,</p>
+        <p>Votre serveur <strong>' . $name . '</strong> a été <strong>suspendu</strong>. Sans action de votre part, il sera définitivement supprimé le <strong>' . htmlspecialchars($delete_after) . '</strong>.</p>
+        <div class="box">
+            <div class="row"><span class="label">Serveur</span><span class="val">' . $name . '</span></div>
+            <div class="row"><span class="label">Suppression prévue</span><span class="val" style="color:#ef4444;">' . htmlspecialchars($delete_after) . '</span></div>
+            ' . $backup_text . '
+        </div>
+        <p>Pour annuler la suppression ou récupérer vos fichiers, contactez le support avant la date indiquée.</p>
+        <p><a href="https://heberge.orinstone.deepstone.fr/discord/" class="btn">Contacter le support →</a></p>';
+    send_smtp_mail($server['user_email'], '⚠️ Serveur ' . ($server['service_name'] ?? 'Serveur') . ' suspendu — suppression le ' . $delete_after, email_layout('Serveur suspendu', $body));
 }
 
 $flash = '';
