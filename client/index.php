@@ -162,7 +162,11 @@ $open_tickets = $stmt2->fetchColumn();
         <a href="/client/servers/" class="nav-item">
             <i class="fas fa-server icon"></i> Mes serveurs
         </a>
+
         <a href="/offres/" class="nav-item">
+            <i class="fas fa-tags icon"></i> Nos offres
+        </a>
+         <a href="/shop/cart/" class="nav-item">
             <i class="fas fa-tags icon"></i> Nos offres
         </a>
 

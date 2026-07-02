@@ -214,6 +214,9 @@ $total = count($servers);
         <a href="/offres/" class="nav-item">
             <i class="fas fa-tags icon"></i> Nos offres
         </a>
+        <a href="/shop/cart/" class="nav-item">
+            <i class="fas fa-tags icon"></i> Nos offres
+        </a>
 
         <div class="nav-separator"></div>
         <div class="nav-section">Compte</div>
@@ -245,6 +248,14 @@ $total = count($servers);
     </nav>
 
     <div class="sidebar-footer">
+                <?php if (!empty($_SESSION['is_admin'])): ?>
+                            <a href="/admin/" class="flex items-center gap-2 px-4 py-2 text-sm text-amber-400 hover:bg-white/5 hover:text-amber-300">
+                                <i class="fas fa-shield-halved text-sky-400 w-4"></i> Administration
+                            </a>
+                             <?php endif; ?>
+        <a href="<?php echo htmlspecialchars($phpmyadmin_url); ?>" target="_blank" class="nav-item">
+            <i class="fas fa-database icon"></i> phpMyAdmin
+        </a>
         <a href="/profil/" class="flex items-center gap-2.5 group mb-2">
             <?php if (!empty($_SESSION['avatar']) && file_exists($_SERVER['DOCUMENT_ROOT'].'/'.$_SESSION['avatar'])): ?>
                 <img src="/<?php echo htmlspecialchars($_SESSION['avatar']); ?>" class="w-8 h-8 rounded-full object-cover border border-white/10">
