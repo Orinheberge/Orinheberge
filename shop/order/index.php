@@ -485,7 +485,7 @@ try {
 }
 $paypalme_url = getPaypalMeLink($paypalme_username, $final_price);
 
-
+     php include __DIR__ . '/inc/navbar.php'; 
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -668,6 +668,6 @@ $paypalme_url = getPaypalMeLink($paypalme_username, $final_price);
         </div>
     </div>
 
-     <?php include __DIR__ . '/inc/navbar.php'; ?>
+     <?php include __DIR__ . '/inc/footer.php'; ?>
 </body>
 </html>
