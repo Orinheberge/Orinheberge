@@ -3,6 +3,10 @@ session_start();
 require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/lang.php';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/db.php';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/shop/order/lib/promo/promo.php';
+// $headers_admin et $panel_url sont utilisés plus bas (processFreeOrder) :
+// vérifie qu'ils sont bien définis par un de ces includes (ex: config panel).
+// Si ce n'est pas le cas, décommente et adapte la ligne suivante :
+// require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/panel.php';
 
 $active_nav = 'cart';
 $page_title = 'Panier';
@@ -29,7 +33,8 @@ function ensureCartTable(PDO $pdo): void {
     }
 
     try {
-        $pdo->exec("""
+        // Triple guillemets """ n'existent pas en PHP -> erreur fatale corrigée
+        $pdo->exec("
             CREATE TABLE IF NOT EXISTS carts (
                 id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 user_id INT UNSIGNED NOT NULL,
@@ -43,7 +48,7 @@ function ensureCartTable(PDO $pdo): void {
                     ON DELETE CASCADE
                     ON UPDATE CASCADE
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-        """);
+        ");
     } catch (PDOException $e) {
         error_log('Cart table creation failed: ' . $e->getMessage());
     }
@@ -149,21 +154,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'add_item') {
         $slug = trim($_POST['slug'] ?? '');
-        $name = trim($_POST['name'] ?? 'Produit');
-        $price = (float)($_POST['price'] ?? 0);
-        $period = trim($_POST['period'] ?? '');
 
+        // Le prix et le nom ne doivent JAMAIS venir du formulaire (POST) :
+        // un visiteur peut modifier ces champs dans son navigateur et
+        // ajouter un produit à 0,01€ ou avec un faux libellé.
+        // On regarde uniquement le slug et on va chercher le vrai produit en base.
         if ($slug !== '') {
-            if (!isset($_SESSION['cart'][$slug])) {
-                $_SESSION['cart'][$slug] = [
-                    'slug' => $slug,
-                    'name' => $name,
-                    'price' => $price,
-                    'period' => $period,
-                    'quantity' => 0,
-                ];
+            $product = loadCartProduct($pdo, $slug);
+
+            if ($product) {
+                if (!isset($_SESSION['cart'][$slug])) {
+                    $_SESSION['cart'][$slug] = [
+                        'slug' => $slug,
+                        'name' => $product['name'],
+                        'price' => (float)$product['price'],
+                        'period' => trim($_POST['period'] ?? ''),
+                        'quantity' => 0,
+                    ];
+                }
+                $_SESSION['cart'][$slug]['quantity'] += 1;
             }
-            $_SESSION['cart'][$slug]['quantity'] += 1;
         }
         syncCartWithStorage($pdo, $_SESSION['cart']);
     } elseif ($action === 'update_cart') {
@@ -236,6 +246,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             if (!empty($free_items)) {
+                if (!isset($headers_admin, $panel_url)) {
+                    throw new RuntimeException('Configuration panel manquante ($headers_admin / $panel_url).');
+                }
                 foreach ($free_items as $entry) {
                     for ($i = 0; $i < $entry['quantity']; $i++) {
                         $result = processFreeOrder($pdo, $user, $entry['product'], $headers_admin, $panel_url);
@@ -261,7 +274,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ];
                 $_SESSION['cart'] = [];
                 syncCartWithStorage($pdo, $_SESSION['cart']);
-                header('Location: /shop/order/?plan=' . urlencode(implode($bundle_slugs, ',')));
+                // implode() : le tableau doit être le 2e argument (ordre historique déprécié corrigé)
+                header('Location: /shop/order/?plan=' . urlencode(implode(',', $bundle_slugs)));
                 exit();
             }
 
@@ -351,7 +365,7 @@ $total = max(0.50, $subtotal - $discount_amount + $shipping);
 
         <?php if (!empty($_SESSION['checkout_error'])): ?>
             <div class="mb-6 rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-300">
-                <i class="fas fa-exclamation-triangle mr-2"></i> <?= htmlspecialchars($_SESSION['checkout_error']) ?>
+                <i class="fas fa-exclamation-triangle mr-2"></i> <?= htmlspecialchars($_SESSION['checkout_error'], ENT_QUOTES) ?>
             </div>
             <?php unset($_SESSION['checkout_error']); ?>
         <?php endif; ?>
@@ -394,8 +408,8 @@ $total = max(0.50, $subtotal - $discount_amount + $shipping);
                                                     <i class="fas fa-box"></i>
                                                 </div>
                                                 <div>
-                                                    <h3 class="font-semibold text-white"><?= htmlspecialchars($item['name']) ?></h3>
-                                                    <p class="text-sm text-gray-400"><?= htmlspecialchars($item['period'] ?: 'Offre') ?></p>
+                                                    <h3 class="font-semibold text-white"><?= htmlspecialchars($item['name'], ENT_QUOTES) ?></h3>
+                                                    <p class="text-sm text-gray-400"><?= htmlspecialchars($item['period'] ?: 'Offre', ENT_QUOTES) ?></p>
                                                 </div>
                                             </div>
                                         </div>
@@ -405,7 +419,7 @@ $total = max(0.50, $subtotal - $discount_amount + $shipping);
                                                 <button type="button" onclick="this.parentElement.querySelector('input').stepDown(); this.parentElement.querySelector('input').dispatchEvent(new Event('change'))" class="px-3 py-2 text-gray-300 transition hover:text-white">
                                                     <i class="fas fa-minus"></i>
                                                 </button>
-                                                <input type="number" name="items[<?= htmlspecialchars($slug) ?>]" min="0" value="<?= (int)$item['quantity'] ?>" class="w-14 border-0 bg-transparent text-center text-sm text-white outline-none">
+                                                <input type="number" name="items[<?= htmlspecialchars($slug, ENT_QUOTES) ?>]" min="0" value="<?= (int)$item['quantity'] ?>" class="w-14 border-0 bg-transparent text-center text-sm text-white outline-none">
                                                 <button type="button" onclick="this.parentElement.querySelector('input').stepUp(); this.parentElement.querySelector('input').dispatchEvent(new Event('change'))" class="px-3 py-2 text-gray-300 transition hover:text-white">
                                                     <i class="fas fa-plus"></i>
                                                 </button>
@@ -418,7 +432,7 @@ $total = max(0.50, $subtotal - $discount_amount + $shipping);
 
                                             <form method="post" class="inline-block">
                                                 <input type="hidden" name="action" value="remove_item">
-                                                <input type="hidden" name="slug" value="<?= htmlspecialchars($slug) ?>">
+                                                <input type="hidden" name="slug" value="<?= htmlspecialchars($slug, ENT_QUOTES) ?>">
                                                 <button type="submit" class="rounded-2xl border border-red-500/20 bg-red-500/10 px-3 py-2 text-sm text-red-400 transition hover:bg-red-500/20">
                                                     <i class="fas fa-trash"></i>
                                                 </button>
@@ -460,15 +474,15 @@ $total = max(0.50, $subtotal - $discount_amount + $shipping);
                             <input type="hidden" name="action" value="apply_promo">
                             <label for="promo_code" class="text-sm font-medium text-gray-300">Code promo</label>
                             <div class="flex gap-2">
-                                <input id="promo_code" name="promo_code" value="<?= htmlspecialchars($promo_code) ?>" placeholder="Ex. AMOUR14" class="w-full rounded-2xl border border-white/10 bg-[#0d1321] px-3 py-2 text-sm text-white outline-none ring-0">
+                                <input id="promo_code" name="promo_code" value="<?= htmlspecialchars($promo_code, ENT_QUOTES) ?>" placeholder="Ex. AMOUR14" class="w-full rounded-2xl border border-white/10 bg-[#0d1321] px-3 py-2 text-sm text-white outline-none ring-0">
                                 <button type="submit" class="rounded-2xl border border-sky-500/20 bg-sky-500/10 px-3 py-2 text-sm font-semibold text-sky-300 transition hover:bg-sky-500/20">
                                     Appliquer
                                 </button>
                             </div>
                             <?php if ($promo_error): ?>
-                                <p class="text-sm text-red-400"><?= htmlspecialchars($promo_error) ?></p>
+                                <p class="text-sm text-red-400"><?= htmlspecialchars($promo_error, ENT_QUOTES) ?></p>
                             <?php elseif ($promo): ?>
-                                <p class="text-sm text-emerald-400">Promo appliquée : <?= htmlspecialchars($promo['name']) ?></p>
+                                <p class="text-sm text-emerald-400">Promo appliquée : <?= htmlspecialchars($promo['name'], ENT_QUOTES) ?></p>
                             <?php endif; ?>
                         </form>
 
