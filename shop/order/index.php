@@ -485,7 +485,6 @@ try {
 }
 $paypalme_url = getPaypalMeLink($paypalme_username, $final_price);
 
-     php include __DIR__ . '/inc/navbar.php'; 
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -752,23 +751,6 @@ $paypalme_url = getPaypalMeLink($paypalme_username, $final_price);
                 </div>
             </div>
             <?php endif; ?>
-
-            <form method="POST" action="?plan=<?= htmlspecialchars($type, ENT_QUOTES, 'UTF-8') ?>" class="flex gap-2 mb-6">
-                <input type="text" name="promo_code"
-                    placeholder="Code promo (ex: ETE2026)"
-                    value="<?= htmlspecialchars($_SESSION['promo_code'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
-                    class="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-sky-500 transition">
-                <button type="submit"
-                    class="bg-sky-600 hover:bg-sky-500 text-white px-4 py-2.5 rounded-xl text-sm font-bold transition whitespace-nowrap">
-                    Appliquer
-                </button>
-                <?php if (isset($_SESSION['promo_code'])): ?>
-                <a href="?plan=<?= htmlspecialchars($type, ENT_QUOTES, 'UTF-8') ?>&clear_promo=1"
-                   class="bg-red-600/20 hover:bg-red-600 border border-red-500/30 text-red-400 hover:text-white px-3 py-2.5 rounded-xl text-sm transition">
-                    <i class="fas fa-times"></i>
-                </a>
-                <?php endif; ?>
-            </form>
 
             <?php if ($promo_error): ?>
             <div class="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
