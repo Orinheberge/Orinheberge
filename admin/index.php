@@ -704,9 +704,185 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_sidebar.php';
          VUE SERVEURS
     ════════════════════════════════════════════════════ -->
     <?php elseif ($view === 'servers'): ?>
+
+    <!-- Panneau latéral actions (caché par défaut) -->
+    <div id="srv-panel" class="hidden fixed top-0 right-0 h-full w-[340px] bg-[#111318] border-l border-white/[0.07] z-50 flex flex-col shadow-2xl overflow-y-auto">
+        <div class="flex items-center justify-between px-5 py-4 border-b border-white/[0.05]">
+            <div>
+                <div class="text-sm font-bold text-white" id="sp-name">—</div>
+                <div class="text-xs text-gray-500 font-mono" id="sp-uuid">—</div>
+            </div>
+            <button onclick="closePanel()" class="text-gray-500 hover:text-white text-xl leading-none w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/5">&times;</button>
+        </div>
+
+        <div class="p-5 space-y-4 flex-1">
+            <!-- Infos -->
+            <div class="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 space-y-2 text-xs">
+                <div class="flex justify-between"><span class="text-gray-500">Client</span><span class="text-white font-semibold" id="sp-client">—</span></div>
+                <div class="flex justify-between"><span class="text-gray-500">Email</span><span class="text-gray-400" id="sp-email">—</span></div>
+                <div class="flex justify-between"><span class="text-gray-500">Plan</span><span class="text-gray-300 font-mono" id="sp-plan">—</span></div>
+                <div class="flex justify-between"><span class="text-gray-500">Prix</span><span class="text-white font-bold" id="sp-price">—</span></div>
+                <div class="flex justify-between"><span class="text-gray-500">Statut</span><span id="sp-status">—</span></div>
+                <div class="flex justify-between"><span class="text-gray-500">Expire</span><span class="text-gray-300" id="sp-expires">—</span></div>
+                <div class="flex justify-between"><span class="text-gray-500">Server ID</span><span class="text-gray-500 font-mono" id="sp-serverid">—</span></div>
+            </div>
+
+            <!-- Ajouter des jours -->
+            <div id="sp-renew-section">
+                <div class="text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-2">Renouveler</div>
+                <form method="POST" action="/admin/?view=servers" class="flex gap-2">
+                    <input type="hidden" name="action" value="renew_server">
+                    <input type="hidden" name="server_uuid" id="sp-renew-uuid" value="">
+                    <input type="number" name="renew_days" value="30" min="1" max="3650"
+                           class="flex-1 !px-3 !py-2 text-xs rounded-lg">
+                    <button type="submit" class="bg-blue-500/20 hover:bg-blue-500/40 text-blue-400 border border-blue-500/25 px-3 py-2 rounded-lg text-xs font-bold transition whitespace-nowrap">
+                        <i class="fas fa-redo mr-1"></i> Ajouter
+                    </button>
+                </form>
+            </div>
+
+            <!-- Suspendre / Réactiver -->
+            <div>
+                <div class="text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-2" id="sp-suspend-label">Suspendre</div>
+                <form method="POST" action="/admin/?view=servers" id="sp-suspend-form" class="space-y-2">
+                    <input type="hidden" name="action" id="sp-suspend-action" value="suspend_server">
+                    <input type="hidden" name="server_uuid" id="sp-suspend-uuid" value="">
+                    <input type="hidden" name="server_id"   id="sp-suspend-sid"  value="">
+                    <div id="sp-suspend-fields" class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-[10px] text-gray-500 mb-1">Suspension (jours, 0=indéfini)</label>
+                            <input type="number" name="suspend_until_days" value="0" min="0" max="365" class="!px-2 !py-1.5 text-xs">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] text-gray-500 mb-1">Suppression auto (jours)</label>
+                            <input type="number" name="delete_after_days" value="15" min="1" max="365" class="!px-2 !py-1.5 text-xs">
+                        </div>
+                    </div>
+                    <button type="submit" id="sp-suspend-btn"
+                            class="w-full bg-orange-500/15 hover:bg-orange-500/30 text-orange-400 border border-orange-500/20 px-3 py-2 rounded-lg text-xs font-bold transition">
+                        <i class="fas fa-pause mr-1"></i> Suspendre
+                    </button>
+                </form>
+            </div>
+
+            <!-- Modifier -->
+            <div>
+                <div class="text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-2">Modifier</div>
+                <form method="POST" action="/admin/?view=servers" class="space-y-2">
+                    <input type="hidden" name="action" value="update_server">
+                    <input type="hidden" name="server_uuid" id="sp-mod-uuid" value="">
+                    <input type="hidden" name="server_id"   id="sp-mod-sid"  value="">
+                    <div>
+                        <label class="block text-[10px] text-gray-500 mb-1">Nom du serveur</label>
+                        <input type="text" name="service_name" id="sp-mod-name" class="!px-3 !py-2 text-xs">
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-[10px] text-gray-500 mb-1">Expiration</label>
+                            <input type="date" name="new_expiry" id="sp-mod-expiry" class="!px-2 !py-1.5 text-xs">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] text-gray-500 mb-1">Prix/mois (€)</label>
+                            <input type="number" name="new_price" id="sp-mod-price" min="0" step="0.01" class="!px-2 !py-1.5 text-xs">
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full bg-sky-600 hover:bg-sky-500 text-white px-3 py-2 rounded-lg text-xs font-bold transition">
+                        <i class="fas fa-save mr-1"></i> Enregistrer
+                    </button>
+                </form>
+            </div>
+
+            <!-- Supprimer -->
+            <div>
+                <div class="text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-2">Danger</div>
+                <form method="POST" action="/admin/?view=servers"
+                      onsubmit="return confirm('⚠️ Supprimer ce serveur ?\nCette action est irréversible.')">
+                    <input type="hidden" name="action" value="delete_server">
+                    <input type="hidden" name="server_uuid" id="sp-del-uuid" value="">
+                    <input type="hidden" name="server_id"   id="sp-del-sid"  value="">
+                    <button type="submit"
+                            class="w-full bg-red-500/15 hover:bg-red-500/30 text-red-400 border border-red-500/20 px-3 py-2 rounded-lg text-xs font-bold transition">
+                        <i class="fas fa-trash mr-1"></i> Supprimer définitivement
+                    </button>
+                </form>
+            </div>
+
+            <!-- Lien détail complet -->
+            <a id="sp-detail-link" href="#"
+               class="flex items-center justify-center gap-2 w-full bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] text-gray-400 hover:text-white px-3 py-2 rounded-lg text-xs font-semibold transition">
+                <i class="fas fa-expand-alt text-[10px]"></i> Voir le détail complet
+            </a>
+        </div>
+    </div>
+    <!-- Overlay fond -->
+    <div id="srv-overlay" class="hidden fixed inset-0 bg-black/40 z-40" onclick="closePanel()"></div>
+
+    <script>
+    function openPanel(data) {
+        const p = document.getElementById('srv-panel');
+        const isFree = data.is_free == '1';
+        const isSuspended = data.status === 'suspended';
+
+        document.getElementById('sp-name').textContent    = data.name;
+        document.getElementById('sp-uuid').textContent    = data.uuid;
+        document.getElementById('sp-client').textContent  = data.client;
+        document.getElementById('sp-email').textContent   = data.email;
+        document.getElementById('sp-plan').textContent    = data.name;
+        document.getElementById('sp-price').textContent   = isFree ? 'Gratuit' : data.price + '€/mois';
+        document.getElementById('sp-expires').textContent = isFree ? '∞ À vie' : (data.expires || '—');
+        document.getElementById('sp-serverid').textContent = data.server_id;
+
+        // Badge statut
+        const sbadge = {'paid':'bg-green-500/20 text-green-400','pending':'bg-sky-500/20 text-sky-400','suspended':'bg-orange-500/20 text-orange-400','expired':'bg-red-500/20 text-red-400'};
+        const slabels = {'paid':'Actif','pending':'Pending','suspended':'Suspendu','expired':'Expiré'};
+        const sc = sbadge[data.status] || 'bg-gray-500/20 text-gray-400';
+        const sl = slabels[data.status] || data.status;
+        document.getElementById('sp-status').innerHTML = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold border ${sc}">${sl}</span>`;
+
+        // IDs dans les formulaires
+        ['sp-renew-uuid','sp-suspend-uuid','sp-mod-uuid','sp-del-uuid'].forEach(id=>document.getElementById(id).value=data.uuid);
+        ['sp-suspend-sid','sp-mod-sid','sp-del-sid'].forEach(id=>document.getElementById(id).value=data.server_id);
+        document.getElementById('sp-mod-name').value   = data.name;
+        document.getElementById('sp-mod-expiry').value = data.expires_raw || '';
+        document.getElementById('sp-mod-price').value  = data.renewal_price || '';
+
+        // Afficher/cacher section renouvellement (pas sur gratuit)
+        document.getElementById('sp-renew-section').style.display = isFree ? 'none' : 'block';
+
+        // Suspendre vs Réactiver
+        if (isSuspended) {
+            document.getElementById('sp-suspend-action').value = 'unsuspend_server';
+            document.getElementById('sp-suspend-btn').innerHTML = '<i class="fas fa-play mr-1"></i> Réactiver';
+            document.getElementById('sp-suspend-btn').className = 'w-full bg-green-500/15 hover:bg-green-500/30 text-green-400 border border-green-500/20 px-3 py-2 rounded-lg text-xs font-bold transition';
+            document.getElementById('sp-suspend-fields').style.display = 'none';
+            document.getElementById('sp-suspend-label').textContent = 'Réactiver le serveur';
+        } else {
+            document.getElementById('sp-suspend-action').value = 'suspend_server';
+            document.getElementById('sp-suspend-btn').innerHTML = '<i class="fas fa-pause mr-1"></i> Suspendre';
+            document.getElementById('sp-suspend-btn').className = 'w-full bg-orange-500/15 hover:bg-orange-500/30 text-orange-400 border border-orange-500/20 px-3 py-2 rounded-lg text-xs font-bold transition';
+            document.getElementById('sp-suspend-fields').style.display = 'grid';
+            document.getElementById('sp-suspend-label').textContent = 'Suspendre';
+        }
+
+        document.getElementById('sp-detail-link').href = '/admin/?view=server&id=' + data.id;
+
+        p.classList.remove('hidden');
+        document.getElementById('srv-overlay').classList.remove('hidden');
+    }
+    function closePanel() {
+        document.getElementById('srv-panel').classList.add('hidden');
+        document.getElementById('srv-overlay').classList.add('hidden');
+    }
+    </script>
+
     <div class="card overflow-hidden">
         <div class="px-5 py-4 border-b border-white/[0.05] flex items-center justify-between">
-            <h2 class="text-sm font-bold text-white flex items-center gap-2"><i class="fas fa-server text-green-400 text-xs"></i> Serveurs (<?php echo count($all_servers); ?>)</h2>
+            <h2 class="text-sm font-bold text-white flex items-center gap-2">
+                <i class="fas fa-server text-green-400 text-xs"></i> Serveurs (<?php echo count($all_servers); ?>)
+            </h2>
+            <a href="/admin/servers/create/" class="flex items-center gap-1.5 bg-rose-500/15 hover:bg-rose-500/30 text-rose-400 border border-rose-500/20 px-3 py-1.5 rounded-lg text-xs font-bold transition">
+                <i class="fas fa-plus text-[10px]"></i> Créer
+            </a>
         </div>
         <div class="overflow-x-auto">
             <table class="w-full text-sm">
@@ -718,14 +894,13 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_sidebar.php';
                         <th class="text-left px-5 py-3 text-xs text-gray-400 font-semibold uppercase tracking-wide">Prix</th>
                         <th class="text-left px-5 py-3 text-xs text-gray-400 font-semibold uppercase tracking-wide">Statut</th>
                         <th class="text-left px-5 py-3 text-xs text-gray-400 font-semibold uppercase tracking-wide">Expire</th>
-                        <th class="text-left px-5 py-3 text-xs text-gray-400 font-semibold uppercase tracking-wide">Actions</th>
+                        <th class="text-left px-5 py-3 text-xs text-gray-400 font-semibold uppercase tracking-wide text-right">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                <?php foreach ($all_servers as $sv): ?>
-                <?php
-                    $status = $sv['status'] ?? 'unknown';
-                    $is_free = ($sv['renewal_price'] ?? 0) == 0;
+                <?php foreach ($all_servers as $sv):
+                    $status   = $sv['status'] ?? 'unknown';
+                    $is_free  = ($sv['renewal_price'] ?? 0) == 0;
                     $status_badge = match($status) {
                         'paid'             => 'bg-green-500/15 text-green-400 border-green-500/25',
                         'suspended'        => 'bg-orange-500/15 text-orange-400 border-orange-500/25',
@@ -734,18 +909,80 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_sidebar.php';
                         'pending_deletion' => 'bg-red-500/15 text-red-400 border-red-500/25',
                         default            => 'bg-white/5 text-gray-400 border-white/10',
                     };
+                    $status_label = match($status) {
+                        'paid'=>'Actif','pending'=>'Pending','suspended'=>'Suspendu',
+                        'expired'=>'Expiré','pending_deletion'=>'Suppression',default=>ucfirst($status)
+                    };
+                    $sn = strtolower($sv['service_name'] ?? '');
+                    $plan_icon = 'fas fa-server'; $plan_color = 'text-gray-400';
+                    if (str_contains($sn,'minecraft'))      { $plan_icon='fas fa-cube';    $plan_color='text-green-400'; }
+                    elseif (str_contains($sn,'fivem'))      { $plan_icon='fas fa-car';     $plan_color='text-red-400'; }
+                    elseif (str_contains($sn,'hytale'))     { $plan_icon='fas fa-gamepad'; $plan_color='text-purple-400'; }
+                    elseif (str_contains($sn,'php')||str_contains($sn,'web')) { $plan_icon='fas fa-code';     $plan_color='text-blue-400'; }
+                    elseif (str_contains($sn,'node')||str_contains($sn,'js')) { $plan_icon='fab fa-node-js';  $plan_color='text-green-400'; }
+                    elseif (str_contains($sn,'python'))     { $plan_icon='fab fa-python';  $plan_color='text-yellow-400'; }
+                    elseif (str_contains($sn,'java'))       { $plan_icon='fab fa-java';    $plan_color='text-orange-400'; }
+
+                    // Data pour le panneau JS
+                    $panel_data = json_encode([
+                        'id'            => $sv['id'],
+                        'name'          => $sv['service_name'] ?? '',
+                        'uuid'          => $sv['uuid'] ?? '',
+                        'client'        => $sv['pseudo'] ?: ($sv['firstname'] ?? ''),
+                        'email'         => $sv['user_email'] ?? '',
+                        'status'        => $status,
+                        'is_free'       => $is_free ? '1' : '0',
+                        'price'         => number_format((float)($sv['renewal_price'] ?? 0), 2, '.', ''),
+                        'renewal_price' => (string)($sv['renewal_price'] ?? ''),
+                        'expires'       => $is_free ? '' : ($sv['expires_at'] ? date('d/m/Y', strtotime($sv['expires_at'])) : ''),
+                        'expires_raw'   => $sv['expires_at'] ? date('Y-m-d', strtotime($sv['expires_at'])) : '',
+                        'server_id'     => (string)($sv['server_id'] ?? ''),
+                    ], JSON_HEX_QUOT | JSON_HEX_TAG);
                 ?>
-                <tr class="border-b border-white/[0.03]">
-                    <td class="px-5 py-4">
-                        <a href="/admin/?view=server&id=<?php echo (int)$sv['id']; ?>" class="font-semibold text-white hover:text-sky-400 transition">
-                            <?php echo htmlspecialchars($sv['service_name'] ?? '—'); ?>
-                        </a>
-                        <div class="text-xs text-gray-500 font-mono"><?php echo htmlspecialchars(substr($sv['uuid'] ?? '', 0, 8)); ?></div>
+                <tr class="border-b border-white/[0.03] cursor-pointer hover:bg-white/[0.025] transition"
+                    onclick="openPanel(<?php echo htmlspecialchars($panel_data, ENT_QUOTES); ?>)">
+                    <td class="px-5 py-3.5">
+                        <div class="font-semibold text-white text-sm"><?php echo htmlspecialchars($sv['service_name'] ?? '—'); ?></div>
+                        <div class="text-[10px] text-gray-500 font-mono"><?php echo htmlspecialchars(substr($sv['uuid'] ?? '', 0, 8)); ?></div>
                     </td>
-                    <td class="px-5 py-4">
-                        <div class="text-white text-xs font-semibold"><?php echo htmlspecialchars($sv['pseudo'] ?: $sv['firstname'] ?? '—'); ?></div>
-                        <div class="text-xs text-gray-500"><?php echo htmlspecialchars($sv['user_email'] ?? '—'); ?></div>
+                    <td class="px-5 py-3.5">
+                        <div class="text-xs font-semibold text-white"><?php echo htmlspecialchars($sv['pseudo'] ?: ($sv['firstname'] ?? '—')); ?></div>
+                        <div class="text-[10px] text-gray-500"><?php echo htmlspecialchars($sv['user_email'] ?? '—'); ?></div>
                     </td>
+                    <td class="px-5 py-3.5">
+                        <div class="flex items-center gap-1.5 text-xs text-gray-300">
+                            <i class="<?php echo $plan_icon.' '.$plan_color; ?> text-xs"></i>
+                            <span><?php echo htmlspecialchars($sv['service_name'] ?? '—'); ?></span>
+                        </div>
+                    </td>
+                    <td class="px-5 py-3.5">
+                        <?php if ($is_free): ?>
+                            <span class="bg-green-500/10 text-green-400 border border-green-500/20 px-2 py-0.5 rounded-full text-xs font-bold">Gratuit</span>
+                        <?php else: ?>
+                            <span class="text-white font-bold text-xs"><?php echo number_format((float)($sv['renewal_price'] ?? 0), 2, ',', ''); ?>€</span>
+                            <span class="text-gray-500 text-[10px]">/mois</span>
+                        <?php endif; ?>
+                    </td>
+                    <td class="px-5 py-3.5">
+                        <span class="border px-2.5 py-0.5 rounded-full text-xs font-bold <?php echo $status_badge; ?>"><?php echo $status_label; ?></span>
+                    </td>
+                    <td class="px-5 py-3.5 text-xs <?php echo $is_free ? 'text-gray-600' : 'text-gray-300'; ?>">
+                        <?php echo $is_free ? '∞ À vie' : ($sv['expires_at'] ? date('d/m/Y', strtotime($sv['expires_at'])) : '—'); ?>
+                        <?php if (!empty($sv['delete_after'])): ?>
+                            <div class="text-[10px] text-orange-400 mt-0.5">Suppr: <?php echo date('d/m/Y', strtotime($sv['delete_after'])); ?></div>
+                        <?php endif; ?>
+                    </td>
+                    <td class="px-5 py-3.5 text-right">
+                        <span class="text-gray-600 hover:text-gray-400 text-xs">
+                            <i class="fas fa-chevron-right"></i>
+                        </span>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
                     <td class="px-5 py-4">
                         <?php
                         // Déduire la catégorie depuis le nom du service
