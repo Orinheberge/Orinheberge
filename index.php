@@ -176,11 +176,11 @@ function getCardStyle($tier_key) {
         .tab-btn:hover{background:rgba(255,255,255,.06);color:#d1d5db;}
         .tab-btn.active{background:rgba(56,189,248,.1);border-color:rgba(56,189,248,.3);color:#38bdf8;}
         #mobileMenu{display:none;}#mobileMenu.active{display:block;}
-        #cat-view { display: none; }
-        #cat-view .cat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; }
+        
         .hero-glow {position:absolute;border-radius:50%;filter:blur(140px);pointer-events:none;animation:pulse-orb 8s ease-in-out infinite;z-index: 1;}
         @keyframes pulse-orb{0%,100%{opacity:.4;transform:translate(-50%, -50%) scale(1);}50%{opacity:.7;transform:translate(-50%, -50%) scale(1.1);}}
         
+        .offer-badge{position:absolute;top:.875rem;right:.875rem;z-index:10;padding:.2rem .7rem;border-radius:9999px;font-size:.65rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;}
     </style>
     <script>
         if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('/sw.js').catch(()=>{});});}
@@ -256,19 +256,7 @@ function getCardStyle($tier_key) {
         </div>
     </section>
 
-
-         <header class="text-center py-16 px-6 relative overflow-hidden">
-        <h1 class="text-5xl md:text-7xl font-black tracking-tight leading-none gradient-text"><?php echo t('offers.title'); ?></h1>
-        
-        <div class="max-w-4xl mx-auto flex flex-wrap justify-center gap-3 px-4 mt-10">
-            <button onclick="filterCategory('all')" id="tab-all" class="tab-btn active"><?php echo t('offers.tab.all'); ?></button>
-            <?php foreach ($dynamic_categories as $slug => $cat_info): ?>
-                <button onclick="filterCategory('<?= htmlspecialchars($slug) ?>')" id="tab-<?= htmlspecialchars($slug) ?>" class="tab-btn">
-                    <?php echo t($cat_info['name_key']); ?>
-                </button>
-            <?php endforeach; ?>
-        </div>
-    </header>
+    <section id="offres" class="py-20 px-6 max-w-7xl mx-auto scroll-mt-10">
     <section id="cat-view" class="py-20 px-6">
         <div class="text-center mb-12">
             <h2 class="text-4xl md:text-5xl font-black uppercase tracking-wider mb-3 gradient-text" id="cat-view-title"></h2>
@@ -358,7 +346,7 @@ function getCardStyle($tier_key) {
     </div>
 
        
- 
+    </section>
 
     <section class="py-16 px-6 bg-white/[0.01] border-y border-white/[0.03]">
         <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">

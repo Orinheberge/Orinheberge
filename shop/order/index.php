@@ -525,7 +525,7 @@ $paypalme_url = getPaypalMeLink($paypalme_username, $final_price);
 </head>
 <body class="text-gray-200 font-sans min-h-screen flex flex-col justify-between">
 
-   <?php include __DIR__ . '/inc/navbar.php'; ?>
+    <?php include __DIR__ . '/inc/navbar.php'; ?>
 
     <div class="flex-grow flex items-center justify-center px-4 py-4 mb-12">
         <div class="glass p-8 sm:p-10 rounded-2xl w-full max-w-xl text-center border border-white/[0.05] shadow-2xl">
@@ -668,6 +668,6 @@ $paypalme_url = getPaypalMeLink($paypalme_username, $final_price);
         </div>
     </div>
 
-        <?php include __DIR__ . '/inc/footer.php'; ?>   
+     <?php include __DIR__ . '/inc/navbar.php'; ?>
 </body>
-</html> 
+</html>
