@@ -1,21 +1,97 @@
 <?php
 session_start();
 require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/lang.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/smtp.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/db.php';
 
-$db_config = ['host'=>'localhost','port'=>'3306','name'=>'s43_orinheberge','user'=>'root','pass'=>'1504'];
 $is_logged_in = isset($_SESSION['user_id']);
 $message = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    try {
-        $pdo = new PDO("mysql:host={$db_config['host']};port={$db_config['port']};dbname={$db_config['name']};charset=utf8mb4", $db_config['user'], $db_config['pass']);
-        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        $hash = password_hash($_POST['password'], PASSWORD_DEFAULT);
-        $stmt = $pdo->prepare("INSERT INTO users (firstname, lastname, email, password) VALUES (?, ?, ?, ?)");
-        $stmt->execute([htmlspecialchars($_POST['firstname']), htmlspecialchars($_POST['lastname']), $_POST['email'], $hash]);
-        $message = "<div class='bg-green-500/10 border border-green-500/50 text-green-400 p-4 rounded-xl mb-6 text-center text-sm'>" . th('register.success') . "</div>";
-    } catch (Exception $e) {
-        $message = "<div class='bg-red-500/10 border border-red-500/50 text-red-400 p-4 rounded-xl mb-6 text-center text-sm'>" . t('register.error_dup') . "</div>";
+    $firstname = htmlspecialchars(trim($_POST['firstname'] ?? ''));
+    $lastname  = htmlspecialchars(trim($_POST['lastname']  ?? ''));
+    $email     = trim($_POST['email']    ?? '');
+    $password  = $_POST['password'] ?? '';
+
+    if (!$firstname || !$lastname || !$email || !$password) {
+        $message = "<div class='bg-red-500/10 border border-red-500/50 text-red-400 p-4 rounded-xl mb-6 text-center text-sm'>Tous les champs sont obligatoires.</div>";
+    } else {
+        try {
+            $hash = password_hash($password, PASSWORD_DEFAULT);
+            // Générer un pseudo unique depuis le prénom
+            $base_pseudo = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $firstname)) ?: 'user';
+            $pseudo = $base_pseudo;
+            $i = 1;
+            while ($pdo->query("SELECT id FROM users WHERE pseudo=" . $pdo->quote($pseudo))->fetch()) {
+                $pseudo = $base_pseudo . $i++;
+            }
+
+            $stmt = $pdo->prepare("INSERT INTO users (firstname, lastname, email, password, pseudo) VALUES (?, ?, ?, ?, ?)");
+            $stmt->execute([$firstname, $lastname, $email, $hash, $pseudo]);
+            $new_user_id = (int)$pdo->lastInsertId();
+
+            // ── Créer le compte Pterodactyl avec le même mot de passe ──
+            $panel_created = false;
+            $panel_error   = null;
+            if ($panel_url && $api_key_admin) {
+                try {
+                    // Vérifier si le compte existe déjà sur le panel
+                    $search = pterodactylApi($panel_url, $headers_admin, 'users?filter[email]=' . urlencode($email));
+                    $panel_uid = $search['data'][0]['attributes']['id'] ?? null;
+
+                    if (!$panel_uid) {
+                        $created = pterodactylApi($panel_url, $headers_admin, 'users', [
+                            'email'      => $email,
+                            'username'   => $pseudo,
+                            'first_name' => $firstname,
+                            'last_name'  => $lastname,
+                            'password'   => $password,
+                        ]);
+                        $panel_uid = $created['attributes']['id'] ?? null;
+                    }
+
+                    if ($panel_uid) {
+                        // Stocker le mot de passe en clair pour affichage/email (non haché)
+                        $pdo->prepare('UPDATE users SET panel_password=? WHERE id=?')->execute([$password, $new_user_id]);
+                        $panel_created = true;
+                    } else {
+                        $panel_error = 'Compte panel non créé : ' . json_encode($created ?? []);
+                        error_log($panel_error);
+                    }
+                } catch (Throwable $e) {
+                    error_log('Panel user creation at register: ' . $e->getMessage());
+                }
+            }
+
+            // ── Email de bienvenue avec identifiants ──
+            $panel_section = $panel_created
+                ? '<div class="box">
+                    <div class="row"><span class="label">Panel URL</span><span class="val mono">' . htmlspecialchars(rtrim($panel_url, '/')) . '</span></div>
+                    <div class="row"><span class="label">Identifiant</span><span class="val mono">' . htmlspecialchars($email) . '</span></div>
+                    <div class="row"><span class="label">Mot de passe</span><span class="val mono">' . htmlspecialchars($password) . '</span></div>
+                  </div>
+                  <p style="color:#f59e0b;font-size:13px;">⚠️ Notez vos identifiants panel — ils ne seront plus affichés.</p>'
+                : '<p style="font-size:13px;color:#6b7280;">Le compte panel sera créé automatiquement lors de votre première commande.</p>';
+
+            $body = '
+                <p>Bonjour <strong>' . htmlspecialchars($firstname . ' ' . $lastname) . '</strong>,</p>
+                <p>Votre compte OrinHeberge a été créé avec succès. Voici vos informations de connexion :</p>
+                <div class="box">
+                    <div class="row"><span class="label">Prénom</span><span class="val">' . htmlspecialchars($firstname) . '</span></div>
+                    <div class="row"><span class="label">Nom</span><span class="val">' . htmlspecialchars($lastname) . '</span></div>
+                    <div class="row"><span class="label">Email</span><span class="val mono">' . htmlspecialchars($email) . '</span></div>
+                    <div class="row"><span class="label">Mot de passe</span><span class="val mono">' . htmlspecialchars($password) . '</span></div>
+                </div>
+                ' . ($panel_created ? '<p><strong>Identifiants Pterodactyl (panel de gestion des serveurs) :</strong></p>' . $panel_section : '') . '
+                <p><a href="https://heberge.orinstone.deepstone.fr/login/" class="btn">Se connecter →</a></p>
+                <p style="font-size:12px;color:#4b5563;">Pour votre sécurité, nous vous recommandons de changer votre mot de passe après votre première connexion.</p>';
+
+            send_smtp_mail($email, '🎉 Bienvenue sur OrinHeberge — vos identifiants', email_layout('Bienvenue !', $body));
+
+            $message = "<div class='bg-green-500/10 border border-green-500/50 text-green-400 p-4 rounded-xl mb-6 text-center text-sm'>" . th('register.success') . "</div>";
+        } catch (Exception $e) {
+            $message = "<div class='bg-red-500/10 border border-red-500/50 text-red-400 p-4 rounded-xl mb-6 text-center text-sm'>" . t('register.error_dup') . "</div>";
+        }
     }
 }
 ?>

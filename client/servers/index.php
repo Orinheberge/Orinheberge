@@ -354,6 +354,9 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php';
                     <a href="?action=restart&uuid=<?php echo urlencode($id); ?>" class="btn-sm btn-amber" title="Redémarrer"><i class="fas fa-rotate text-[10px]"></i></a>
                     <a href="?action=stop&uuid=<?php echo urlencode($id); ?>" class="btn-sm btn-red" title="Arrêter"><i class="fas fa-stop text-[10px]"></i></a>
                     <a href="/client/servers/gérer/?uuid=<?php echo urlencode($id); ?>" class="btn-sm btn-primary"><i class="fas fa-terminal text-[10px]"></i> Console</a>
+                    <?php if(($server['renewal_price']??0)>0): ?>
+                    <a href="/client/servers/upgrade/?uuid=<?php echo urlencode($id); ?>" class="btn-sm" style="background:rgba(168,85,247,.1);color:#a855f7;border:1px solid rgba(168,85,247,.2);" title="Upgrader l'offre"><i class="fas fa-arrow-up text-[10px]"></i> Upgrade</a>
+                    <?php endif; ?>
                     <a href="<?php echo htmlspecialchars($panel_url); ?>/server/<?php echo htmlspecialchars($short_id); ?>" target="_blank" class="btn-sm" style="background:rgba(255,255,255,.04);color:#9ca3af;border-color:rgba(255,255,255,.08);" title="Panel Pterodactyl"><i class="fas fa-external-link-alt text-[10px]"></i></a>
                     <a href="?action=delete&uuid=<?php echo urlencode($id); ?>" onclick="return confirmDelete('<?php echo addslashes(htmlspecialchars($server['service_name'] ?? '')); ?>')" class="btn-sm" style="background:rgba(239,68,68,.06);color:#6b7280;border-color:rgba(239,68,68,.1);" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#6b7280'" title="Supprimer"><i class="fas fa-trash text-[10px]"></i></a>
                 </div>

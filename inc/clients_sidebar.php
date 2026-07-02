@@ -1,7 +1,13 @@
 <?php
-
-
-
+/**
+ * inc/clients_sidebar.php — Sidebar espace client
+ * Requiert : $panel_url, $phpmyadmin_url, $open_tickets, $_SESSION['username'/'avatar']
+ */
+$current_path = $_SERVER['REQUEST_URI'] ?? '';
+function cs_active(string $path): string {
+    global $current_path;
+    return str_starts_with($current_path, $path) ? 'active' : '';
+}
 ?>
 <aside id="sidebar" class="sidebar">
     <div class="sidebar-logo">
@@ -15,55 +21,57 @@
 
     <nav class="sidebar-nav">
         <div class="nav-section">Principal</div>
-        <a href="/client/" class="nav-item">
+        <a href="/client/" class="nav-item <?php echo $current_path === '/client/' || $current_path === '/client' ? 'active' : ''; ?>">
             <i class="fas fa-home icon"></i> Tableau de bord
         </a>
-        <a href="/client/servers/" class="nav-item active">
+        <a href="/client/servers/" class="nav-item <?php echo cs_active('/client/servers'); ?>">
             <i class="fas fa-server icon"></i> Mes serveurs
         </a>
-        <a href="/offres/" class="nav-item">
+
+        <div class="nav-separator"></div>
+        <div class="nav-section">Boutique</div>
+        <a href="/offres/" class="nav-item <?php echo cs_active('/offres'); ?>">
             <i class="fas fa-tags icon"></i> Nos offres
         </a>
-        <a href="/shop/cart/" class="nav-item">
-            <i class="fas fa-tags icon"></i> Nos offres
+        <a href="/shop/cart/" class="nav-item <?php echo cs_active('/shop/cart'); ?>">
+            <i class="fas fa-shopping-cart icon"></i> Mon panier 
         </a>
 
         <div class="nav-separator"></div>
         <div class="nav-section">Compte</div>
-        <a href="/profil/" class="nav-item">
+        <a href="/profil/" class="nav-item <?php echo cs_active('/profil'); ?>">
             <i class="fas fa-user icon"></i> Mon profil
         </a>
-        <a href="/client/billing/" class="nav-item">
+        <a href="/client/billing/" class="nav-item <?php echo cs_active('/client/billing'); ?>">
             <i class="fas fa-file-invoice-dollar icon"></i> Facturation
         </a>
-        <a href="/support/" class="nav-item">
+        <a href="/support/" class="nav-item <?php echo cs_active('/support'); ?>">
             <i class="fas fa-headset icon"></i> Support
-            <?php if ($open_tickets > 0): ?>
-            <span class="ml-auto text-[10px] bg-purple-500/20 text-purple-400 border border-purple-500/20 px-1.5 py-0.5 rounded-full font-bold"><?php echo $open_tickets; ?></span>
+            <?php if (!empty($open_tickets) && $open_tickets > 0): ?>
+            <span class="ml-auto text-[10px] bg-purple-500/20 text-purple-400 border border-purple-500/20 px-1.5 py-0.5 rounded-full font-bold"><?php echo (int)$open_tickets; ?></span>
             <?php endif; ?>
         </a>
-        <a href="/status/" class="nav-item">
+        <a href="/status/" class="nav-item <?php echo cs_active('/status'); ?>">
             <i class="fas fa-signal icon"></i> Statut
         </a>
 
-
         <div class="nav-separator"></div>
         <div class="nav-section">Outils</div>
-        <a href="<?php echo htmlspecialchars($panel_url); ?>" target="_blank" class="nav-item">
-            <i class="fas fa-cogs icon"></i> Panel Pterodactyl
+        <a href="<?php echo htmlspecialchars($panel_url ?? '#'); ?>" target="_blank" class="nav-item">
+            <i class="fas fa-cogs icon"></i> Panel Pterodactyl <i class="fas fa-external-link-alt text-[9px] ml-auto opacity-30"></i>
         </a>
-        <a href="<?php echo htmlspecialchars($phpmyadmin_url); ?>" target="_blank" class="nav-item">
-            <i class="fas fa-database icon"></i> phpMyAdmin
+        <a href="<?php echo htmlspecialchars($phpmyadmin_url ?? 'https://php.orinstone.deepstone.fr'); ?>" target="_blank" class="nav-item">
+            <i class="fas fa-database icon"></i> phpMyAdmin <i class="fas fa-external-link-alt text-[9px] ml-auto opacity-30"></i>
         </a>
     </nav>
 
     <div class="sidebar-footer">
-                <?php if (!empty($_SESSION['is_admin'])): ?>
-                            <a href="/admin/" class="flex items-center gap-2 px-4 py-2 text-sm text-amber-400 hover:bg-white/5 hover:text-amber-300">
-                                <i class="fas fa-shield-halved"></i> Administration
-                            </a>
-                             <?php endif; ?>
-        <a href="/profil/" class="flex items-center gap-2.5 group mb-2">
+        <?php if (!empty($_SESSION['is_admin'])): ?>
+        <a href="/admin/" class="nav-item mb-1" style="color:#fb923c;border-color:rgba(251,146,60,.15);background:rgba(251,146,60,.05);">
+            <i class="fas fa-shield-halved icon"></i> Administration
+        </a>
+        <?php endif; ?>
+        <a href="/profil/" class="flex items-center gap-2.5 group mb-2 px-1 py-1 rounded-xl hover:bg-white/5 transition">
             <?php if (!empty($_SESSION['avatar']) && file_exists($_SERVER['DOCUMENT_ROOT'].'/'.$_SESSION['avatar'])): ?>
                 <img src="/<?php echo htmlspecialchars($_SESSION['avatar']); ?>" class="w-8 h-8 rounded-full object-cover border border-white/10">
             <?php else: ?>

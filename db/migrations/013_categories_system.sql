@@ -44,4 +44,4 @@ SELECT
 FROM `products` p
 JOIN `categories_products` cp ON cp.`category_slug` = LOWER(SUBSTRING_INDEX(p.`slug`, '-', 1))
 WHERE cp.`product_id` IS NULL;
-INSERT INTO `categories_products` ADD `is_active` TINYINT(1) NOT NULL DEFAULT 1 AFTER `sort_order`;
+ALTER TABLE `categories_products` ADD COLUMN IF NOT EXISTS `is_active` TINYINT(1) NOT NULL DEFAULT 1 AFTER `sort_order`;

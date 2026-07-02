@@ -31,8 +31,10 @@ $_SESSION['avatar']   = $admin['avatar'];
 $cfg = [];
 foreach ($pdo->query('SELECT `key`, `value` FROM settings') as $row) $cfg[$row['key']] = $row['value'];
 $panel_url     = $cfg['panel_url']     ?? 'https://panel.orinstone.deepstone.fr';
-$api_key_admin = $cfg['api_key_admin'] ?? '';
-$headers_admin = ["Authorization: Bearer $api_key_admin","Accept: application/vnd.pterodactyl.v1+json","Content-Type: application/json"];
+$api_key_admin  = $cfg['api_key_admin']  ?? '';
+$api_key_client = $cfg['api_key_client'] ?? '';
+$headers_admin  = ["Authorization: Bearer $api_key_admin","Accept: application/vnd.pterodactyl.v1+json","Content-Type: application/json"];
+$headers_client = ["Authorization: Bearer $api_key_client","Accept: application/vnd.pterodactyl.v1+json","Content-Type: application/json"];
 
 function adminApiCall($url, $headers, $endpoint, $method = 'GET', $data = null) {
     $ch = curl_init($url . '/api/application/' . $endpoint);
@@ -80,17 +82,38 @@ function requestServerBackup(string $panel_url, array $headers_client, array $se
     return $backup['attributes']['uuid'] ?? null;
 }
 
-function sendServerDeletionScheduledEmail(array $server, string $delete_after, ?string $backup_uuid): void {
+// Email : suppression définitive immédiate (pas de backup)
+function sendServerPermanentDeletionEmail(array $server): void {
+    $name = htmlspecialchars($server['service_name'] ?? 'Serveur');
+    $body = '
+        <p>Bonjour,</p>
+        <p>Votre serveur <strong>' . $name . '</strong> a été <strong>supprimé définitivement</strong> par l\'équipe OrinHeberge.</p>
+        <div class="box">
+            <div class="row"><span class="label">Serveur</span><span class="val">' . $name . '</span></div>
+            <div class="row"><span class="label">Supprimé le</span><span class="val">' . date('d/m/Y à H:i') . '</span></div>
+        </div>
+        <p>Aucune sauvegarde n\'a été réalisée. Si vous pensez qu\'il s\'agit d\'une erreur, contactez le support.</p>
+        <p><a href="https://heberge.orinstone.deepstone.fr/discord/" class="btn">Contacter le support →</a></p>';
+    send_smtp_mail($server['user_email'], '🗑️ Serveur ' . ($server['service_name'] ?? 'Serveur') . ' supprimé', email_layout('Suppression définitive', $body));
+}
+
+// Email : suspension + suppression dans N jours avec backup
+function sendServerSuspendedEmail(array $server, string $delete_after, ?string $backup_uuid): void {
+    $name = htmlspecialchars($server['service_name'] ?? 'Serveur');
     $backup_text = $backup_uuid
-        ? '<p>Un backup a ete demande avant suppression. Reference backup : <strong>' . htmlspecialchars($backup_uuid) . '</strong>.</p>'
-        : '<p>La demande de backup automatique n\'a pas pu etre confirmee. Contactez le support si vous souhaitez une archive manuelle.</p>';
-
-    $body = '<p>Bonjour,</p>'
-        . '<p>Le serveur <strong>' . htmlspecialchars($server['service_name'] ?? 'Serveur') . '</strong> est programme pour suppression le <strong>' . htmlspecialchars($delete_after) . '</strong>.</p>'
-        . $backup_text
-        . '<p>Vous pouvez contacter le support avant cette date si vous souhaitez annuler la suppression ou recuperer vos fichiers.</p>';
-
-    send_smtp_mail($server['user_email'], 'Suppression programmee - ' . ($server['service_name'] ?? 'Serveur'), email_layout('Suppression programmee', $body));
+        ? '<div class="row"><span class="label">Réf. backup</span><span class="val mono">' . htmlspecialchars($backup_uuid) . '</span></div>'
+        : '<div class="row"><span class="label">Backup</span><span class="val" style="color:#f59e0b;">Non disponible — contactez le support</span></div>';
+    $body = '
+        <p>Bonjour,</p>
+        <p>Votre serveur <strong>' . $name . '</strong> a été <strong>suspendu</strong>. Sans action de votre part, il sera définitivement supprimé le <strong>' . htmlspecialchars($delete_after) . '</strong>.</p>
+        <div class="box">
+            <div class="row"><span class="label">Serveur</span><span class="val">' . $name . '</span></div>
+            <div class="row"><span class="label">Suppression prévue</span><span class="val" style="color:#ef4444;">' . htmlspecialchars($delete_after) . '</span></div>
+            ' . $backup_text . '
+        </div>
+        <p>Pour annuler la suppression ou récupérer vos fichiers, contactez le support avant la date indiquée.</p>
+        <p><a href="https://heberge.orinstone.deepstone.fr/discord/" class="btn">Contacter le support →</a></p>';
+    send_smtp_mail($server['user_email'], '⚠️ Serveur ' . ($server['service_name'] ?? 'Serveur') . ' suspendu — suppression le ' . $delete_after, email_layout('Serveur suspendu', $body));
 }
 
 $flash = '';
@@ -108,9 +131,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         // Recharger la config
         foreach ($pdo->query('SELECT `key`, `value` FROM settings') as $row) $cfg[$row['key']] = $row['value'];
-        $panel_url     = $cfg['panel_url']     ?? $panel_url;
-        $api_key_admin = $cfg['api_key_admin'] ?? $api_key_admin;
-        $headers_admin = ["Authorization: Bearer $api_key_admin","Accept: application/vnd.pterodactyl.v1+json","Content-Type: application/json"];
+        $panel_url      = $cfg['panel_url']      ?? $panel_url;
+        $api_key_admin  = $cfg['api_key_admin']  ?? $api_key_admin;
+        $api_key_client = $cfg['api_key_client'] ?? $api_key_client;
+        $headers_admin  = ["Authorization: Bearer $api_key_admin","Accept: application/vnd.pterodactyl.v1+json","Content-Type: application/json"];
+        $headers_client = ["Authorization: Bearer $api_key_client","Accept: application/vnd.pterodactyl.v1+json","Content-Type: application/json"];
         $flash = "<div class='bg-green-500/20 text-green-400 border border-green-500/30 p-4 rounded-xl text-sm'>✅ Paramètres sauvegardés.</div>";
         header('Location: /admin/?view=settings'); exit();
     }
@@ -152,7 +177,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // Supprimer un serveur spécifique
+    // Supprimer un serveur définitivement (immédiat, sans backup)
     if ($action === 'delete_server') {
         $uuid      = trim($_POST['server_uuid'] ?? '');
         $server_id = (int)($_POST['server_id'] ?? 0);
@@ -160,22 +185,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $srv_stmt = $pdo->prepare('SELECT o.*, u.email AS user_email FROM orders o LEFT JOIN users u ON u.id=o.user_id WHERE o.uuid=? LIMIT 1');
             $srv_stmt->execute([$uuid]);
             $server = $srv_stmt->fetch();
-            $backup_uuid = $server ? requestServerBackup($panel_url, $headers_client, $server) : null;
-            $delete_after = date('Y-m-d H:i:s', strtotime('+15 days'));
-            $pdo->prepare("
-                UPDATE orders
-                SET status='pending_deletion',
-                    deletion_reason='admin_delete',
-                    deletion_requested_at=NOW(),
-                    backup_requested_at=NOW(),
-                    backup_uuid=?,
-                    delete_after=?
-                WHERE uuid=?
-            ")->execute([$backup_uuid, $delete_after, $uuid]);
-            if ($server && !empty($server['user_email'])) {
-                sendServerDeletionScheduledEmail($server, $delete_after, $backup_uuid);
+
+            // Supprimer sur le panel si on a l'ID
+            if ($server_id) {
+                adminApiCall($panel_url, $headers_admin, 'servers/' . $server_id, 'DELETE');
             }
-            $flash = adminFlash('ok', 'Suppression programmee dans 15 jours. Backup demande et email client envoye si SMTP disponible.');
+
+            // Supprimer de la BDD
+            $pdo->prepare('DELETE FROM orders WHERE uuid=?')->execute([$uuid]);
+
+            // Email client
+            if ($server && !empty($server['user_email'])) {
+                sendServerPermanentDeletionEmail($server);
+            }
+
+            $flash = adminFlash('ok', 'Serveur supprimé définitivement et email client envoyé.');
         }
     }
 
@@ -211,22 +235,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $ep = $action === 'suspend_server' ? "servers/$server_id/suspend" : "servers/$server_id/unsuspend";
             adminApiCall($panel_url, $headers_admin, $ep, 'POST', []);
             if ($action === 'suspend_server' && $uuid) {
-                $delete_days = max(1, min(365, (int)($_POST['delete_after_days'] ?? 15)));
+                $delete_days  = max(1, min(365, (int)($_POST['delete_after_days'] ?? 15)));
                 $suspend_days = max(0, min(365, (int)($_POST['suspend_until_days'] ?? 0)));
                 $suspend_until = $suspend_days > 0 ? date('Y-m-d H:i:s', strtotime("+{$suspend_days} days")) : null;
+                $delete_after  = date('Y-m-d', strtotime("+{$delete_days} days"));
+
+                // Récupérer les infos du serveur + email client
+                $srv_stmt = $pdo->prepare('SELECT o.*, u.email AS user_email FROM orders o LEFT JOIN users u ON u.id=o.user_id WHERE o.uuid=? LIMIT 1');
+                $srv_stmt->execute([$uuid]);
+                $server = $srv_stmt->fetch();
+
+                // Demander un backup avant suppression
+                $backup_uuid = null;
+                if ($server) {
+                    $backup_uuid = requestServerBackup($panel_url, $headers_client, $server);
+                }
+
                 $pdo->prepare("
                     UPDATE orders
                     SET status='suspended',
                         suspended_at=NOW(),
                         suspension_until=?,
-                        delete_after=DATE_ADD(NOW(), INTERVAL $delete_days DAY)
+                        delete_after=DATE_ADD(NOW(), INTERVAL $delete_days DAY),
+                        backup_requested_at=NOW(),
+                        backup_uuid=?
                     WHERE uuid=?
-                ")->execute([$suspend_until, $uuid]);
-                $until_text = $suspend_until ? " Suspension indiquee jusqu'au <strong>" . htmlspecialchars($suspend_until) . "</strong>." : '';
-                $flash = adminFlash('ok', "Serveur suspendu.{$until_text} Suppression automatique prevue dans <strong>{$delete_days} jour(s)</strong> si rien n'est fait.");
+                ")->execute([$suspend_until, $backup_uuid, $uuid]);
+
+                // Envoyer l'email client avec infos backup + date de suppression
+                if ($server && !empty($server['user_email'])) {
+                    sendServerSuspendedEmail($server, $delete_after, $backup_uuid);
+                }
+
+                $until_text = $suspend_until ? " Suspension jusqu'au <strong>" . htmlspecialchars($suspend_until) . "</strong>." : '';
+                $flash = adminFlash('ok', "Serveur suspendu.{$until_text} Suppression dans <strong>{$delete_days} jour(s)</strong>. Backup demandé et email envoyé.");
             } elseif ($uuid) {
                 $pdo->prepare("UPDATE orders SET status='paid', suspended_at=NULL, suspension_until=NULL, delete_after=NULL WHERE uuid=?")->execute([$uuid]);
-                $flash = adminFlash('ok', 'Serveur reactive et cycle de suppression annule.');
+                $flash = adminFlash('ok', 'Serveur réactivé et cycle de suppression annulé.');
             }
         }
     }
@@ -373,6 +418,98 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'toggl
         $flash = "<div class='bg-green-500/20 text-green-400 border border-green-500/30 p-4 rounded-xl text-sm'>✅ Rôle mis à jour.</div>";
         header('Location: /admin/?view=clients'); exit();
     }
+}
+
+// ─── Se connecter en tant que client (impersonate) ───────────────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'impersonate_user') {
+    $uid = (int)($_POST['user_id'] ?? 0);
+    if ($uid && $uid !== (int)$_SESSION['user_id']) {
+        $u = $pdo->prepare('SELECT id, pseudo, firstname, lastname, email, avatar, is_admin FROM users WHERE id=? LIMIT 1');
+        $u->execute([$uid]);
+        $target = $u->fetch();
+        if ($target) {
+            // Sauvegarder l'admin actuel pour pouvoir revenir
+            $_SESSION['admin_impersonating'] = $_SESSION['user_id'];
+            $_SESSION['admin_pseudo']        = $_SESSION['username'];
+            // Connecter en tant que client
+            $_SESSION['user_id']  = $target['id'];
+            $_SESSION['username'] = $target['pseudo'] ?: $target['firstname'];
+            $_SESSION['avatar']   = $target['avatar'];
+            header('Location: /client/'); exit();
+        }
+    }
+    header('Location: /admin/?view=clients'); exit();
+}
+
+// ─── Changer email client ────────────────────────────────────────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'change_user_email') {
+    $uid      = (int)($_POST['user_id'] ?? 0);
+    $new_email = trim($_POST['new_email'] ?? '');
+    if ($uid && $new_email && filter_var($new_email, FILTER_VALIDATE_EMAIL)) {
+        // Vérifier que l'email n'est pas déjà pris
+        $check = $pdo->prepare('SELECT id FROM users WHERE email=? AND id!=?');
+        $check->execute([$new_email, $uid]);
+        if ($check->fetch()) {
+            $flash = adminFlash('err', 'Cet email est déjà utilisé par un autre compte.');
+        } else {
+            $pdo->prepare('UPDATE users SET email=? WHERE id=?')->execute([$new_email, $uid]);
+            $flash = adminFlash('ok', 'Email mis à jour : <strong>' . htmlspecialchars($new_email) . '</strong>');
+        }
+    } else {
+        $flash = adminFlash('err', 'Email invalide.');
+    }
+    header('Location: /admin/?view=clients'); exit();
+}
+
+// ─── Changer mot de passe client ────────────────────────────────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'change_user_password') {
+    $uid      = (int)($_POST['user_id'] ?? 0);
+    $new_pass = $_POST['new_password'] ?? '';
+    if ($uid && strlen($new_pass) >= 6) {
+        $hash = password_hash($new_pass, PASSWORD_DEFAULT);
+        $pdo->prepare('UPDATE users SET password=? WHERE id=?')->execute([$hash, $uid]);
+        // Mettre à jour aussi le panel Pterodactyl si possible
+        if ($panel_url && $api_key_admin) {
+            $u_row = $pdo->prepare('SELECT email, pseudo, firstname, lastname FROM users WHERE id=? LIMIT 1');
+            $u_row->execute([$uid]);
+            $u_data = $u_row->fetch();
+            if ($u_data) {
+                // Chercher l'utilisateur sur le panel
+                $ch = curl_init($panel_url . '/api/application/users?filter[email]=' . urlencode($u_data['email']));
+                curl_setopt_array($ch, [CURLOPT_HTTPHEADER => $headers_admin, CURLOPT_RETURNTRANSFER => true, CURLOPT_SSL_VERIFYPEER => false, CURLOPT_TIMEOUT => 10]);
+                $res = curl_exec($ch); curl_close($ch);
+                $panel_data = $res ? json_decode($res, true) : null;
+                $panel_uid  = $panel_data['data'][0]['attributes']['id'] ?? null;
+                if ($panel_uid) {
+                    adminApiCall($panel_url, $headers_admin, 'users/' . $panel_uid, 'PATCH', [
+                        'email'      => $u_data['email'],
+                        'username'   => $u_data['pseudo'] ?? ('user' . $uid),
+                        'first_name' => $u_data['firstname'] ?? 'User',
+                        'last_name'  => $u_data['lastname']  ?? 'Account',
+                        'password'   => $new_pass,
+                    ]);
+                    $pdo->prepare('UPDATE users SET panel_password=? WHERE id=?')->execute([$new_pass, $uid]);
+                }
+            }
+        }
+        // Notifier le client par email
+        $u_row2 = $pdo->prepare('SELECT email, pseudo, firstname FROM users WHERE id=? LIMIT 1');
+        $u_row2->execute([$uid]);
+        $u_notif = $u_row2->fetch();
+        if ($u_notif) {
+            $name = htmlspecialchars($u_notif['pseudo'] ?: $u_notif['firstname']);
+            $body = '<p>Bonjour <strong>' . $name . '</strong>,</p>
+                <p>Un administrateur vient de modifier votre mot de passe. Votre nouveau mot de passe est :</p>
+                <div class="box"><div class="row"><span class="label">Nouveau mot de passe</span><span class="val mono">' . htmlspecialchars($new_pass) . '</span></div></div>
+                <p style="color:#f59e0b;font-size:13px;">⚠️ Connectez-vous et changez ce mot de passe dès que possible.</p>
+                <p><a href="https://heberge.orinstone.deepstone.fr/login/" class="btn">Se connecter →</a></p>';
+            send_smtp_mail($u_notif['email'], '🔐 Votre mot de passe a été modifié', email_layout('Mot de passe modifié', $body));
+        }
+        $flash = adminFlash('ok', 'Mot de passe mis à jour et email envoyé au client.');
+    } else {
+        $flash = adminFlash('err', 'Mot de passe trop court (6 caractères minimum).');
+    }
+    header('Location: /admin/?view=clients'); exit();
 }
 
 $all_users = $pdo->query('SELECT u.id, u.pseudo, u.firstname, u.lastname, u.email, u.is_admin, u.avatar, u.created_at,
@@ -637,17 +774,107 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_sidebar.php';
          VUE CLIENTS
     ════════════════════════════════════════════════════ -->
     <?php elseif ($view === 'clients'): ?>
+
+    <!-- Modals par client (impersonate / changer email / changer mdp) -->
+    <?php foreach ($all_users as $u): ?>
+    <div id="modal-client-<?php echo $u['id']; ?>" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" style="backdrop-filter:blur(8px)">
+        <div class="card w-full max-w-md p-6 space-y-4">
+            <!-- Header -->
+            <div class="flex items-center justify-between mb-1">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-full bg-sky-500/15 flex items-center justify-center text-sky-400 font-black text-sm">
+                        <?php echo strtoupper(substr($u['pseudo'] ?: $u['firstname'], 0, 1)); ?>
+                    </div>
+                    <div>
+                        <div class="text-sm font-bold text-white"><?php echo htmlspecialchars($u['pseudo'] ?: $u['firstname'].' '.$u['lastname']); ?></div>
+                        <div class="text-xs text-gray-500"><?php echo htmlspecialchars($u['email']); ?> · #<?php echo $u['id']; ?></div>
+                    </div>
+                </div>
+                <button onclick="document.getElementById('modal-client-<?php echo $u['id']; ?>').classList.add('hidden')" class="text-gray-500 hover:text-white text-xl leading-none w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/5">&times;</button>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2 text-xs text-center">
+                <div class="rounded-lg p-2" style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06)">
+                    <div class="text-white font-bold text-base"><?php echo $u['server_count']; ?></div>
+                    <div class="text-gray-500">Serveurs</div>
+                </div>
+                <div class="rounded-lg p-2" style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06)">
+                    <div class="<?php echo $u['is_admin'] ? 'text-rose-400' : 'text-sky-400'; ?> font-bold text-sm"><?php echo $u['is_admin'] ? 'Admin' : 'Client'; ?></div>
+                    <div class="text-gray-500">Rôle</div>
+                </div>
+                <div class="rounded-lg p-2" style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06)">
+                    <div class="text-gray-300 font-bold text-sm"><?php echo $u['created_at'] ? date('d/m/y', strtotime($u['created_at'])) : '—'; ?></div>
+                    <div class="text-gray-500">Inscription</div>
+                </div>
+            </div>
+
+            <!-- Se connecter en tant que ce client -->
+            <?php if ($u['id'] !== (int)$_SESSION['user_id']): ?>
+            <form method="POST" action="/admin/?view=clients" onsubmit="return confirm('Se connecter en tant que <?php echo htmlspecialchars(addslashes($u['pseudo'] ?: $u['firstname'])); ?> ?')">
+                <input type="hidden" name="action" value="impersonate_user">
+                <input type="hidden" name="user_id" value="<?php echo $u['id']; ?>">
+                <button type="submit" class="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-sm transition"
+                    style="background:rgba(14,165,233,.12);border:1px solid rgba(14,165,233,.25);color:#0ea5e9;">
+                    <i class="fas fa-user-secret"></i> Se connecter en tant que ce client
+                </button>
+            </form>
+            <?php endif; ?>
+
+            <!-- Changer l'email -->
+            <div>
+                <div class="text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-2">Changer l'email</div>
+                <form method="POST" action="/admin/?view=clients" class="flex gap-2">
+                    <input type="hidden" name="action" value="change_user_email">
+                    <input type="hidden" name="user_id" value="<?php echo $u['id']; ?>">
+                    <input type="email" name="new_email" required placeholder="<?php echo htmlspecialchars($u['email']); ?>" class="flex-1 !py-2 !text-xs rounded-lg">
+                    <button type="submit" class="btn-action btn-blue whitespace-nowrap"><i class="fas fa-at"></i> Valider</button>
+                </form>
+            </div>
+
+            <!-- Changer le mot de passe -->
+            <div>
+                <div class="text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-2">Changer le mot de passe <span class="text-gray-600 normal-case font-normal">(site + panel)</span></div>
+                <form method="POST" action="/admin/?view=clients" class="flex gap-2">
+                    <input type="hidden" name="action" value="change_user_password">
+                    <input type="hidden" name="user_id" value="<?php echo $u['id']; ?>">
+                    <input type="text" name="new_password" required placeholder="Nouveau mot de passe…" minlength="6" class="flex-1 !py-2 !text-xs rounded-lg font-mono">
+                    <button type="submit" class="btn-action btn-orange whitespace-nowrap"><i class="fas fa-key"></i> Valider</button>
+                </form>
+                <p class="text-[10px] text-gray-600 mt-1">Un email sera envoyé au client avec son nouveau mot de passe.</p>
+            </div>
+
+            <!-- Autres actions -->
+            <?php if ($u['id'] !== (int)$_SESSION['user_id']): ?>
+            <div class="flex gap-2 pt-1">
+                <button onclick="document.getElementById('modal-client-<?php echo $u['id']; ?>').classList.add('hidden'); openEmail('<?php echo htmlspecialchars($u['email']); ?>')"
+                    class="flex-1 btn-action btn-sky justify-center py-2 rounded-xl text-xs">
+                    <i class="fas fa-envelope mr-1"></i> Envoyer un email
+                </button>
+                <form method="POST" action="/admin/?view=clients" class="flex-1"
+                    onsubmit="return confirmDel('Supprimer le compte #<?php echo $u['id']; ?> et tous ses serveurs ?')">
+                    <input type="hidden" name="action" value="delete_user">
+                    <input type="hidden" name="user_id" value="<?php echo $u['id']; ?>">
+                    <button type="submit" class="w-full btn-action btn-red justify-center py-2 rounded-xl text-xs">
+                        <i class="fas fa-trash mr-1"></i> Supprimer le compte
+                    </button>
+                </form>
+            </div>
+            <?php endif; ?>
+        </div>
+    </div>
+    <?php endforeach; ?>
+
     <div class="card overflow-hidden">
         <div class="px-5 py-4 border-b border-white/[0.05] flex items-center justify-between">
             <h2 class="text-sm font-bold text-white flex items-center gap-2"><i class="fas fa-users text-sky-400 text-xs"></i> Clients (<?php echo count($all_users); ?>)</h2>
+            <input type="text" id="client-search" onkeyup="filterClients()" placeholder="Rechercher…" class="!w-48 !py-1.5 !text-xs !rounded-lg !bg-white/5 !border-white/10">
         </div>
         <div class="overflow-x-auto">
-            <table class="w-full text-sm">
+            <table class="w-full text-sm" id="clients-table">
                 <thead>
                     <tr class="border-b border-white/5">
                         <th class="text-left px-6 py-3 text-xs text-gray-400 font-semibold uppercase tracking-wide">#</th>
                         <th class="text-left px-6 py-3 text-xs text-gray-400 font-semibold uppercase tracking-wide">Client</th>
-                        <th class="text-left px-6 py-3 text-xs text-gray-400 font-semibold uppercase tracking-wide">Email</th>
                         <th class="text-left px-6 py-3 text-xs text-gray-400 font-semibold uppercase tracking-wide">Serveurs</th>
                         <th class="text-left px-6 py-3 text-xs text-gray-400 font-semibold uppercase tracking-wide">Inscrit le</th>
                         <th class="text-left px-6 py-3 text-xs text-gray-400 font-semibold uppercase tracking-wide">Rôle</th>
@@ -656,7 +883,7 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_sidebar.php';
                 </thead>
                 <tbody>
                 <?php foreach ($all_users as $u): ?>
-                <tr>
+                <tr data-search="<?php echo strtolower(htmlspecialchars($u['pseudo'].' '.$u['firstname'].' '.$u['lastname'].' '.$u['email'])); ?>">
                     <td class="text-gray-500 text-xs"><?php echo $u['id']; ?></td>
                     <td>
                         <div class="flex items-center gap-2.5">
@@ -671,24 +898,24 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_sidebar.php';
                             </div>
                         </div>
                     </td>
-                    <td><span class="badge badge-blue"><?php echo $u['server_count']; ?> serveur(s)</span></td>
+                    <td><span class="badge badge-blue"><?php echo $u['server_count']; ?></span></td>
                     <td class="text-gray-500 text-xs"><?php echo $u['created_at'] ? date('d/m/Y', strtotime($u['created_at'])) : '—'; ?></td>
                     <td><span class="badge <?php echo $u['is_admin'] ? 'badge-rose' : 'badge-gray'; ?>"><?php echo $u['is_admin'] ? 'Admin' : 'Client'; ?></span></td>
                     <td>
                         <div class="flex items-center gap-1.5">
-                            <button onclick="openEmail('<?php echo htmlspecialchars($u['email']); ?>')" class="btn-action btn-sky"><i class="fas fa-envelope"></i> Email</button>
+                            <!-- Bouton Gérer → ouvre le modal -->
+                            <button onclick="document.getElementById('modal-client-<?php echo $u['id']; ?>').classList.remove('hidden')"
+                                class="btn-action btn-blue">
+                                <i class="fas fa-sliders-h"></i> Gérer
+                            </button>
                             <?php if ($u['id'] !== (int)$_SESSION['user_id']): ?>
+                            <!-- Toggle admin rapide -->
                             <form method="POST" action="/admin/?view=clients" style="display:inline">
                                 <input type="hidden" name="action" value="toggle_admin">
                                 <input type="hidden" name="user_id" value="<?php echo $u['id']; ?>">
-                                <button type="submit" class="btn-action <?php echo $u['is_admin'] ? 'btn-orange' : 'btn-blue'; ?>" title="<?php echo $u['is_admin'] ? 'Rétrograder' : 'Promouvoir admin'; ?>">
+                                <button type="submit" class="btn-action <?php echo $u['is_admin'] ? 'btn-orange' : 'btn-sky'; ?>" title="<?php echo $u['is_admin'] ? 'Rétrograder' : 'Promouvoir admin'; ?>">
                                     <i class="fas <?php echo $u['is_admin'] ? 'fa-user-minus' : 'fa-user-shield'; ?>"></i>
                                 </button>
-                            </form>
-                            <form method="POST" action="/admin/" onsubmit="return confirmDel('Supprimer #<?php echo $u['id']; ?> et ses serveurs ?')" style="display:inline">
-                                <input type="hidden" name="action" value="delete_user">
-                                <input type="hidden" name="user_id" value="<?php echo $u['id']; ?>">
-                                <button type="submit" class="btn-action btn-red"><i class="fas fa-trash"></i></button>
                             </form>
                             <?php endif; ?>
                         </div>
@@ -699,14 +926,198 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_sidebar.php';
             </table>
         </div>
     </div>
+    <script>
+    function filterClients() {
+        const q = document.getElementById('client-search').value.toLowerCase();
+        document.querySelectorAll('#clients-table tbody tr').forEach(tr => {
+            tr.style.display = tr.dataset.search.includes(q) ? '' : 'none';
+        });
+    }
+    </script>
 
     <!-- ═══════════════════════════════════════════════════
          VUE SERVEURS
     ════════════════════════════════════════════════════ -->
     <?php elseif ($view === 'servers'): ?>
+
+    <!-- Panneau latéral actions (caché par défaut) -->
+    <div id="srv-panel" class="hidden fixed top-0 right-0 h-full w-[340px] bg-[#111318] border-l border-white/[0.07] z-50 flex flex-col shadow-2xl overflow-y-auto">
+        <div class="flex items-center justify-between px-5 py-4 border-b border-white/[0.05]">
+            <div>
+                <div class="text-sm font-bold text-white" id="sp-name">—</div>
+                <div class="text-xs text-gray-500 font-mono" id="sp-uuid">—</div>
+            </div>
+            <button onclick="closePanel()" class="text-gray-500 hover:text-white text-xl leading-none w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/5">&times;</button>
+        </div>
+
+        <div class="p-5 space-y-4 flex-1">
+            <!-- Infos -->
+            <div class="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 space-y-2 text-xs">
+                <div class="flex justify-between"><span class="text-gray-500">Client</span><span class="text-white font-semibold" id="sp-client">—</span></div>
+                <div class="flex justify-between"><span class="text-gray-500">Email</span><span class="text-gray-400" id="sp-email">—</span></div>
+                <div class="flex justify-between"><span class="text-gray-500">Plan</span><span class="text-gray-300 font-mono" id="sp-plan">—</span></div>
+                <div class="flex justify-between"><span class="text-gray-500">Prix</span><span class="text-white font-bold" id="sp-price">—</span></div>
+                <div class="flex justify-between"><span class="text-gray-500">Statut</span><span id="sp-status">—</span></div>
+                <div class="flex justify-between"><span class="text-gray-500">Expire</span><span class="text-gray-300" id="sp-expires">—</span></div>
+                <div class="flex justify-between"><span class="text-gray-500">Server ID</span><span class="text-gray-500 font-mono" id="sp-serverid">—</span></div>
+            </div>
+
+            <!-- Ajouter des jours -->
+            <div id="sp-renew-section">
+                <div class="text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-2">Renouveler</div>
+                <form method="POST" action="/admin/?view=servers" class="flex gap-2">
+                    <input type="hidden" name="action" value="renew_server">
+                    <input type="hidden" name="server_uuid" id="sp-renew-uuid" value="">
+                    <input type="number" name="renew_days" value="30" min="1" max="3650"
+                           class="flex-1 !px-3 !py-2 text-xs rounded-lg">
+                    <button type="submit" class="bg-blue-500/20 hover:bg-blue-500/40 text-blue-400 border border-blue-500/25 px-3 py-2 rounded-lg text-xs font-bold transition whitespace-nowrap">
+                        <i class="fas fa-redo mr-1"></i> Ajouter
+                    </button>
+                </form>
+            </div>
+
+            <!-- Suspendre / Réactiver -->
+            <div>
+                <div class="text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-2" id="sp-suspend-label">Suspendre</div>
+                <form method="POST" action="/admin/?view=servers" id="sp-suspend-form" class="space-y-2">
+                    <input type="hidden" name="action" id="sp-suspend-action" value="suspend_server">
+                    <input type="hidden" name="server_uuid" id="sp-suspend-uuid" value="">
+                    <input type="hidden" name="server_id"   id="sp-suspend-sid"  value="">
+                    <div id="sp-suspend-fields" class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-[10px] text-gray-500 mb-1">Suspension (jours, 0=indéfini)</label>
+                            <input type="number" name="suspend_until_days" value="0" min="0" max="365" class="!px-2 !py-1.5 text-xs">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] text-gray-500 mb-1">Suppression auto (jours)</label>
+                            <input type="number" name="delete_after_days" value="15" min="1" max="365" class="!px-2 !py-1.5 text-xs">
+                        </div>
+                    </div>
+                    <button type="submit" id="sp-suspend-btn"
+                            class="w-full bg-orange-500/15 hover:bg-orange-500/30 text-orange-400 border border-orange-500/20 px-3 py-2 rounded-lg text-xs font-bold transition">
+                        <i class="fas fa-pause mr-1"></i> Suspendre
+                    </button>
+                </form>
+            </div>
+
+            <!-- Modifier -->
+            <div>
+                <div class="text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-2">Modifier</div>
+                <form method="POST" action="/admin/?view=servers" class="space-y-2">
+                    <input type="hidden" name="action" value="update_server">
+                    <input type="hidden" name="server_uuid" id="sp-mod-uuid" value="">
+                    <input type="hidden" name="server_id"   id="sp-mod-sid"  value="">
+                    <div>
+                        <label class="block text-[10px] text-gray-500 mb-1">Nom du serveur</label>
+                        <input type="text" name="service_name" id="sp-mod-name" class="!px-3 !py-2 text-xs">
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-[10px] text-gray-500 mb-1">Expiration</label>
+                            <input type="date" name="new_expiry" id="sp-mod-expiry" class="!px-2 !py-1.5 text-xs">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] text-gray-500 mb-1">Prix/mois (€)</label>
+                            <input type="number" name="new_price" id="sp-mod-price" min="0" step="0.01" class="!px-2 !py-1.5 text-xs">
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full bg-sky-600 hover:bg-sky-500 text-white px-3 py-2 rounded-lg text-xs font-bold transition">
+                        <i class="fas fa-save mr-1"></i> Enregistrer
+                    </button>
+                </form>
+            </div>
+
+            <!-- Supprimer -->
+            <div>
+                <div class="text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-2">Danger</div>
+                <form method="POST" action="/admin/?view=servers"
+                      onsubmit="return confirm('⚠️ Supprimer ce serveur ?\nCette action est irréversible.')">
+                    <input type="hidden" name="action" value="delete_server">
+                    <input type="hidden" name="server_uuid" id="sp-del-uuid" value="">
+                    <input type="hidden" name="server_id"   id="sp-del-sid"  value="">
+                    <button type="submit"
+                            class="w-full bg-red-500/15 hover:bg-red-500/30 text-red-400 border border-red-500/20 px-3 py-2 rounded-lg text-xs font-bold transition">
+                        <i class="fas fa-trash mr-1"></i> Supprimer définitivement
+                    </button>
+                </form>
+            </div>
+
+            <!-- Lien détail complet -->
+            <a id="sp-detail-link" href="#"
+               class="flex items-center justify-center gap-2 w-full bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] text-gray-400 hover:text-white px-3 py-2 rounded-lg text-xs font-semibold transition">
+                <i class="fas fa-expand-alt text-[10px]"></i> Voir le détail complet
+            </a>
+        </div>
+    </div>
+    <!-- Overlay fond -->
+    <div id="srv-overlay" class="hidden fixed inset-0 bg-black/40 z-40" onclick="closePanel()"></div>
+
+    <script>
+    function openPanel(data) {
+        const p = document.getElementById('srv-panel');
+        const isFree = data.is_free == '1';
+        const isSuspended = data.status === 'suspended';
+
+        document.getElementById('sp-name').textContent    = data.name;
+        document.getElementById('sp-uuid').textContent    = data.uuid;
+        document.getElementById('sp-client').textContent  = data.client;
+        document.getElementById('sp-email').textContent   = data.email;
+        document.getElementById('sp-plan').textContent    = data.name;
+        document.getElementById('sp-price').textContent   = isFree ? 'Gratuit' : data.price + '€/mois';
+        document.getElementById('sp-expires').textContent = isFree ? '∞ À vie' : (data.expires || '—');
+        document.getElementById('sp-serverid').textContent = data.server_id;
+
+        // Badge statut
+        const sbadge = {'paid':'bg-green-500/20 text-green-400','pending':'bg-sky-500/20 text-sky-400','suspended':'bg-orange-500/20 text-orange-400','expired':'bg-red-500/20 text-red-400'};
+        const slabels = {'paid':'Actif','pending':'Pending','suspended':'Suspendu','expired':'Expiré'};
+        const sc = sbadge[data.status] || 'bg-gray-500/20 text-gray-400';
+        const sl = slabels[data.status] || data.status;
+        document.getElementById('sp-status').innerHTML = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold border ${sc}">${sl}</span>`;
+
+        // IDs dans les formulaires
+        ['sp-renew-uuid','sp-suspend-uuid','sp-mod-uuid','sp-del-uuid'].forEach(id=>document.getElementById(id).value=data.uuid);
+        ['sp-suspend-sid','sp-mod-sid','sp-del-sid'].forEach(id=>document.getElementById(id).value=data.server_id);
+        document.getElementById('sp-mod-name').value   = data.name;
+        document.getElementById('sp-mod-expiry').value = data.expires_raw || '';
+        document.getElementById('sp-mod-price').value  = data.renewal_price || '';
+
+        // Afficher/cacher section renouvellement (pas sur gratuit)
+        document.getElementById('sp-renew-section').style.display = isFree ? 'none' : 'block';
+
+        // Suspendre vs Réactiver
+        if (isSuspended) {
+            document.getElementById('sp-suspend-action').value = 'unsuspend_server';
+            document.getElementById('sp-suspend-btn').innerHTML = '<i class="fas fa-play mr-1"></i> Réactiver';
+            document.getElementById('sp-suspend-btn').className = 'w-full bg-green-500/15 hover:bg-green-500/30 text-green-400 border border-green-500/20 px-3 py-2 rounded-lg text-xs font-bold transition';
+            document.getElementById('sp-suspend-fields').style.display = 'none';
+            document.getElementById('sp-suspend-label').textContent = 'Réactiver le serveur';
+        } else {
+            document.getElementById('sp-suspend-action').value = 'suspend_server';
+            document.getElementById('sp-suspend-btn').innerHTML = '<i class="fas fa-pause mr-1"></i> Suspendre';
+            document.getElementById('sp-suspend-btn').className = 'w-full bg-orange-500/15 hover:bg-orange-500/30 text-orange-400 border border-orange-500/20 px-3 py-2 rounded-lg text-xs font-bold transition';
+            document.getElementById('sp-suspend-fields').style.display = 'grid';
+            document.getElementById('sp-suspend-label').textContent = 'Suspendre';
+        }
+
+        document.getElementById('sp-detail-link').href = '/admin/?view=server&id=' + data.id;
+
+        p.classList.remove('hidden');
+        document.getElementById('srv-overlay').classList.remove('hidden');
+    }
+    function closePanel() {
+        document.getElementById('srv-panel').classList.add('hidden');
+        document.getElementById('srv-overlay').classList.add('hidden');
+    }
+    </script>
+
     <div class="card overflow-hidden">
         <div class="px-5 py-4 border-b border-white/[0.05] flex items-center justify-between">
-            <h2 class="text-sm font-bold text-white flex items-center gap-2"><i class="fas fa-server text-green-400 text-xs"></i> Serveurs (<?php echo count($all_servers); ?>)</h2>
+            <h2 class="text-sm font-bold text-white flex items-center gap-2">
+                <i class="fas fa-server text-green-400 text-xs"></i> Serveurs (<?php echo count($all_servers); ?>)
+            </h2>
+            <a href="/admin/servers/create/" class="flex items-center gap-1.5 bg-rose-500/15 hover:bg-rose-500/30 text-rose-400 border border-rose-500/20 px-3 py-1.5 rounded-lg text-xs font-bold transition">
+                <i class="fas fa-plus text-[10px]"></i> Créer
+            </a>
         </div>
         <div class="overflow-x-auto">
             <table class="w-full text-sm">
@@ -718,110 +1129,88 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_sidebar.php';
                         <th class="text-left px-5 py-3 text-xs text-gray-400 font-semibold uppercase tracking-wide">Prix</th>
                         <th class="text-left px-5 py-3 text-xs text-gray-400 font-semibold uppercase tracking-wide">Statut</th>
                         <th class="text-left px-5 py-3 text-xs text-gray-400 font-semibold uppercase tracking-wide">Expire</th>
-                        <th class="text-left px-5 py-3 text-xs text-gray-400 font-semibold uppercase tracking-wide">Actions</th>
+                        <th class="text-left px-5 py-3 text-xs text-gray-400 font-semibold uppercase tracking-wide text-right">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                <?php foreach ($all_servers as $sv): ?>
-                <?php
-                    $status = $sv['status'] ?? 'unknown';
-                    $is_free = ($sv['renewal_price'] ?? 0) == 0;
+                <?php foreach ($all_servers as $sv):
+                    $status   = $sv['status'] ?? 'unknown';
+                    $is_free  = ($sv['renewal_price'] ?? 0) == 0;
                     $status_badge = match($status) {
-                        'paid'      => 'bg-green-500/15 text-green-400 border-green-500/25',
-                        'suspended' => 'bg-orange-500/15 text-orange-400 border-orange-500/25',
-                        'expired'   => 'bg-red-500/15 text-red-400 border-red-500/25',
-                        default     => 'bg-white/5 text-gray-400 border-white/10',
+                        'paid'             => 'bg-green-500/15 text-green-400 border-green-500/25',
+                        'suspended'        => 'bg-orange-500/15 text-orange-400 border-orange-500/25',
+                        'expired'          => 'bg-red-500/15 text-red-400 border-red-500/25',
+                        'pending'          => 'bg-sky-500/15 text-sky-400 border-sky-500/25',
+                        'pending_deletion' => 'bg-red-500/15 text-red-400 border-red-500/25',
+                        default            => 'bg-white/5 text-gray-400 border-white/10',
                     };
+                    $status_label = match($status) {
+                        'paid'=>'Actif','pending'=>'Pending','suspended'=>'Suspendu',
+                        'expired'=>'Expiré','pending_deletion'=>'Suppression',default=>ucfirst($status)
+                    };
+                    $sn = strtolower($sv['service_name'] ?? '');
+                    $plan_icon = 'fas fa-server'; $plan_color = 'text-gray-400';
+                    if (str_contains($sn,'minecraft'))      { $plan_icon='fas fa-cube';    $plan_color='text-green-400'; }
+                    elseif (str_contains($sn,'fivem'))      { $plan_icon='fas fa-car';     $plan_color='text-red-400'; }
+                    elseif (str_contains($sn,'hytale'))     { $plan_icon='fas fa-gamepad'; $plan_color='text-purple-400'; }
+                    elseif (str_contains($sn,'php')||str_contains($sn,'web')) { $plan_icon='fas fa-code';     $plan_color='text-blue-400'; }
+                    elseif (str_contains($sn,'node')||str_contains($sn,'js')) { $plan_icon='fab fa-node-js';  $plan_color='text-green-400'; }
+                    elseif (str_contains($sn,'python'))     { $plan_icon='fab fa-python';  $plan_color='text-yellow-400'; }
+                    elseif (str_contains($sn,'java'))       { $plan_icon='fab fa-java';    $plan_color='text-orange-400'; }
+
+                    // Data pour le panneau JS
+                    $panel_data = json_encode([
+                        'id'            => $sv['id'],
+                        'name'          => $sv['service_name'] ?? '',
+                        'uuid'          => $sv['uuid'] ?? '',
+                        'client'        => $sv['pseudo'] ?: ($sv['firstname'] ?? ''),
+                        'email'         => $sv['user_email'] ?? '',
+                        'status'        => $status,
+                        'is_free'       => $is_free ? '1' : '0',
+                        'price'         => number_format((float)($sv['renewal_price'] ?? 0), 2, '.', ''),
+                        'renewal_price' => (string)($sv['renewal_price'] ?? ''),
+                        'expires'       => $is_free ? '' : ($sv['expires_at'] ? date('d/m/Y', strtotime($sv['expires_at'])) : ''),
+                        'expires_raw'   => $sv['expires_at'] ? date('Y-m-d', strtotime($sv['expires_at'])) : '',
+                        'server_id'     => (string)($sv['server_id'] ?? ''),
+                    ], JSON_HEX_QUOT | JSON_HEX_TAG);
                 ?>
-                <tr class="border-b border-white/[0.03]">
-                    <td class="px-5 py-4">
-                        <a href="/admin/?view=server&id=<?php echo (int)$sv['id']; ?>" class="font-semibold text-white hover:text-sky-400 transition">
-                            <?php echo htmlspecialchars($sv['service_name'] ?? '—'); ?>
-                        </a>
-                        <div class="text-xs text-gray-500 font-mono"><?php echo htmlspecialchars(substr($sv['uuid'] ?? '', 0, 8)); ?></div>
+                <tr class="border-b border-white/[0.03] cursor-pointer hover:bg-white/[0.025] transition"
+                    onclick="openPanel(<?php echo htmlspecialchars($panel_data, ENT_QUOTES); ?>)">
+                    <td class="px-5 py-3.5">
+                        <div class="font-semibold text-white text-sm"><?php echo htmlspecialchars($sv['service_name'] ?? '—'); ?></div>
+                        <div class="text-[10px] text-gray-500 font-mono"><?php echo htmlspecialchars(substr($sv['uuid'] ?? '', 0, 8)); ?></div>
                     </td>
-                    <td class="px-5 py-4">
-                        <div class="text-white text-xs font-semibold"><?php echo htmlspecialchars($sv['pseudo'] ?: $sv['firstname'] ?? '—'); ?></div>
-                        <div class="text-xs text-gray-500"><?php echo htmlspecialchars($sv['user_email'] ?? '—'); ?></div>
+                    <td class="px-5 py-3.5">
+                        <div class="text-xs font-semibold text-white"><?php echo htmlspecialchars($sv['pseudo'] ?: ($sv['firstname'] ?? '—')); ?></div>
+                        <div class="text-[10px] text-gray-500"><?php echo htmlspecialchars($sv['user_email'] ?? '—'); ?></div>
                     </td>
-                    <td class="px-5 py-4 text-gray-300 text-xs font-mono"><?php echo htmlspecialchars($sv['plan'] ?? '—'); ?></td>
-                    <td class="px-5 py-4">
+                    <td class="px-5 py-3.5">
+                        <div class="flex items-center gap-1.5 text-xs text-gray-300">
+                            <i class="<?php echo $plan_icon.' '.$plan_color; ?> text-xs"></i>
+                            <span><?php echo htmlspecialchars($sv['service_name'] ?? '—'); ?></span>
+                        </div>
+                    </td>
+                    <td class="px-5 py-3.5">
                         <?php if ($is_free): ?>
                             <span class="bg-green-500/10 text-green-400 border border-green-500/20 px-2 py-0.5 rounded-full text-xs font-bold">Gratuit</span>
                         <?php else: ?>
-                            <span class="text-white font-bold"><?php echo number_format((float)($sv['renewal_price'] ?? 0), 2, ',', ''); ?>€</span><span class="text-gray-500 text-xs">/mois</span>
+                            <span class="text-white font-bold text-xs"><?php echo number_format((float)($sv['renewal_price'] ?? 0), 2, ',', ''); ?>€</span>
+                            <span class="text-gray-500 text-[10px]">/mois</span>
                         <?php endif; ?>
                     </td>
-                    <td class="px-5 py-4">
-                        <span class="border px-2.5 py-0.5 rounded-full text-xs font-bold <?php echo $status_badge; ?>"><?php echo htmlspecialchars(ucfirst($status)); ?></span>
+                    <td class="px-5 py-3.5">
+                        <span class="border px-2.5 py-0.5 rounded-full text-xs font-bold <?php echo $status_badge; ?>"><?php echo $status_label; ?></span>
                     </td>
-                    <td class="px-5 py-4 text-xs <?php echo $is_free ? 'text-gray-500' : 'text-gray-300'; ?>">
-                        <?php echo $is_free ? '∞ À vie' : htmlspecialchars($sv['expires_at'] ? date('d/m/Y', strtotime($sv['expires_at'])) : '—'); ?>
-                        <?php if (!empty($sv['suspension_until'])): ?>
-                            <div class="mt-1 text-[10px] text-sky-400">Suspendu jusqu'au: <?php echo htmlspecialchars(date('d/m/Y', strtotime($sv['suspension_until']))); ?></div>
-                        <?php endif; ?>
+                    <td class="px-5 py-3.5 text-xs <?php echo $is_free ? 'text-gray-600' : 'text-gray-300'; ?>">
+                        <?php echo $is_free ? '∞ À vie' : ($sv['expires_at'] ? date('d/m/Y', strtotime($sv['expires_at'])) : '—'); ?>
                         <?php if (!empty($sv['delete_after'])): ?>
-                            <div class="mt-1 text-[10px] text-orange-400">Suppression: <?php echo htmlspecialchars(date('d/m/Y', strtotime($sv['delete_after']))); ?></div>
+                            <div class="text-[10px] text-orange-400 mt-0.5">Suppr: <?php echo date('d/m/Y', strtotime($sv['delete_after'])); ?></div>
                         <?php endif; ?>
                     </td>
-                    <td class="px-5 py-4">
-                        <div class="flex flex-wrap gap-1.5">
-                            <?php if (!$is_free): ?>
-                            <form method="POST" action="/admin/?view=servers" class="flex items-center gap-1">
-                                <input type="hidden" name="action" value="renew_server">
-                                <input type="hidden" name="server_uuid" value="<?php echo htmlspecialchars($sv['uuid']); ?>">
-                                <input type="number" name="renew_days" value="30" min="1" max="3650" class="!w-16 !px-2 !py-1 text-xs" title="Jours à ajouter">
-                                <button type="submit" class="bg-blue-500/15 hover:bg-blue-500/30 text-blue-400 border border-blue-500/20 px-2.5 py-1 rounded-lg text-xs font-semibold transition whitespace-nowrap">
-                                    <i class="fas fa-redo mr-1"></i>Ajouter
-                                </button>
-                            </form>
-                            <?php endif; ?>
-                            <form method="POST" action="/admin/?view=servers" class="flex items-center gap-1">
-                                <input type="hidden" name="action" value="<?php echo $status === 'suspended' ? 'unsuspend_server' : 'suspend_server'; ?>">
-                                <input type="hidden" name="server_uuid" value="<?php echo htmlspecialchars($sv['uuid']); ?>">
-                                <input type="hidden" name="server_id" value="<?php echo htmlspecialchars($sv['server_id']); ?>">
-                                <?php if ($status !== 'suspended'): ?>
-                                <input type="number" name="suspend_until_days" value="0" min="0" max="365" class="!w-16 !px-2 !py-1 text-xs" title="Durée indicative de suspension, 0 = indéfinie">
-                                <input type="number" name="delete_after_days" value="15" min="1" max="365" class="!w-16 !px-2 !py-1 text-xs" title="Jours avant suppression définitive">
-                                <?php endif; ?>
-                                <button type="submit" class="bg-orange-500/15 hover:bg-orange-500/30 text-orange-400 border border-orange-500/20 px-2.5 py-1 rounded-lg text-xs font-semibold transition whitespace-nowrap">
-                                    <i class="fas fa-<?php echo $status === 'suspended' ? 'play' : 'pause'; ?> mr-1"></i><?php echo $status === 'suspended' ? 'Réactiver' : 'Suspendre'; ?>
-                                </button>
-                            </form>
-                            <details class="relative">
-                                <summary class="list-none cursor-pointer bg-sky-500/15 hover:bg-sky-500/30 text-sky-400 border border-sky-500/20 px-2.5 py-1 rounded-lg text-xs font-semibold transition whitespace-nowrap">
-                                    <i class="fas fa-pen mr-1"></i>Modifier
-                                </summary>
-                                <form method="POST" action="/admin/?view=servers" class="absolute right-0 z-20 mt-2 w-72 rounded-xl border border-white/10 bg-[#161a22] p-3 shadow-2xl space-y-2">
-                                    <input type="hidden" name="action" value="update_server">
-                                    <input type="hidden" name="server_uuid" value="<?php echo htmlspecialchars($sv['uuid']); ?>">
-                                    <input type="hidden" name="server_id" value="<?php echo htmlspecialchars($sv['server_id']); ?>">
-                                    <label class="block text-[10px] font-bold uppercase tracking-wide text-gray-500">Nom du serveur</label>
-                                    <input type="text" name="service_name" value="<?php echo htmlspecialchars($sv['service_name'] ?? ''); ?>" class="!px-2 !py-1.5 text-xs">
-                                    <div class="grid grid-cols-2 gap-2">
-                                        <div>
-                                            <label class="block text-[10px] font-bold uppercase tracking-wide text-gray-500">Expiration</label>
-                                            <input type="date" name="new_expiry" value="<?php echo htmlspecialchars(!empty($sv['expires_at']) ? date('Y-m-d', strtotime($sv['expires_at'])) : ''); ?>" class="!px-2 !py-1.5 text-xs">
-                                        </div>
-                                        <div>
-                                            <label class="block text-[10px] font-bold uppercase tracking-wide text-gray-500">Prix/mois</label>
-                                            <input type="number" name="new_price" value="<?php echo htmlspecialchars((string)($sv['renewal_price'] ?? '')); ?>" min="0" step="0.01" class="!px-2 !py-1.5 text-xs">
-                                        </div>
-                                    </div>
-                                    <button type="submit" class="w-full bg-sky-600 hover:bg-sky-500 text-white px-3 py-2 rounded-lg text-xs font-bold transition">
-                                        Enregistrer
-                                    </button>
-                                </form>
-                            </details>
-                            <form method="POST" action="/admin/?view=servers" onsubmit="return confirmDel('Supprimer ce serveur définitivement ?')">
-                                <input type="hidden" name="action" value="delete_server">
-                                <input type="hidden" name="server_uuid" value="<?php echo htmlspecialchars($sv['uuid']); ?>">
-                                <input type="hidden" name="server_id" value="<?php echo htmlspecialchars($sv['server_id']); ?>">
-                                <button type="submit" class="bg-red-500/15 hover:bg-red-500/30 text-red-400 border border-red-500/20 px-2.5 py-1 rounded-lg text-xs font-semibold transition whitespace-nowrap">
-                                    <i class="fas fa-trash mr-1"></i>Suppr.
-                                </button>
-                            </form>
-                        </div>
+                    <td class="px-5 py-3.5 text-right">
+                        <span class="text-gray-600 hover:text-gray-400 text-xs">
+                            <i class="fas fa-chevron-right"></i>
+                        </span>
                     </td>
                 </tr>
                 <?php endforeach; ?>

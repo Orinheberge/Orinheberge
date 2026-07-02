@@ -10,6 +10,19 @@
 $active_nav = $active_nav ?? '';
 ?>
 <nav class="sticky top-0 z-50 glass p-5 border-b border-white/5">
+    <?php if (!empty($_SESSION['admin_impersonating'])): ?>
+    <div style="background:rgba(244,63,94,.15);border-bottom:1px solid rgba(244,63,94,.3);" class="px-5 py-2 flex items-center justify-between text-xs">
+        <span class="text-rose-400 font-semibold flex items-center gap-2">
+            <i class="fas fa-user-secret"></i>
+            Vous êtes connecté en tant que <strong class="text-white ml-1"><?php echo htmlspecialchars($_SESSION['username'] ?? ''); ?></strong>
+        </span>
+        <form method="POST" action="/admin/stop_impersonate.php">
+            <button type="submit" class="bg-rose-500/20 hover:bg-rose-500/40 border border-rose-500/40 text-rose-300 px-3 py-1 rounded-lg font-bold transition">
+                <i class="fas fa-arrow-left mr-1"></i> Retour admin
+            </button>
+        </form>
+    </div>
+    <?php endif; ?>
     <div class="max-w-7xl mx-auto flex items-center gap-4">
 
         <h1 class="text-3xl font-black gradient-text tracking-tight shrink-0">
