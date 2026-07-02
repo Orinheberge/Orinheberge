@@ -670,4 +670,4 @@ $paypalme_url = getPaypalMeLink($paypalme_username, $final_price);
 
      <?php require_once __DIR__ . '../../inc/footer.php'; ?>
 </body>
-</html>
+</html> 
