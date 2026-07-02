@@ -49,6 +49,8 @@ function getLocalizedDate($date_str, $lang) {
         return $day . ' ' . $month_translated . ' ' . $year;
     }
 }
+
+include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php';
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo $lang; ?>">
@@ -59,6 +61,47 @@ function getLocalizedDate($date_str, $lang) {
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+
+        :root{--sidebar:240px;}
+        *{box-sizing:border-box;}
+        body{background:#0d0f14;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;min-height:100vh;}
+        .sidebar{position:fixed;top:0;left:0;width:var(--sidebar);height:100vh;background:#111318;border-right:1px solid rgba(255,255,255,.06);display:flex;flex-direction:column;z-index:40;overflow-y:auto;}
+        .sidebar-logo{padding:1.5rem 1.25rem 1rem;border-bottom:1px solid rgba(255,255,255,.05);}
+        .sidebar-nav{padding:.75rem .75rem;flex:1;}
+        .nav-item{display:flex;align-items:center;gap:.75rem;padding:.625rem .875rem;border-radius:.625rem;font-size:.82rem;font-weight:500;color:#6b7280;transition:all .15s;text-decoration:none;margin-bottom:.15rem;border:1px solid transparent;}
+        .nav-item:hover{background:rgba(255,255,255,.04);color:#d1d5db;}
+        .nav-item.active{background:rgba(56,189,248,.08);color:#38bdf8;border-color:rgba(56,189,248,.15);}
+        .nav-item .icon{width:1.1rem;text-align:center;font-size:.85rem;flex-shrink:0;}
+        .nav-section{font-size:.65rem;font-weight:700;letter-spacing:.1em;color:#374151;text-transform:uppercase;padding:.75rem .875rem .35rem;}
+        .nav-separator{height:1px;background:rgba(255,255,255,.05);margin:.5rem .75rem;}
+        .sidebar-footer{padding:.875rem 1rem;border-top:1px solid rgba(255,255,255,.05);}
+        .main-content{margin-left:var(--sidebar);min-height:100vh;display:flex;flex-direction:column;}
+        .topbar{background:#111318;border-bottom:1px solid rgba(255,255,255,.06);padding:.875rem 1.75rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:30;}
+        .content{padding:1.75rem;flex:1;}
+        .card{background:#161a22;border:1px solid rgba(255,255,255,.07);border-radius:.875rem;}
+        .badge{display:inline-flex;align-items:center;gap:.3rem;padding:.2rem .65rem;border-radius:9999px;font-size:.72rem;font-weight:600;}
+        .badge-green{background:rgba(34,197,94,.1);color:#22c55e;border:1px solid rgba(34,197,94,.2);}
+        .badge-orange{background:rgba(249,115,22,.1);color:#f97316;border:1px solid rgba(249,115,22,.2);}
+        .badge-red{background:rgba(239,68,68,.1);color:#ef4444;border:1px solid rgba(239,68,68,.2);}
+        .badge-gray{background:rgba(107,114,128,.1);color:#9ca3af;border:1px solid rgba(107,114,128,.2);}
+        .badge-blue{background:rgba(56,189,248,.1);color:#38bdf8;border:1px solid rgba(56,189,248,.2);}
+        .ticket-row{display:flex;align-items:center;gap:1rem;padding:1rem 1.25rem;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer;transition:background .15s;text-decoration:none;}
+        .ticket-row:last-child{border-bottom:none;}
+        .ticket-row:hover{background:rgba(255,255,255,.02);}
+        .ticket-dot{width:.5rem;height:.5rem;border-radius:50%;flex-shrink:0;}
+        input,textarea,select{background:#1e2330;border:1px solid rgba(255,255,255,.08);color:#e2e8f0;border-radius:.625rem;padding:.6rem .875rem;font-size:.83rem;width:100%;outline:none;transition:border-color .15s;}
+        input:focus,textarea:focus,select:focus{border-color:rgba(56,189,248,.4);}
+        .filter-btn{padding:.35rem .875rem;border-radius:9999px;font-size:.75rem;font-weight:600;border:1px solid rgba(255,255,255,.07);color:#6b7280;cursor:pointer;transition:all .15s;text-decoration:none;white-space:nowrap;}
+        .filter-btn:hover{background:rgba(255,255,255,.05);color:#d1d5db;}
+        .filter-btn.active{background:rgba(56,189,248,.1);border-color:rgba(56,189,248,.3);color:#38bdf8;}
+        .mobile-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:39;}
+        @media(max-width:768px){
+            .sidebar{transform:translateX(-100%);transition:transform .25s;}
+            .sidebar.open{transform:translateX(0);}
+            .mobile-overlay.open{display:block;}
+            .main-content{margin-left:0;}
+            .topbar,.content{padding:.875rem 1rem;}
+        }
         body {
             background-color: #0b0f19;
             font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;

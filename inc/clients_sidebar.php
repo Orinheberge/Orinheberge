@@ -61,9 +61,6 @@
                                 <i class="fas fa-shield-halved text-sky-400 w-4"></i> Administration
                             </a>
                              <?php endif; ?>
-        <a href="<?php echo htmlspecialchars($phpmyadmin_url); ?>" target="_blank" class="nav-item">
-            <i class="fas fa-database icon"></i> phpMyAdmin
-        </a>
         <a href="/profil/" class="flex items-center gap-2.5 group mb-2">
             <?php if (!empty($_SESSION['avatar']) && file_exists($_SERVER['DOCUMENT_ROOT'].'/'.$_SESSION['avatar'])): ?>
                 <img src="/<?php echo htmlspecialchars($_SESSION['avatar']); ?>" class="w-8 h-8 rounded-full object-cover border border-white/10">

@@ -220,7 +220,7 @@ $status_label = match($inv['status']) {
             <div class="party-name">OrinHeberge</div>
             <div class="party-detail">Infrastructure OrinStone</div>
             <div class="party-detail">heberge.orinstone.deepstone.fr</div>
-            <div class="party-mono">contact@orinstone.fr</div>
+            <div class="party-mono">deepstone@deepstone.fr</div>
         </div>
         <div class="party-box">
             <div class="party-label">Facturé à</div>
