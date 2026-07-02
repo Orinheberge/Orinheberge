@@ -110,9 +110,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         // Recharger la config
         foreach ($pdo->query('SELECT `key`, `value` FROM settings') as $row) $cfg[$row['key']] = $row['value'];
-        $panel_url     = $cfg['panel_url']     ?? $panel_url;
-        $api_key_admin = $cfg['api_key_admin'] ?? $api_key_admin;
-        $headers_admin = ["Authorization: Bearer $api_key_admin","Accept: application/vnd.pterodactyl.v1+json","Content-Type: application/json"];
+        $panel_url      = $cfg['panel_url']      ?? $panel_url;
+        $api_key_admin  = $cfg['api_key_admin']  ?? $api_key_admin;
+        $api_key_client = $cfg['api_key_client'] ?? $api_key_client;
+        $headers_admin  = ["Authorization: Bearer $api_key_admin","Accept: application/vnd.pterodactyl.v1+json","Content-Type: application/json"];
+        $headers_client = ["Authorization: Bearer $api_key_client","Accept: application/vnd.pterodactyl.v1+json","Content-Type: application/json"];
         $flash = "<div class='bg-green-500/20 text-green-400 border border-green-500/30 p-4 rounded-xl text-sm'>✅ Paramètres sauvegardés.</div>";
         header('Location: /admin/?view=settings'); exit();
     }
