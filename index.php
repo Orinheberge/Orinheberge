@@ -276,6 +276,19 @@ function filterCategory(catId) {
 }
 window.addEventListener('DOMContentLoaded', () => filterCategory('all'));
 </script>
+<header class="text-center py-16 px-6 relative overflow-hidden">
+        <h1 class="text-5xl md:text-7xl font-black tracking-tight leading-none gradient-text"><?php echo t('offers.title'); ?></h1>
+        
+        <div class="max-w-4xl mx-auto flex flex-wrap justify-center gap-3 px-4 mt-10">
+            <button onclick="filterCategory('all')" id="tab-all" class="tab-btn active"><?php echo t('offers.tab.all'); ?></button>
+            <?php foreach ($dynamic_categories as $slug => $cat_info): ?>
+                <button onclick="filterCategory('<?= htmlspecialchars($slug) ?>')" id="tab-<?= htmlspecialchars($slug) ?>" class="tab-btn">
+                    <?php echo t($cat_info['name_key']); ?>
+                </button>
+            <?php endforeach; ?>
+        </div>
+    </header>
+
     <section id="cat-view" class="py-20 px-6">
         <div class="text-center mb-12">
             <h2 class="text-4xl md:text-5xl font-black uppercase tracking-wider mb-3 gradient-text" id="cat-view-title"></h2>
