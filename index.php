@@ -256,8 +256,8 @@ function getCardStyle($tier_key) {
         </div>
     </section>
 
-    <section id="offres" class="py-20 px-6 max-w-7xl mx-auto scroll-mt-10">
- <header class="text-center py-16 px-6 relative overflow-hidden">
+
+         <header class="text-center py-16 px-6 relative overflow-hidden">
         <h1 class="text-5xl md:text-7xl font-black tracking-tight leading-none gradient-text"><?php echo t('offers.title'); ?></h1>
         
         <div class="max-w-4xl mx-auto flex flex-wrap justify-center gap-3 px-4 mt-10">
@@ -269,7 +269,6 @@ function getCardStyle($tier_key) {
             <?php endforeach; ?>
         </div>
     </header>
-
     <section id="cat-view" class="py-20 px-6">
         <div class="text-center mb-12">
             <h2 class="text-4xl md:text-5xl font-black uppercase tracking-wider mb-3 gradient-text" id="cat-view-title"></h2>
@@ -359,7 +358,7 @@ function getCardStyle($tier_key) {
     </div>
 
        
-    </section>
+ 
 
     <section class="py-16 px-6 bg-white/[0.01] border-y border-white/[0.03]">
         <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
