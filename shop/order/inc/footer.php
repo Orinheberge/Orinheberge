@@ -34,19 +34,22 @@
                 </div>
             </div>
 
-            <div class="flex flex-col justify-end gap-3 items-start md:items-end">
-                <span class="text-xs text-gray-400 font-semibold tracking-wider uppercase"><?php echo t('footer.payments'); ?></span>
-                <div class="flex items-center gap-3 bg-white/[0.02] border border-white/5 p-3 rounded-xl">
-                    <img src="https://azurhosts.com/assets/images/logos/psrl/card-icons/card_cb.svg"         alt="CB"         class="h-8 object-contain" />
-                    <img src="https://azurhosts.com/assets/images/logos/psrl/card-icons/card_visa.svg"       alt="Visa"       class="h-8 object-contain" />
-                    <img src="https://azurhosts.com/assets/images/logos/psrl/card-icons/card_mastercard.svg" alt="Mastercard" class="h-8 object-contain" />
-                    <img src="https://azurhosts.com/assets/images/logos/psrl/card-icons/card_paypal.svg"     alt="PayPal"     class="h-8 object-contain" />
-                    <img src="https://heberge.orinstone.deepstone.fr/img/moyen_pay/google_pay.png"       alt="Google Pay"       class="h-8 object-contain" />
-                    <img src="https://heberge.orinstone.deepstone.fr/img/moyen_pay/revolut_pay.png" alt="Revolut Pay" class="h-8 object-contain" />
-                    <img src="https://heberge.orinstone.deepstone.fr/img/moyen_pay/apple_pay.png"     alt="Apple Pay"     class="h-8 object-contain" />
-                </div>
-            </div>
-        </div>
+        <div class="flex flex-col justify-end gap-3 items-start md:items-end">
+    <span class="text-xs text-gray-400 font-semibold tracking-wider uppercase">
+        <?php echo t('footer.payments'); ?>
+    </span>
+    
+    <div class="flex flex-wrap items-center gap-3 bg-white/[0.02] border border-white/5 p-3 rounded-xl">
+        <img src="https://azurhosts.com/assets/images/logos/psrl/card-icons/card_cb.svg" alt="CB" class="h-8 object-contain" />
+        <img src="https://azurhosts.com/assets/images/logos/psrl/card-icons/card_visa.svg" alt="Visa" class="h-8 object-contain" />
+        <img src="https://azurhosts.com/assets/images/logos/psrl/card-icons/card_mastercard.svg" alt="Mastercard" class="h-8 object-contain" />
+        <img src="https://azurhosts.com/assets/images/logos/psrl/card-icons/card_paypal.svg" alt="PayPal" class="h-8 object-contain" />
+        
+        <img src="https://heberge.orinstone.deepstone.fr/img/moyen_pay/google_pay.png" alt="Google Pay" class="h-8 object-contain" />
+        <img src="https://heberge.orinstone.deepstone.fr/img/moyen_pay/revolut_pay.png" alt="Revolut Pay" class="h-8 object-contain" />
+        <img src="https://heberge.orinstone.deepstone.fr/img/moyen_pay/apple_pay.png" alt="Apple Pay" class="h-8 object-contain" />
+    </div>
+</div>
 
         <hr class="border-white/10 mb-8">
 

@@ -3,10 +3,8 @@ session_start();
 require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/lang.php';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/db.php';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/shop/order/lib/promo/promo.php';
-// $headers_admin et $panel_url sont utilisés plus bas (processFreeOrder) :
-// vérifie qu'ils sont bien définis par un de ces includes (ex: config panel).
-// Si ce n'est pas le cas, décommente et adapte la ligne suivante :
-// require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/panel.php';
+// Le panier ne crée plus aucun serveur lui-même : gratuit et payant sont
+// tous les deux entièrement gérés par /shop/order/ (voir checkout ci-dessous).
 
 $active_nav = 'cart';
 $page_title = 'Panier';
@@ -93,50 +91,6 @@ function syncCartWithStorage(PDO $pdo, array $cart): void {
     }
 }
 
-function processFreeOrder(PDO $pdo, array $user, array $product, array $headers_admin, string $panel_url): array {
-    $panelUser = getOrCreatePanelUser($panel_url, $headers_admin, $user, $pdo);
-    $pass = $panelUser['pass'];
-    if ($pass) {
-        $_SESSION['panel_password'] = $pass;
-    }
-
-    $srv = createPanelServer($panel_url, $headers_admin, $product, $panelUser['id']);
-    $order_id = strtoupper(substr(md5(uniqid('', true)), 0, 8));
-
-    $pdo->prepare('
-        INSERT INTO orders
-          (user_id, product_id, order_id, service_name, ram, disk, cpu,
-           server_id, uuid, id_server_panel, status, renewal_price, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, \'pending\', 0, NOW())
-    ')->execute([
-        $_SESSION['user_id'],
-        $product['id'],
-        $order_id,
-        $product['name'],
-        $product['ram'],
-        $product['disk'],
-        $product['cpu'],
-        $srv['id'],
-        $srv['uuid'],
-        $srv['identifier'],
-    ]);
-
-    require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/smtp.php';
-    $username_display = !empty($user['pseudo']) ? $user['pseudo'] : $user['firstname'];
-    send_order_confirmation_email(
-        $pdo, $user['email'], $username_display,
-        $order_id, $product['name'], 0.0,
-        $srv['identifier'], $pass ?? null, $panel_url
-    );
-
-    return [
-        'order_id' => $order_id,
-        'server_id' => $srv['id'],
-        'offer_name' => $product['name'],
-        'panel_password' => $pass ?? ($user['panel_password'] ?? null),
-    ];
-}
-
 if (!isset($_SESSION['cart']) || !is_array($_SESSION['cart'])) {
     $_SESSION['cart'] = [];
 }
@@ -219,11 +173,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 exit();
             }
 
-            $free_items = [];
-            $paid_items = [];
-            $paid_total = 0.0;
+            // Tout (gratuit + payant) est désormais géré par /shop/order/ :
+            // il crée immédiatement les serveurs des offres gratuites du bundle,
+            // et démarre le paiement Stripe pour le reste. On ne fait plus
+            // aucun traitement ici, on transmet juste tout le panier.
+            $bundle_items = [];
+            $bundle_slugs = [];
             foreach ($_SESSION['cart'] as $slug => $item) {
-                if ((int)($item['quantity'] ?? 0) <= 0) {
+                $quantity = (int)($item['quantity'] ?? 0);
+                if ($quantity <= 0) {
                     continue;
                 }
 
@@ -232,61 +190,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     continue;
                 }
 
-                $product_type = strtolower((string)($product['type'] ?? ''));
-                $product_price = (float)($product['price'] ?? 0);
-                $is_free = $product_type === 'free' || $product_price <= 0;
-
-                if ($is_free) {
-                    $free_items[] = ['product' => $product, 'quantity' => (int)($item['quantity'] ?? 0)];
-                } else {
-                    $quantity = (int)($item['quantity'] ?? 0);
-                    $paid_items[] = ['slug' => $slug, 'product' => $product, 'quantity' => $quantity];
-                    $paid_total += $product_price * $quantity;
-                }
+                $bundle_items[] = ['slug' => $slug, 'product' => $product, 'quantity' => $quantity];
+                $bundle_slugs[] = $slug;
             }
 
-            if (!empty($free_items)) {
-                if (!isset($headers_admin, $panel_url)) {
-                    throw new RuntimeException('Configuration panel manquante ($headers_admin / $panel_url).');
-                }
-                foreach ($free_items as $entry) {
-                    for ($i = 0; $i < $entry['quantity']; $i++) {
-                        $result = processFreeOrder($pdo, $user, $entry['product'], $headers_admin, $panel_url);
-                        $_SESSION['success_order_id'] = $result['order_id'];
-                        $_SESSION['success_email'] = $user['email'];
-                        $_SESSION['success_server_id'] = $result['server_id'];
-                        $_SESSION['success_offer'] = $result['offer_name'];
-                        $_SESSION['success_panel_password'] = $result['panel_password'];
-                    }
-                }
-            }
-
-            if (!empty($paid_items)) {
-                $bundle_slugs = [];
-                foreach ($paid_items as $entry) {
-                    $bundle_slugs[] = $entry['slug'];
-                }
-
-                $_SESSION['checkout_bundle'] = [
-                    'items' => $paid_items,
-                    'total' => round($paid_total, 2),
-                    'label' => count($paid_items) > 1 ? 'Offres combinées' : ($paid_items[0]['product']['name'] ?? 'Offre')
-                ];
-                $_SESSION['cart'] = [];
-                syncCartWithStorage($pdo, $_SESSION['cart']);
-                // implode() : le tableau doit être le 2e argument (ordre historique déprécié corrigé)
-                header('Location: /shop/order/?plan=' . urlencode(implode(',', $bundle_slugs)));
+            if (empty($bundle_items)) {
+                header('Location: /shop/cart/');
                 exit();
             }
 
-            if (!empty($free_items)) {
-                $_SESSION['cart'] = [];
-                syncCartWithStorage($pdo, $_SESSION['cart']);
-                header('Location: /shop/success/?type=free');
-                exit();
-            }
-
-            header('Location: /shop/cart/');
+            $_SESSION['checkout_bundle'] = [
+                'items' => $bundle_items,
+            ];
+            $_SESSION['cart'] = [];
+            syncCartWithStorage($pdo, $_SESSION['cart']);
+            header('Location: /shop/order/?plan=' . urlencode(implode(',', $bundle_slugs)));
             exit();
         } catch (Throwable $e) {
             error_log('Cart checkout error: ' . $e->getMessage());
