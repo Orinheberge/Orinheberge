@@ -235,22 +235,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $ep = $action === 'suspend_server' ? "servers/$server_id/suspend" : "servers/$server_id/unsuspend";
             adminApiCall($panel_url, $headers_admin, $ep, 'POST', []);
             if ($action === 'suspend_server' && $uuid) {
-                $delete_days = max(1, min(365, (int)($_POST['delete_after_days'] ?? 15)));
+                $delete_days  = max(1, min(365, (int)($_POST['delete_after_days'] ?? 15)));
                 $suspend_days = max(0, min(365, (int)($_POST['suspend_until_days'] ?? 0)));
                 $suspend_until = $suspend_days > 0 ? date('Y-m-d H:i:s', strtotime("+{$suspend_days} days")) : null;
+                $delete_after  = date('Y-m-d', strtotime("+{$delete_days} days"));
+
+                // Récupérer les infos du serveur + email client
+                $srv_stmt = $pdo->prepare('SELECT o.*, u.email AS user_email FROM orders o LEFT JOIN users u ON u.id=o.user_id WHERE o.uuid=? LIMIT 1');
+                $srv_stmt->execute([$uuid]);
+                $server = $srv_stmt->fetch();
+
+                // Demander un backup avant suppression
+                $backup_uuid = null;
+                if ($server) {
+                    $backup_uuid = requestServerBackup($panel_url, $headers_client, $server);
+                }
+
                 $pdo->prepare("
                     UPDATE orders
                     SET status='suspended',
                         suspended_at=NOW(),
                         suspension_until=?,
-                        delete_after=DATE_ADD(NOW(), INTERVAL $delete_days DAY)
+                        delete_after=DATE_ADD(NOW(), INTERVAL $delete_days DAY),
+                        backup_requested_at=NOW(),
+                        backup_uuid=?
                     WHERE uuid=?
-                ")->execute([$suspend_until, $uuid]);
-                $until_text = $suspend_until ? " Suspension indiquee jusqu'au <strong>" . htmlspecialchars($suspend_until) . "</strong>." : '';
-                $flash = adminFlash('ok', "Serveur suspendu.{$until_text} Suppression automatique prevue dans <strong>{$delete_days} jour(s)</strong> si rien n'est fait.");
+                ")->execute([$suspend_until, $backup_uuid, $uuid]);
+
+                // Envoyer l'email client avec infos backup + date de suppression
+                if ($server && !empty($server['user_email'])) {
+                    sendServerSuspendedEmail($server, $delete_after, $backup_uuid);
+                }
+
+                $until_text = $suspend_until ? " Suspension jusqu'au <strong>" . htmlspecialchars($suspend_until) . "</strong>." : '';
+                $flash = adminFlash('ok', "Serveur suspendu.{$until_text} Suppression dans <strong>{$delete_days} jour(s)</strong>. Backup demandé et email envoyé.");
             } elseif ($uuid) {
                 $pdo->prepare("UPDATE orders SET status='paid', suspended_at=NULL, suspension_until=NULL, delete_after=NULL WHERE uuid=?")->execute([$uuid]);
-                $flash = adminFlash('ok', 'Serveur reactive et cycle de suppression annule.');
+                $flash = adminFlash('ok', 'Serveur réactivé et cycle de suppression annulé.');
             }
         }
     }
