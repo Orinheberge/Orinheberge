@@ -176,7 +176,8 @@ function getCardStyle($tier_key) {
         .tab-btn:hover{background:rgba(255,255,255,.06);color:#d1d5db;}
         .tab-btn.active{background:rgba(56,189,248,.1);border-color:rgba(56,189,248,.3);color:#38bdf8;}
         #mobileMenu{display:none;}#mobileMenu.active{display:block;}
-        
+        #cat-view { display: none; }
+        #cat-view .cat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; }
         .hero-glow {position:absolute;border-radius:50%;filter:blur(140px);pointer-events:none;animation:pulse-orb 8s ease-in-out infinite;z-index: 1;}
         @keyframes pulse-orb{0%,100%{opacity:.4;transform:translate(-50%, -50%) scale(1);}50%{opacity:.7;transform:translate(-50%, -50%) scale(1.1);}}
         
@@ -268,6 +269,14 @@ function getCardStyle($tier_key) {
             <?php endforeach; ?>
         </div>
     </header>
+    <section id="cat-view" class="py-20 px-6">
+        <div class="text-center mb-12">
+            <h2 class="text-4xl md:text-5xl font-black uppercase tracking-wider mb-3 gradient-text" id="cat-view-title"></h2>
+            <div class="h-1 w-20 bg-sky-500 mx-auto rounded-full"></div>
+        </div>
+        <div class="max-w-7xl mx-auto cat-grid" id="cat-view-grid"></div>
+    </section>
+
     <div id="all-sections">
     <?php foreach ($sections as $tier_key => $tier_data): ?>
         <?php if (empty($tier_data['offers'])) continue; ?>
