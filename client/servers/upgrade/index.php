@@ -35,23 +35,33 @@ $srv_stmt->execute([$uuid, $_SESSION['user_id']]);
 $server = $srv_stmt->fetch();
 if(!$server){ header('Location: /client/servers/'); exit(); }
 
-// Catégorie du serveur (on déduit depuis le nom ou le slug du produit)
-$name_lower = strtolower($server['service_name'] ?? '');
+// Catégorie du serveur : on la récupère depuis categories_products via le product_id de la commande
 $cat = 'unknown';
-foreach(['minecraft','fivem','hytale','php','python','nodejs','java'] as $c){
-    if(str_contains($name_lower,$c) || str_contains($server['product_slug']??'',$c)){ $cat=$c; break; }
+if (!empty($server['pid'])) {
+    $cat_stmt = $pdo->prepare('SELECT category_slug FROM categories_products WHERE product_id=? AND is_active=1 LIMIT 1');
+    $cat_stmt->execute([$server['pid']]);
+    $cat_row = $cat_stmt->fetch();
+    if ($cat_row) $cat = $cat_row['category_slug'];
+}
+// Fallback : déduction depuis le slug/nom si product_id non trouvé
+if ($cat === 'unknown') {
+    $name_lower = strtolower($server['service_name'] ?? '');
+    foreach (['minecraft','fivem','hytale','php','python','nodejs','java'] as $c) {
+        if (str_contains($name_lower, $c) || str_contains($server['product_slug'] ?? '', $c)) { $cat = $c; break; }
+    }
 }
 
-// Produits disponibles pour cette catégorie, plus chers que l'actuel
-$prod_stmt = $pdo->query("
-    SELECT p.*,cp.category_slug
+// Produits disponibles pour cette catégorie
+$prod_stmt = $pdo->prepare("
+    SELECT p.*, cp.category_slug
     FROM categories_products cp
-    JOIN products p ON p.id=cp.product_id
-    WHERE cp.category_slug=".  $pdo->quote($cat)  ."
-      AND p.is_active=1
-      AND p.type='paid'
+    JOIN products p ON p.id = cp.product_id
+    WHERE cp.category_slug = ?
+      AND p.is_active = 1
+      AND p.type = 'paid'
     ORDER BY p.price ASC
 ");
+$prod_stmt->execute([$cat]);
 $available_upgrades = $prod_stmt->fetchAll();
 $current_price = (float)($server['renewal_price'] ?? 0);
 
