@@ -5,7 +5,7 @@
  * Nécessite que $is_logged_in soit défini.
  *
  * Variables optionnelles :
- * $active_nav  — 'home'|'servers'|'offers'|'support' pour surligner le lien actif
+ *   $active_nav  — 'home'|'servers'|'offers'|'support' pour surligner le lien actif
  */
 $active_nav = $active_nav ?? '';
 ?>
@@ -24,20 +24,21 @@ $active_nav = $active_nav ?? '';
             <a href="/client/servers/" class="<?php echo $active_nav === 'servers' ? 'bg-slate-600/40 text-slate-300 border-slate-500/60 font-bold' : 'bg-slate-600/10 text-slate-400 hover:text-slate-200 border-slate-500/15 hover:bg-slate-600/30'; ?> px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium shadow-md border whitespace-nowrap">
                 <i class="fas fa-server"></i> <?php echo t('nav.servers'); ?>
             </a>
+ <div class="relative group">
+                    <button class="text-gray-300 hover:text-sky-400 font-bold flex items-center gap-2.5 transition bg-white/5 hover:bg-white/10 px-4 py-2 rounded-full border border-white/5 focus:outline-none text-xs whitespace-nowrap">
+                        <i class="fas fa-tags"></i> Boutique
+                    </button>
 
-            <div class="relative group">
-                <button class="text-gray-300 hover:text-sky-400 font-bold flex items-center gap-2.5 transition bg-white/5 hover:bg-white/10 px-4 py-2 rounded-full border border-white/5 focus:outline-none text-xs whitespace-nowrap">
-                    <i class="fas fa-tags"></i> Boutique
-                </button>
-                <div class="absolute right-0 mt-2 w-56 rounded-2xl border border-white/10 bg-[#11151d] shadow-2xl shadow-black/30 py-2 hidden group-hover:block group-focus-within:block">
-                    <a href="/shop/" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white">
-                        <i class="fas fa-tags w-4"></i> <?php echo t('nav.offers'); ?>
-                    </a>
-                    <a href="/shop/cart/" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white">
-                        <i class="fas fa-shopping-cart w-4"></i> Mon panier
-                    </a>
+                    <div class="absolute right-0 mt-2 w-56 rounded-2xl border border-white/10 bg-[#11151d] shadow-2xl shadow-black/30 py-2 hidden group-hover:block group-focus-within:block">
+                            <a href="/shop/" class="<?php echo $active_nav === 'offers' ? 'bg-amber-600/30 text-amber-400 border-amber-500/50 font-bold' : 'bg-amber-600/5 text-amber-400/70 hover:text-amber-300 border-amber-500/10 hover:bg-amber-600/20'; ?> px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium shadow-md border whitespace-nowrap">
+                <i class="fas fa-tags"></i> <?php echo t('nav.offers'); ?>
+            </a>
+                        <a href="/shop/cart/" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white">
+                            <i class="fas fa-shopping-cart w-4"></i> Mon panier
+                        </a>
+                    </div>
                 </div>
-            </div>
+            
 
             <a href="/support/" class="<?php echo $active_nav === 'support' ? 'bg-purple-600/30 text-purple-400 border-purple-500/50 font-bold' : 'bg-purple-600/5 text-purple-400/70 hover:text-purple-300 border-purple-500/10 hover:bg-purple-600/20'; ?> px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium shadow-md border whitespace-nowrap">
                 <i class="fas fa-headset"></i> <?php echo t('nav.support'); ?>
@@ -65,6 +66,10 @@ $active_nav = $active_nav ?? '';
                         </a>
                         <a href="/client/servers/" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white">
                             <i class="fas fa-server w-4"></i> Mes serveurs
+                        </a>
+
+                        <a href="/shop/cart/" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white">
+                            <i class="fas fa-shopping-cart w-4"></i> Mon panier
                         </a>
                         
                         <?php if (!empty($_SESSION['is_admin'])): ?>
@@ -109,9 +114,6 @@ $active_nav = $active_nav ?? '';
         <a href="/shop/" class="block py-2 px-4 rounded-xl flex items-center gap-2 text-sm font-medium border <?php echo $active_nav === 'offers' ? 'bg-amber-600/20 border-amber-500/40 text-amber-400' : 'bg-white/[0.02] border-white/5 text-gray-300'; ?>">
             <i class="fas fa-tags w-5 text-center"></i> <?php echo t('nav.offers'); ?>
         </a>
-        <a href="/shop/cart/" class="block py-2 px-4 rounded-xl flex items-center gap-2 text-sm font-medium border bg-white/[0.02] border-white/5 text-gray-300">
-            <i class="fas fa-shopping-cart w-5 text-center"></i> Mon panier
-        </a>
         <a href="/support/" class="block py-2 px-4 rounded-xl flex items-center gap-2 text-sm font-medium border <?php echo $active_nav === 'support' ? 'bg-purple-600/20 border-purple-500/40 text-purple-400' : 'bg-white/[0.02] border-white/5 text-gray-300'; ?>">
             <i class="fas fa-headset w-5 text-center"></i> <?php echo t('nav.support'); ?>
         </a>
@@ -119,27 +121,24 @@ $active_nav = $active_nav ?? '';
             <i class="fas fa-signal w-5 text-center"></i> <?php echo t('status.nav'); ?>
         </a>
 
+
         <hr class="border-white/10">
 
         <?php if (isset($_SESSION['user_id'])): ?>
-            <a href="/profil/" class="block py-2 px-4 rounded-xl flex items-center gap-2 text-sm font-medium bg-white/[0.02] border border-white/5 text-gray-300">
-                <i class="fas fa-user w-5 text-center"></i> Profil
+            <a href="/profil/" class="bg-white/5 text-gray-200 block py-2 px-4 rounded-xl flex items-center gap-2.5 text-sm font-bold border border-white/5">
+                <?php if (!empty($_SESSION['avatar']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/' . $_SESSION['avatar'])): ?>
+                    <img src="/<?php echo htmlspecialchars($_SESSION['avatar']); ?>" alt="Avatar" class="w-5 h-5 rounded-full object-cover border border-sky-500/30 shrink-0">
+                <?php else: ?>
+                    <i class="fas fa-user-circle text-lg text-sky-400 shrink-0"></i>
+                <?php endif; ?>
+                <span><?php echo htmlspecialchars($_SESSION['username'] ?? t('nav.profile')); ?></span>
             </a>
-            <?php if (!empty($_SESSION['is_admin'])): ?>
-                <a href="/admin/" class="block py-2 px-4 rounded-xl flex items-center gap-2 text-sm font-medium bg-amber-600/10 border border-amber-500/30 text-amber-400">
-                    <i class="fas fa-shield-halved w-5 text-center"></i> Administration
-                </a>
-            <?php endif; ?>
-            <a href="/logout/" class="block py-2 px-4 rounded-xl flex items-center gap-2 text-sm font-medium bg-red-600/10 border border-red-500/30 text-red-400">
-                <i class="fas fa-sign-out-alt w-5 text-center"></i> Déconnexion
+            <a href="/logout/" class="bg-red-600/10 border border-red-500/20 text-red-400 block py-2 px-4 rounded-xl flex items-center gap-2 text-sm font-medium">
+                <i class="fas fa-sign-out-alt w-5 text-center"></i> <?php echo t('nav.logout'); ?>
             </a>
         <?php else: ?>
-            <a href="/login/" class="bg-white/5 border border-white/5 text-gray-300 block py-2 px-4 rounded-xl flex items-center gap-2 text-sm font-medium">
-                <i class="fas fa-sign-in-alt w-5 text-center"></i> <?php echo t('nav.login'); ?>
-            </a>
-            <a href="/register/" class="bg-white/5 border border-white/5 text-gray-300 block py-2 px-4 rounded-xl flex items-center gap-2 text-sm font-medium">
-                <i class="fas fa-user-plus w-5 text-center"></i> <?php echo t('nav.register'); ?>
-            </a>
+            <a href="/login/" class="bg-white/5 border border-white/5 text-gray-300 block py-2 px-4 rounded-xl flex items-center gap-2 text-sm font-medium"><i class="fas fa-sign-in-alt w-5 text-center"></i> <?php echo t('nav.login'); ?></a>
+            <a href="/register/" class="bg-white/5 border border-white/5 text-gray-300 block py-2 px-4 rounded-xl flex items-center gap-2 text-sm font-medium"><i class="fas fa-user-plus w-5 text-center"></i> <?php echo t('nav.register'); ?></a>
         <?php endif; ?>
 
         <hr class="border-white/10">
@@ -149,3 +148,4 @@ $active_nav = $active_nav ?? '';
         </div>
     </div>
 </nav>
+

@@ -41,9 +41,9 @@
                     <img src="https://azurhosts.com/assets/images/logos/psrl/card-icons/card_visa.svg"       alt="Visa"       class="h-8 object-contain" />
                     <img src="https://azurhosts.com/assets/images/logos/psrl/card-icons/card_mastercard.svg" alt="Mastercard" class="h-8 object-contain" />
                     <img src="https://azurhosts.com/assets/images/logos/psrl/card-icons/card_paypal.svg"     alt="PayPal"     class="h-8 object-contain" />
-                    <img src="/img/moyenpay/google_pay.png"       alt="Google Pay"       class="h-8 object-contain" />
-                    <img src="/img/moyenpay/revolut_pay.png" alt="Revolut Pay" class="h-8 object-contain" />
-                    <img src="/img/moyenpay/apple_pay.png"     alt="Apple Pay"     class="h-8 object-contain" />
+                    <img src="https://heberge.orinstone.deepstone.fr/img/moyen_pay/google_pay.png"       alt="Google Pay"       class="h-8 object-contain" />
+                    <img src="https://heberge.orinstone.deepstone.fr/img/moyen_pay/revolut_pay.png" alt="Revolut Pay" class="h-8 object-contain" />
+                    <img src="https://heberge.orinstone.deepstone.fr/img/moyen_pay/apple_pay.png"     alt="Apple Pay"     class="h-8 object-contain" />
                 </div>
             </div>
         </div>
