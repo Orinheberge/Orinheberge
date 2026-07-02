@@ -485,7 +485,7 @@ try {
 }
 $paypalme_url = getPaypalMeLink($paypalme_username, $final_price);
 
-include $_SERVER['DOCUMENT_ROOT'] . '/inc/navbar.php';
+
 ?>
 <!DOCTYPE html>
 <html lang="fr">
