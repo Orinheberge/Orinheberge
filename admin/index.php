@@ -31,8 +31,10 @@ $_SESSION['avatar']   = $admin['avatar'];
 $cfg = [];
 foreach ($pdo->query('SELECT `key`, `value` FROM settings') as $row) $cfg[$row['key']] = $row['value'];
 $panel_url     = $cfg['panel_url']     ?? 'https://panel.orinstone.deepstone.fr';
-$api_key_admin = $cfg['api_key_admin'] ?? '';
-$headers_admin = ["Authorization: Bearer $api_key_admin","Accept: application/vnd.pterodactyl.v1+json","Content-Type: application/json"];
+$api_key_admin  = $cfg['api_key_admin']  ?? '';
+$api_key_client = $cfg['api_key_client'] ?? '';
+$headers_admin  = ["Authorization: Bearer $api_key_admin","Accept: application/vnd.pterodactyl.v1+json","Content-Type: application/json"];
+$headers_client = ["Authorization: Bearer $api_key_client","Accept: application/vnd.pterodactyl.v1+json","Content-Type: application/json"];
 
 function adminApiCall($url, $headers, $endpoint, $method = 'GET', $data = null) {
     $ch = curl_init($url . '/api/application/' . $endpoint);
