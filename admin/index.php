@@ -420,6 +420,94 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'toggl
     }
 }
 
+// ─── Se connecter en tant que client (impersonate) ───────────────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'impersonate_user') {
+    $uid = (int)($_POST['user_id'] ?? 0);
+    if ($uid && $uid !== (int)$_SESSION['user_id']) {
+        $u = $pdo->prepare('SELECT id, pseudo, firstname, lastname, email, avatar, is_admin FROM users WHERE id=? LIMIT 1');
+        $u->execute([$uid]);
+        $target = $u->fetch();
+        if ($target) {
+            // Sauvegarder l'admin actuel pour pouvoir revenir
+            $_SESSION['admin_impersonating'] = $_SESSION['user_id'];
+            $_SESSION['admin_pseudo']        = $_SESSION['username'];
+            // Connecter en tant que client
+            $_SESSION['user_id']  = $target['id'];
+            $_SESSION['username'] = $target['pseudo'] ?: $target['firstname'];
+            $_SESSION['avatar']   = $target['avatar'];
+            header('Location: /client/'); exit();
+        }
+    }
+    header('Location: /admin/?view=clients'); exit();
+}
+
+// ─── Changer email client ────────────────────────────────────────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'change_user_email') {
+    $uid      = (int)($_POST['user_id'] ?? 0);
+    $new_email = trim($_POST['new_email'] ?? '');
+    if ($uid && $new_email && filter_var($new_email, FILTER_VALIDATE_EMAIL)) {
+        // Vérifier que l'email n'est pas déjà pris
+        $check = $pdo->prepare('SELECT id FROM users WHERE email=? AND id!=?');
+        $check->execute([$new_email, $uid]);
+        if ($check->fetch()) {
+            $flash = adminFlash('err', 'Cet email est déjà utilisé par un autre compte.');
+        } else {
+            $pdo->prepare('UPDATE users SET email=? WHERE id=?')->execute([$new_email, $uid]);
+            $flash = adminFlash('ok', 'Email mis à jour : <strong>' . htmlspecialchars($new_email) . '</strong>');
+        }
+    } else {
+        $flash = adminFlash('err', 'Email invalide.');
+    }
+    header('Location: /admin/?view=clients'); exit();
+}
+
+// ─── Changer mot de passe client ────────────────────────────────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'change_user_password') {
+    $uid      = (int)($_POST['user_id'] ?? 0);
+    $new_pass = $_POST['new_password'] ?? '';
+    if ($uid && strlen($new_pass) >= 6) {
+        $hash = password_hash($new_pass, PASSWORD_DEFAULT);
+        $pdo->prepare('UPDATE users SET password=? WHERE id=?')->execute([$hash, $uid]);
+        // Mettre à jour aussi le panel Pterodactyl si possible
+        if ($panel_url && $api_key_admin) {
+            $u_row = $pdo->prepare('SELECT email, pseudo, firstname, lastname FROM users WHERE id=? LIMIT 1');
+            $u_row->execute([$uid]);
+            $u_data = $u_row->fetch();
+            if ($u_data) {
+                $search = pterodactylApi($panel_url, $headers_admin, 'users?filter[email]=' . urlencode($u_data['email']));
+                $panel_uid = $search['data'][0]['attributes']['id'] ?? null;
+                if ($panel_uid) {
+                    pterodactylApi($panel_url, $headers_admin, 'users/' . $panel_uid, [
+                        'email'      => $u_data['email'],
+                        'username'   => $u_data['pseudo'] ?? ('user' . $uid),
+                        'first_name' => $u_data['firstname'] ?? 'User',
+                        'last_name'  => $u_data['lastname']  ?? 'Account',
+                        'password'   => $new_pass,
+                    ], 'PATCH');
+                    $pdo->prepare('UPDATE users SET panel_password=? WHERE id=?')->execute([$new_pass, $uid]);
+                }
+            }
+        }
+        // Notifier le client par email
+        $u_row2 = $pdo->prepare('SELECT email, pseudo, firstname FROM users WHERE id=? LIMIT 1');
+        $u_row2->execute([$uid]);
+        $u_notif = $u_row2->fetch();
+        if ($u_notif) {
+            $name = htmlspecialchars($u_notif['pseudo'] ?: $u_notif['firstname']);
+            $body = '<p>Bonjour <strong>' . $name . '</strong>,</p>
+                <p>Un administrateur vient de modifier votre mot de passe. Votre nouveau mot de passe est :</p>
+                <div class="box"><div class="row"><span class="label">Nouveau mot de passe</span><span class="val mono">' . htmlspecialchars($new_pass) . '</span></div></div>
+                <p style="color:#f59e0b;font-size:13px;">⚠️ Connectez-vous et changez ce mot de passe dès que possible.</p>
+                <p><a href="https://heberge.orinstone.deepstone.fr/login/" class="btn">Se connecter →</a></p>';
+            send_smtp_mail($u_notif['email'], '🔐 Votre mot de passe a été modifié', email_layout('Mot de passe modifié', $body));
+        }
+        $flash = adminFlash('ok', 'Mot de passe mis à jour et email envoyé au client.');
+    } else {
+        $flash = adminFlash('err', 'Mot de passe trop court (6 caractères minimum).');
+    }
+    header('Location: /admin/?view=clients'); exit();
+}
+
 $all_users = $pdo->query('SELECT u.id, u.pseudo, u.firstname, u.lastname, u.email, u.is_admin, u.avatar, u.created_at,
     (SELECT COUNT(*) FROM orders o WHERE o.user_id = u.id) AS server_count
     FROM users u ORDER BY u.id DESC')->fetchAll();
