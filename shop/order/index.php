@@ -299,15 +299,25 @@ $checkout_offer = array_merge($offer, [
     'price' => $final_price,
     'slug' => $bundle_param ?: $type,
 ]);
-
-$stripe_session = createStripeSession(
-    $stripe_secret_key,
-    $checkout_offer,
-    $bundle_param ?: $type,
-    "https://heberge.orinstone.deepstone.fr/shop/order/?plan=" . urlencode($bundle_param ?: $type) . "&session_id={CHECKOUT_SESSION_ID}",
-    "https://heberge.orinstone.deepstone.fr/shop/"
-);
-$stripe_url = $stripe_session['checkout_url'];
+$stripe_url = '';
+try {
+    $stripe_session = createStripeSession(
+        $stripe_secret_key,
+        $checkout_offer,
+        $bundle_param ?: $type,
+        "https://heberge.orinstone.deepstone.fr/shop/order/?plan=" . urlencode($bundle_param ?: $type) . "&session_id={CHECKOUT_SESSION_ID}",
+        "https://heberge.orinstone.deepstone.fr/shop/"
+    );
+    $stripe_url = $stripe_session['checkout_url'] ?? '';
+    if (empty($stripe_url)) {
+        throw new Exception('Stripe did not return a checkout URL');
+    }
+} catch (Throwable $e) {
+    error_log('Stripe session creation failed: ' . $e->getMessage());
+    $_SESSION['checkout_error'] = 'Impossible de démarrer le paiement. Veuillez réessayer plus tard.';
+    header('Location: /shop/cart/');
+    exit();
+}
 $paypalme_url = getPaypalMeLink($paypalme_username, $final_price);
 
 

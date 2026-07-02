@@ -28,7 +28,8 @@ function createStripeSession(string $secret_key, array $offer, string $type, str
 
     if (empty($result['url'])) {
         $err = $result['error']['message'] ?? json_encode($result);
-        die("❌ Stripe error : " . htmlspecialchars($err, ENT_QUOTES, 'UTF-8'));
+        error_log('Stripe create session error: ' . $err);
+        throw new Exception('Stripe error: ' . $err);
     }
 
     return [
