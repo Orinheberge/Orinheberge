@@ -727,10 +727,12 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_sidebar.php';
                     $status = $sv['status'] ?? 'unknown';
                     $is_free = ($sv['renewal_price'] ?? 0) == 0;
                     $status_badge = match($status) {
-                        'paid'      => 'bg-green-500/15 text-green-400 border-green-500/25',
-                        'suspended' => 'bg-orange-500/15 text-orange-400 border-orange-500/25',
-                        'expired'   => 'bg-red-500/15 text-red-400 border-red-500/25',
-                        default     => 'bg-white/5 text-gray-400 border-white/10',
+                        'paid'             => 'bg-green-500/15 text-green-400 border-green-500/25',
+                        'suspended'        => 'bg-orange-500/15 text-orange-400 border-orange-500/25',
+                        'expired'          => 'bg-red-500/15 text-red-400 border-red-500/25',
+                        'pending'          => 'bg-sky-500/15 text-sky-400 border-sky-500/25',
+                        'pending_deletion' => 'bg-red-500/15 text-red-400 border-red-500/25',
+                        default            => 'bg-white/5 text-gray-400 border-white/10',
                     };
                 ?>
                 <tr class="border-b border-white/[0.03]">
@@ -744,7 +746,24 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_sidebar.php';
                         <div class="text-white text-xs font-semibold"><?php echo htmlspecialchars($sv['pseudo'] ?: $sv['firstname'] ?? '—'); ?></div>
                         <div class="text-xs text-gray-500"><?php echo htmlspecialchars($sv['user_email'] ?? '—'); ?></div>
                     </td>
-                    <td class="px-5 py-4 text-gray-300 text-xs font-mono"><?php echo htmlspecialchars($sv['plan'] ?? '—'); ?></td>
+                    <td class="px-5 py-4">
+                        <?php
+                        // Déduire la catégorie depuis le nom du service
+                        $sn = strtolower($sv['service_name'] ?? '');
+                        $plan_icon = 'fas fa-server'; $plan_color = 'text-gray-400';
+                        if (str_contains($sn,'minecraft')||str_contains($sn,' mc ')) { $plan_icon='fas fa-cube'; $plan_color='text-green-400'; }
+                        elseif (str_contains($sn,'fivem')) { $plan_icon='fas fa-car'; $plan_color='text-red-400'; }
+                        elseif (str_contains($sn,'hytale')) { $plan_icon='fas fa-gamepad'; $plan_color='text-purple-400'; }
+                        elseif (str_contains($sn,'php')||str_contains($sn,'web')) { $plan_icon='fas fa-code'; $plan_color='text-blue-400'; }
+                        elseif (str_contains($sn,'node')||str_contains($sn,'js')) { $plan_icon='fab fa-node-js'; $plan_color='text-green-400'; }
+                        elseif (str_contains($sn,'python')) { $plan_icon='fab fa-python'; $plan_color='text-yellow-400'; }
+                        elseif (str_contains($sn,'java')) { $plan_icon='fab fa-java'; $plan_color='text-orange-400'; }
+                        ?>
+                        <div class="flex items-center gap-1.5 text-xs text-gray-300">
+                            <i class="<?php echo $plan_icon.' '.$plan_color; ?> text-xs"></i>
+                            <span class="font-mono"><?php echo htmlspecialchars($sv['service_name'] ?? '—'); ?></span>
+                        </div>
+                    </td>
                     <td class="px-5 py-4">
                         <?php if ($is_free): ?>
                             <span class="bg-green-500/10 text-green-400 border border-green-500/20 px-2 py-0.5 rounded-full text-xs font-bold">Gratuit</span>
@@ -753,7 +772,17 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_sidebar.php';
                         <?php endif; ?>
                     </td>
                     <td class="px-5 py-4">
-                        <span class="border px-2.5 py-0.5 rounded-full text-xs font-bold <?php echo $status_badge; ?>"><?php echo htmlspecialchars(ucfirst($status)); ?></span>
+                        <?php
+                        $status_label = match($status) {
+                            'paid'             => 'Actif',
+                            'pending'          => 'Pending',
+                            'suspended'        => 'Suspendu',
+                            'expired'          => 'Expiré',
+                            'pending_deletion' => 'Suppression',
+                            default            => ucfirst($status),
+                        };
+                        ?>
+                        <span class="border px-2.5 py-0.5 rounded-full text-xs font-bold <?php echo $status_badge; ?>"><?php echo $status_label; ?></span>
                     </td>
                     <td class="px-5 py-4 text-xs <?php echo $is_free ? 'text-gray-500' : 'text-gray-300'; ?>">
                         <?php echo $is_free ? '∞ À vie' : htmlspecialchars($sv['expires_at'] ? date('d/m/Y', strtotime($sv['expires_at'])) : '—'); ?>
