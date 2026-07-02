@@ -102,6 +102,8 @@ $eggs  = $pdo->query('SELECT id,name,icon FROM eggs  WHERE is_active=1 ORDER BY 
 $active_nav = 'products';
 include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_layout.php';
 ?>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 <div class="main-content">
   <div class="topbar">
     <div class="flex items-center gap-3">

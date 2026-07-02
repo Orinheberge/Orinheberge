@@ -94,6 +94,8 @@ $available_products = $pdo->query('SELECT id, name FROM products ORDER BY name')
 $active_nav = 'categories';
 include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_layout.php';
 ?>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 <div class="main-content">
   <div class="topbar">
     <div>

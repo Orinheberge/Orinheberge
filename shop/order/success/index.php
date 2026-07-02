@@ -7,8 +7,12 @@ $order_id   = $_SESSION['success_order_id']       ?? '—';
 $email      = $_SESSION['success_email']           ?? '—';
 $offer      = $_SESSION['success_offer']           ?? '—';
 $panel_pass = $_SESSION['success_panel_password']  ?? null;
+$orders     = $_SESSION['success_orders']          ?? []; // multi-serveurs (bundle payant), vide sinon
 
-unset($_SESSION['success_order_id'],$_SESSION['success_email'],$_SESSION['success_server_id'],$_SESSION['success_offer'],$_SESSION['success_panel_password']);
+unset(
+    $_SESSION['success_order_id'], $_SESSION['success_email'], $_SESSION['success_server_id'],
+    $_SESSION['success_offer'], $_SESSION['success_panel_password'], $_SESSION['success_orders']
+);
 $is_logged_in = true;
 ?>
 <!DOCTYPE html>
@@ -42,8 +46,15 @@ $is_logged_in = true;
     <p class="text-gray-400 mb-6"><?php echo t('order.confirmed_sub'); ?></p>
 
     <div class="bg-slate-900/50 border border-white/[0.03] p-4 rounded-xl text-left font-mono text-xs space-y-2 mb-6">
+      <?php if (count($orders) > 1): ?>
+        <p class="text-gray-400 not-italic"><?php echo count($orders); ?> serveurs ont été créés :</p>
+        <?php foreach ($orders as $o): ?>
+          <p><span class="text-amber-400 font-bold">●</span> #<?php echo htmlspecialchars($o['order_id'],ENT_QUOTES,'UTF-8'); ?> — <span class="text-sky-400"><?php echo htmlspecialchars($o['offer_name'],ENT_QUOTES,'UTF-8'); ?></span></p>
+        <?php endforeach; ?>
+      <?php else: ?>
       <p><span class="text-amber-400 font-bold">● <?php echo t('order.label_id'); ?></span> #<?php echo htmlspecialchars($order_id,ENT_QUOTES,'UTF-8'); ?></p>
       <p><span class="text-sky-400 font-bold">● <?php echo t('order.label_offer'); ?></span> <?php echo htmlspecialchars($offer,ENT_QUOTES,'UTF-8'); ?></p>
+      <?php endif; ?>
       <p><span class="text-purple-400 font-bold">● <?php echo t('order.label_email'); ?></span> <?php echo htmlspecialchars($email,ENT_QUOTES,'UTF-8'); ?></p>
       <?php if ($panel_pass): ?>
       <p class="text-yellow-300"><span class="font-bold"><?php echo t('order.label_pw'); ?></span> <?php echo htmlspecialchars($panel_pass,ENT_QUOTES,'UTF-8'); ?>

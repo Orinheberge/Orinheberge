@@ -72,24 +72,137 @@ if (empty($selected_slugs)) {
     exit();
 }
 
-foreach ($selected_slugs as $slug) {
-    $product = getProductBySlug($pdo, $slug);
-    if (!$product || (string)($product['type'] ?? '') !== 'paid') {
-        continue;
-    }
-
-    $quantity = 1;
+function findSlugQuantity(string $slug): int {
     if (!empty($_SESSION['checkout_bundle']['items']) && is_array($_SESSION['checkout_bundle']['items'])) {
         foreach ($_SESSION['checkout_bundle']['items'] as $entry) {
             if (strtolower((string)($entry['slug'] ?? '')) === strtolower($slug)) {
-                $quantity = max(1, (int)($entry['quantity'] ?? 1));
-                break;
+                return max(1, (int)($entry['quantity'] ?? 1));
             }
         }
+    }
+    return 1;
+}
+
+$free_bundle_items = [];
+
+foreach ($selected_slugs as $slug) {
+    $product = getProductBySlug($pdo, $slug);
+    if (!$product) {
+        continue;
+    }
+
+    $quantity = findSlugQuantity($slug);
+
+    if ((string)($product['type'] ?? '') === 'free') {
+        $free_bundle_items[] = ['product' => $product, 'quantity' => $quantity];
+        continue;
     }
 
     $bundle_items[] = ['product' => $product, 'quantity' => $quantity];
     $bundle_total += (float)($product['price'] ?? 0) * $quantity;
+}
+
+/*
+|--------------------------------------------------------------------------
+| TRAITEMENT IMMÉDIAT DES OFFRES GRATUITES DU BUNDLE
+|--------------------------------------------------------------------------
+| Les offres gratuites ne nécessitent aucun paiement : on les crée tout de
+| suite, avant même d'afficher les boutons de paiement pour le reste du
+| panier (le cas échéant). Un verrou en session évite de recréer les
+| mêmes serveurs à chaque rechargement de cette page (choix du node,
+| code promo, etc. déclenchent tous un nouveau GET/POST ici).
+|--------------------------------------------------------------------------
+*/
+if (!empty($free_bundle_items)) {
+    $free_key = md5(implode('|', array_map(
+        static fn($e) => $e['product']['slug'] . ':' . $e['quantity'],
+        $free_bundle_items
+    )));
+
+    if (($_SESSION['processed_free_bundle_key'] ?? null) !== $free_key) {
+        $stmt = $pdo->prepare('SELECT * FROM users WHERE id=? LIMIT 1');
+        $stmt->execute([$_SESSION['user_id']]);
+        $free_user = $stmt->fetch();
+
+        if ($free_user) {
+            require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/smtp.php';
+            $free_username_display = !empty($free_user['pseudo']) ? $free_user['pseudo'] : $free_user['firstname'];
+            $free_created = [];
+
+            foreach ($free_bundle_items as $free_entry) {
+                $free_product = $free_entry['product'];
+
+                $limit_check = $pdo->prepare('SELECT COUNT(*) FROM orders WHERE user_id=? AND service_name=?');
+                $limit_check->execute([$_SESSION['user_id'], $free_product['name']]);
+                if ($limit_check->fetchColumn() >= 5) {
+                    $_SESSION['checkout_error'] = "❌ Limite de 5 serveurs atteinte pour l'offre : " . $free_product['name'];
+                    continue;
+                }
+
+                for ($i = 0; $i < $free_entry['quantity']; $i++) {
+                    $free_panelUser = getOrCreatePanelUser($panel_url, $headers_admin, $free_user, $pdo);
+                    $free_pass      = $free_panelUser['pass'];
+                    if ($free_pass) $_SESSION['panel_password'] = $free_pass;
+
+                    $free_srv      = createPanelServer($panel_url, $headers_admin, $free_product, $free_panelUser['id']);
+                    $free_order_id = strtoupper(substr(md5(uniqid('', true)), 0, 8));
+
+                    $pdo->prepare('
+                        INSERT INTO orders
+                          (user_id, product_id, order_id, service_name, ram, disk, cpu,
+                           server_id, uuid, id_server_panel, status, renewal_price, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, \'pending\', 0, NOW())
+                    ')->execute([
+                        $_SESSION['user_id'], $free_product['id'], $free_order_id, $free_product['name'],
+                        $free_product['ram'], $free_product['disk'], $free_product['cpu'],
+                        $free_srv['id'], $free_srv['uuid'], $free_srv['identifier'],
+                    ]);
+
+                    send_order_confirmation_email(
+                        $pdo, $free_user['email'], $free_username_display,
+                        $free_order_id, $free_product['name'], 0.0,
+                        $free_srv['identifier'], $free_pass ?? null, $panel_url
+                    );
+
+                    if ($discord_webhook_url) {
+                        sendDiscordWebhook(
+                            $discord_webhook_url, $free_order_id, $free_product['name'],
+                            0.0, $free_user['email'], $free_srv['uuid'], $free_srv['identifier']
+                        );
+                    }
+
+                    $free_created[] = [
+                        'order_id'   => $free_order_id,
+                        'server_id'  => $free_srv['id'],
+                        'offer_name' => $free_product['name'],
+                    ];
+                }
+            }
+
+            if (!empty($free_created)) {
+                $_SESSION['processed_free_bundle_key'] = $free_key;
+                $_SESSION['success_orders'] = array_merge($_SESSION['success_orders'] ?? [], $free_created);
+                $_SESSION['success_email']  = $free_user['email'];
+                $last_free = end($free_created);
+                $_SESSION['success_order_id'] = $last_free['order_id'];
+                $_SESSION['success_offer']    = $last_free['offer_name'];
+                $_SESSION['success_server_id'] = $last_free['server_id'];
+                $_SESSION['success_panel_password'] = $free_pass ?? ($free_user['panel_password'] ?? null);
+            }
+        }
+    }
+
+    // Le bundle ne contient QUE des offres gratuites -> pas de paiement à faire,
+    // direction la page de succès avec tout ce qui vient d'être créé.
+    if (empty($bundle_items)) {
+        if (!empty($_SESSION['success_orders']) || !empty($_SESSION['success_order_id'])) {
+            unset($_SESSION['checkout_bundle']);
+            header('Location: /shop/order/success/');
+        } else {
+            header('Location: /shop/cart/');
+        }
+        exit();
+    }
 }
 
 if (empty($bundle_items)) {
@@ -98,10 +211,10 @@ if (empty($bundle_items)) {
 }
 
 $offer = $bundle_items[0]['product'];
-$bundle_param = implode($selected_slugs, ',');
-$bundle_label = count($bundle_items) > 1 ? implode(array_map(static function ($entry) {
+$bundle_param = implode(',', $selected_slugs);
+$bundle_label = count($bundle_items) > 1 ? implode(' + ', array_map(static function ($entry) {
     return $entry['product']['name'];
-}, $bundle_items), ' + ') : $offer['name'];
+}, $bundle_items)) : $offer['name'];
 $type = strtolower(trim($offer['slug'] ?? $selected_slugs[0] ?? ''));
 
 $stmt = $pdo->prepare("SELECT * FROM users WHERE id=?");
@@ -203,61 +316,113 @@ if (isset($_GET['session_id'])) {
         die("❌ Paiement non confirmé. Statut : " . htmlspecialchars($session['payment_status'] ?? 'inconnu', ENT_QUOTES, 'UTF-8'));
     }
 
+    // Idempotence : si ce session_id a déjà été traité (ex: rechargement de la
+    // page de retour Stripe), on ne recrée pas les serveurs une seconde fois.
+    $already = $pdo->prepare("SELECT order_id FROM orders WHERE paypal_order_id = ? LIMIT 1");
+    $already->execute([$_GET['session_id']]);
+    if ($already_row = $already->fetch()) {
+        $_SESSION['success_order_id'] = $already_row['order_id'];
+        $_SESSION['success_offer']    = $bundle_label;
+        $_SESSION['success_email']    = $user['email'];
+        header("Location: /shop/order/success/");
+        exit();
+    }
+
+    require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/smtp.php';
+    $username_display = !empty($user['pseudo']) ? $user['pseudo'] : $user['firstname'];
+
+    // Un seul compte panel pour l'utilisateur, réutilisé pour tous les serveurs du bundle
     $panelUser = getOrCreatePanelUser($panel_url, $headers_admin, $user, $pdo);
     $pass      = $panelUser['pass'];
     if ($pass) $_SESSION['panel_password'] = $pass;
 
-    $srv      = createPanelServer($panel_url, $headers_admin, $offer, $panelUser['id']);
-    $order_id = strtoupper(substr(md5(uniqid('', true)), 0, 8));
-    $next_pay = date("Y-m-01", strtotime("+1 month"));
+    $next_pay      = date("Y-m-01", strtotime("+1 month"));
+    $created_orders = [];
 
-    // Validation et passage du statut en 'paid'
-    $pdo->prepare("
-        INSERT INTO orders (user_id, order_id, service_name, ram, disk, cpu,
-            server_id, uuid, id_server_panel, status, paypal_order_id,
-            renewal_price, next_payment_date, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'paid', ?, ?, ?, NOW())
-    ")->execute([
-        $_SESSION['user_id'], $order_id, $bundle_label,
-        $offer['ram'], $offer['disk'], $offer['cpu'],
-        $srv['id'], $srv['uuid'], $srv['identifier'],
-        $_GET['session_id'], $final_price, $next_pay
-    ]);
+    // ── Créer un serveur + une commande PAR offre du bundle (et par quantité) ──
+    foreach ($bundle_items as $bundle_entry) {
+        $item_product = $bundle_entry['product'];
+        $item_qty     = max(1, (int)$bundle_entry['quantity']);
 
-    // ── Générer la facture ────────────────────────────────────────────────────
-    $invoice_count = (int)$pdo->query("SELECT COUNT(*)+1 FROM invoices")->fetchColumn();
-    $invoice_id    = 'INV-' . date('Y') . '-' . str_pad($invoice_count, 5, '0', STR_PAD_LEFT);
+        // Le premier item de la liste tient compte du node choisi par le client
+        // (cf. sélecteur de datacenter) ; les autres items du bundle utilisent
+        // leur node par défaut.
+        $server_offer = $item_product;
+        if ($item_product['id'] === $offer['id'] && $chosen_node) {
+            $server_offer['location_id']   = $chosen_node['location_id'];
+            $server_offer['panel_node_id'] = $chosen_node['panel_node_id'] ?? $server_offer['panel_node_id'];
+        }
+
+        // Part du prix final (après promo) attribuable à cet item, au prorata
+        $item_share = $bundle_total > 0
+            ? ((float)$item_product['price'] * $item_qty) / $bundle_total
+            : 0;
+        $item_renewal_price = round($final_price * $item_share / $item_qty, 2);
+
+        for ($i = 0; $i < $item_qty; $i++) {
+            $srv      = createPanelServer($panel_url, $headers_admin, $server_offer, $panelUser['id']);
+            $order_id = strtoupper(substr(md5(uniqid('', true)), 0, 8));
+
+            $pdo->prepare("
+                INSERT INTO orders (user_id, product_id, order_id, service_name, ram, disk, cpu,
+                    server_id, uuid, id_server_panel, status, paypal_order_id,
+                    renewal_price, next_payment_date, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'paid', ?, ?, ?, NOW())
+            ")->execute([
+                $_SESSION['user_id'], $item_product['id'], $order_id, $item_product['name'],
+                $item_product['ram'], $item_product['disk'], $item_product['cpu'],
+                $srv['id'], $srv['uuid'], $srv['identifier'],
+                $_GET['session_id'], $item_renewal_price, $next_pay
+            ]);
+
+            sendDiscordWebhook(
+                $discord_webhook_url, $order_id, $item_product['name'],
+                $item_renewal_price, $user['email'], $srv['uuid'], $srv['identifier']
+            );
+
+            send_order_confirmation_email(
+                $pdo, $user['email'], $username_display,
+                $order_id, $item_product['name'], $item_renewal_price,
+                $srv['identifier'], $pass ?? null, $panel_url
+            );
+
+            $created_orders[] = [
+                'order_id'    => $order_id,
+                'server_id'   => $srv['id'],
+                'offer_name'  => $item_product['name'],
+            ];
+        }
+    }
+
+    // ── Une seule facture pour le paiement global ───────────────────────────
+    $first_order_id = $created_orders[0]['order_id'];
+    $invoice_count   = (int)$pdo->query("SELECT COUNT(*)+1 FROM invoices")->fetchColumn();
+    $invoice_id      = 'INV-' . date('Y') . '-' . str_pad($invoice_count, 5, '0', STR_PAD_LEFT);
     $pdo->prepare("
         INSERT INTO invoices (invoice_id, user_id, order_id, service_name, amount, type,
             status, payment_method, payment_ref, paid_at, created_at)
         VALUES (?, ?, ?, ?, ?, 'purchase', 'paid', 'stripe', ?, NOW(), NOW())
     ")->execute([
-        $invoice_id, $_SESSION['user_id'], $order_id, $bundle_label,
+        $invoice_id, $_SESSION['user_id'], $first_order_id, $bundle_label,
         $final_price, $_GET['session_id']
     ]);
 
-    sendDiscordWebhook(
-        $discord_webhook_url, $order_id, $bundle_label,
-        $final_price, $user['email'], $srv['uuid'], $srv['identifier']
-    );
+    // La commande "pending" créée avant paiement n'a plus lieu d'être :
+    // elle a été remplacée par une ligne 'paid' par serveur créé ci-dessus.
+    if (!empty($_SESSION['current_pending_order_id'])) {
+        $pdo->prepare("DELETE FROM orders WHERE order_id = ? AND status = 'pending'")
+            ->execute([$_SESSION['current_pending_order_id']]);
+    }
 
-    // ── Email de confirmation ─────────────────────────────────────────────────
-    require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/smtp.php';
-    $username_display = !empty($user['pseudo']) ? $user['pseudo'] : $user['firstname'];
-    send_order_confirmation_email(
-        $pdo, $user['email'], $username_display,
-        $order_id, $bundle_label, (float)$final_price,
-        $srv['identifier'], $pass ?? null, $panel_url
-    );
-
-    $_SESSION['success_order_id']       = $order_id;
+    $_SESSION['success_order_id']       = $first_order_id;
     $_SESSION['success_email']          = $user['email'];
-    $_SESSION['success_server_id']      = $srv['id'];
+    $_SESSION['success_server_id']      = $created_orders[0]['server_id'];
     $_SESSION['success_offer']          = $bundle_label;
     $_SESSION['success_panel_password'] = $pass ?? ($user['panel_password'] ?? null);
+    $_SESSION['success_orders']         = $created_orders; // détail complet, pour affichage multi-serveurs
 
-    // Nettoyage de la promo après un achat réussi
-    unset($_SESSION['promo_code']);
+    // Nettoyage
+    unset($_SESSION['promo_code'], $_SESSION['current_pending_order_id'], $_SESSION['checkout_bundle']);
 
     header("Location: /shop/order/success/");
     exit();
@@ -360,151 +525,7 @@ $paypalme_url = getPaypalMeLink($paypalme_username, $final_price);
 </head>
 <body class="text-gray-200 font-sans min-h-screen flex flex-col justify-between">
 
-    <nav class="sticky top-0 z-50 glass p-5 border-b border-white/5">
-        <div class="max-w-7xl mx-auto flex justify-between items-center gap-4">
-            
-            <h1 class="text-3xl font-black gradient-text tracking-tight shrink-0">
-                <a href="/">OrinHeberge</a>
-            </h1>
-
-            <div class="hidden md:flex items-center gap-3 whitespace-nowrap">
-                <a href="/" class="bg-sky-600/20 hover:bg-sky-600 border border-sky-500/30 text-sky-400 hover:text-white px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium shadow-md shadow-sky-900/20">
-                    <i class="fas fa-home"></i> Accueil
-                </a>
-                <a href="/client/servers/" class="bg-slate-600/20 hover:bg-slate-600 border border-slate-500/30 text-slate-400 hover:text-white px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium shadow-md shadow-slate-900/20">
-                    <i class="fas fa-server"></i> Mes serveurs
-                </a>
-                <a href="/shop/" class="bg-amber-600/20 hover:bg-amber-600 border border-amber-500/30 text-amber-400 hover:text-white px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium shadow-md shadow-amber-900/20">
-                    <i class="fas fa-tags"></i> Offres
-                </a>
-                <a href="/support/" class="bg-purple-600/20 hover:bg-purple-600 border border-purple-500/30 text-purple-400 hover:text-white px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium shadow-md shadow-purple-900/20">
-                    <i class="fas fa-headset"></i> Support
-                </a>
-
-                <?php if(isset($_SESSION['user_id'])): ?>
-                    <?php include $_SERVER['DOCUMENT_ROOT'] . '/inc/notifications.php'; ?>
-                    
-                    <a href="/profil/" class="text-gray-300 hover:text-sky-400 font-bold flex items-center gap-2.5 transition bg-white/5 hover:bg-white/10 px-4 py-2 rounded-full border border-white/5 focus:outline-none text-xs">
-                        <?php if(!empty($_SESSION['avatar']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/' . $_SESSION['avatar'])): ?>
-                            <img src="/<?php echo htmlspecialchars($_SESSION['avatar']); ?>" alt="Avatar" class="w-5 h-5 rounded-full object-cover border border-sky-500/30 shrink-0">
-                        <?php else: ?>
-                            <i class="fas fa-user-circle text-lg text-sky-400 shrink-0 flex items-center justify-center"></i>
-                        <?php endif; ?>
-                        <span class="block"><?php echo htmlspecialchars($_SESSION['username'] ?? 'Mon Profil'); ?></span>
-                    </a>
-
-                    <a href="/logout/" class="bg-red-600/10 hover:bg-red-600 border border-red-500/20 text-red-400 hover:text-white px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium">
-                        <i class="fas fa-sign-out-alt"></i> Déconnexion
-                    </a>
-                <?php else: ?>
-                    <a href="/login/" class="bg-slate-600/20 hover:bg-slate-600 border border-slate-500/30 text-slate-400 hover:text-white px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium">
-                        <i class="fas fa-sign-in-alt"></i> Connexion
-                    </a>
-                    <a href="/register/" class="bg-slate-600/20 hover:bg-slate-600 border border-slate-500/30 text-slate-400 hover:text-white px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium">
-                        <i class="fas fa-user-plus"></i> Inscription
-                    </a>
-                <?php endif; ?>
-            </div>
-
-            <div class="hidden lg:flex gap-2.5 items-center shrink-0">
-                <a href="/status/" class="bg-emerald-600/20 hover:bg-emerald-600 border border-emerald-500/30 text-emerald-400 hover:text-white px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium shadow-md shadow-emerald-900/20 whitespace-nowrap">
-                    <i class="fas fa-signal"></i> Statut
-                </a>
-
-                <a href="https://php.orinstone.deepstone.fr" class="glass text-gray-300 hover:text-white hover:bg-white/10 px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium border border-white/5 whitespace-nowrap">
-                    <i class="fas fa-database text-sky-400"></i> phpMyAdmin
-                </a>
-                
-                <a href="https://panel.orinstone.deepstone.fr" class="bg-sky-600 hover:bg-sky-500 px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium shadow-md shadow-sky-900/20 whitespace-nowrap text-white">
-                    <i class="fas fa-cogs"></i> Panel
-                </a>
-
-                <div class="relative inline-block text-left group">
-                    <button type="button" class="inline-flex items-center gap-2 bg-white/5 border border-white/10 hover:border-sky-500/50 rounded-full px-3 py-1.5 text-xs font-semibold text-gray-200 transition focus:outline-none">
-                        <img src="https://flagcdn.com/w20/fr.png" id="current-flag" alt="Français" class="w-4 h-auto rounded-sm object-contain">
-                        <span id="current-lang-text">FR</span>
-                        <i class="fas fa-chevron-down text-[10px] text-gray-400 group-hover:text-sky-400 transition duration-200"></i>
-                    </button>
-                    <div class="absolute right-0 mt-2 w-36 rounded-xl glass border border-white/10 shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 overflow-hidden">
-                        <div class="py-1">
-                            <a href="?lang=fr" onclick="changeLanguage('fr', 'FR', 'https://flagcdn.com/w20/fr.png', event)" class="flex items-center gap-3 px-4 py-2 text-xs text-gray-300 hover:bg-sky-600/20 hover:text-white transition">
-                                <img src="https://flagcdn.com/w20/fr.png" alt="Français" class="w-4 h-auto rounded-sm">
-                                <span>Français</span>
-                            </a>
-                            <a href="?lang=en" onclick="changeLanguage('en', 'EN', 'https://flagcdn.com/w20/gb.png', event)" class="flex items-center gap-3 px-4 py-2 text-xs text-gray-300 hover:bg-sky-600/20 hover:text-white transition">
-                                <img src="https://flagcdn.com/w20/gb.png" alt="English" class="w-4 h-auto rounded-sm">
-                                <span>English</span>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <button onclick="toggleMenu()" class="md:hidden text-2xl text-gray-400 hover:text-white transition shrink-0">
-                <i class="fas fa-bars"></i>
-            </button>
-        </div>
-
-        <div id="mobileMenu" class="md:hidden mt-4 px-4 space-y-3 glass rounded-2xl p-4 hidden">
-            <a href="/" class="bg-sky-600/20 border border-sky-500/30 text-sky-400 block py-2 px-4 rounded-xl flex items-center gap-2 text-sm font-medium"><i class="fas fa-home w-5 text-center"></i> Accueil</a>
-            <a href="/client/servers/" class="bg-white/[0.02] border border-white/5 text-gray-300 block py-2 px-4 rounded-xl flex items-center gap-2 text-sm font-medium"><i class="fas fa-server w-5 text-center"></i> Mes serveurs</a>
-            <a href="/shop/" class="bg-white/[0.02] border border-white/5 text-gray-300 block py-2 px-4 rounded-xl flex items-center gap-2 text-sm font-medium"><i class="fas fa-tags w-5 text-center"></i> Offres</a>
-            <a href="/support/" class="bg-white/[0.02] border border-white/5 text-gray-300 block py-2 px-4 rounded-xl flex items-center gap-2 text-sm font-medium"><i class="fas fa-headset w-5 text-center"></i> Support</a>
-            <a href="/status/" class="bg-emerald-600/20 border border-emerald-500/30 text-emerald-400 block py-2 px-4 rounded-xl flex items-center gap-2 text-sm font-medium"><i class="fas fa-signal w-5 text-center"></i> Statut</a>
-            
-            <hr class="border-white/10">
-
-            <?php if(isset($_SESSION['user_id'])): ?>
-                <a href="/profil/" class="bg-white/5 text-gray-200 block py-2 px-4 rounded-xl flex items-center gap-2.5 text-sm font-bold border border-white/5">
-                    <?php if(!empty($_SESSION['avatar']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/' . $_SESSION['avatar'])): ?>
-                        <img src="/<?php echo htmlspecialchars($_SESSION['avatar']); ?>" alt="Avatar" class="w-5 h-5 rounded-full object-cover border border-sky-500/30 shrink-0">
-                    <?php else: ?>
-                        <i class="fas fa-user-circle text-lg text-sky-400 shrink-0"></i>
-                    <?php endif; ?>
-                    <span><?php echo htmlspecialchars($_SESSION['username'] ?? 'Mon Profil'); ?></span>
-                </a>
-                <a href="/logout/" class="bg-red-600/10 border border-red-500/20 text-red-400 block py-2 px-4 rounded-xl flex items-center gap-2 text-sm font-medium">
-                    <i class="fas fa-sign-out-alt w-5 text-center"></i> Déconnexion
-                </a>
-            <?php else: ?>
-                <a href="/login/" class="bg-white/5 text-gray-300 block py-2 px-4 rounded-xl flex items-center gap-2 text-sm font-medium border border-white/5"><i class="fas fa-sign-in-alt w-5 text-center"></i> Connexion</a>
-                <a href="/register/" class="bg-white/5 text-gray-300 block py-2 px-4 rounded-xl flex items-center gap-2 text-sm font-medium border border-white/5"><i class="fas fa-user-plus w-5 text-center"></i> Inscription</a>
-            <?php endif; ?>
-
-            <hr class="border-white/10">
-
-            <div class="grid grid-cols-2 gap-2 pt-1">
-                <a href="https://php.orinstone.deepstone.fr" class="glass text-gray-300 px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 justify-center border border-white/5 font-medium">
-                    <i class="fas fa-database text-sky-400"></i> phpMyAdmin
-                </a>
-                <a href="https://panel.orinstone.deepstone.fr" class="bg-sky-600 text-white px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 justify-center font-medium">
-                    <i class="fas fa-cogs"></i> Panel
-                </a>
-            </div>
-
-            <div class="relative inline-block text-left group w-full pt-1">
-                <button type="button" class="inline-flex items-center justify-between w-full gap-2 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-semibold text-gray-200 transition focus:outline-none">
-                    <div class="flex items-center gap-2">
-                        <img src="https://flagcdn.com/w20/fr.png" alt="Français" class="w-5 h-auto rounded-sm object-contain">
-                        <span>FR</span>
-                    </div>
-                    <i class="fas fa-chevron-down text-xs text-gray-400 group-hover:text-sky-400 transition duration-200"></i>
-                </button>
-                <div class="absolute right-0 mt-2 w-full rounded-xl glass border border-white/10 shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 overflow-hidden">
-                    <div class="py-1">
-                        <a href="?lang=fr" onclick="changeLanguage('fr', 'FR', 'https://flagcdn.com/w20/fr.png', event)" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 hover:bg-sky-600/20 hover:text-white transition">
-                            <img src="https://flagcdn.com/w20/fr.png" alt="Français" class="w-5 h-auto rounded-sm">
-                            <span>Français</span>
-                        </a>
-                        <a href="?lang=en" onclick="changeLanguage('en', 'EN', 'https://flagcdn.com/w20/gb.png', event)" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 hover:bg-sky-600/20 hover:text-white transition">
-                            <img src="https://flagcdn.com/w20/gb.png" alt="English" class="w-5 h-auto rounded-sm">
-                            <span>English</span>
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </nav>
+    <?php require_once __DIR__ . '../../inc/navbar.php'; ?>
 
     <div class="flex-grow flex items-center justify-center px-4 py-4 mb-12">
         <div class="glass p-8 sm:p-10 rounded-2xl w-full max-w-xl text-center border border-white/[0.05] shadow-2xl">
@@ -647,75 +668,6 @@ $paypalme_url = getPaypalMeLink($paypalme_username, $final_price);
         </div>
     </div>
 
-    <footer class="w-full bg-[#05070d] text-gray-400 py-12 px-6 border-t border-white/5 font-sans">
-    <div class="max-w-7xl mx-auto">
-        
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-10">
-            
-            <div class="flex flex-col gap-4">
-                <h3 class="text-white font-bold text-base tracking-wide">Navigation</h3>
-                <div class="flex flex-col gap-2.5 text-sm">
-                    <a href="/" class="hover:text-sky-400 transition">Accueil</a>
-                    <a href="/client/servers/" class="hover:text-sky-400 transition">Mes serveurs</a>
-                    <a href="/shop/" class="hover:text-sky-400 transition">Offres</a>
-                    <a href="/support/" class="hover:text-sky-400 transition">Support</a>
-                </div>
-            </div>
-
-            <div class="flex flex-col gap-4">
-                <h3 class="text-white font-bold text-base tracking-wide">Notre Réseau</h3>
-                <div class="flex flex-col gap-2.5 text-sm">
-                    <a href="/discord/" class="hover:text-sky-400 transition">Notre Discord</a>
-                    <a href="https://status.deepstone.fr/" class="hover:text-sky-400 transition">Statut des Services</a>
-                </div>
-            </div>
-
-            <div class="flex flex-col gap-4">
-                <h3 class="text-white font-bold text-base tracking-wide">Liens Utiles</h3>
-                <div class="flex flex-col gap-2.5 text-sm">
-                    <a href="https://php.orinstone.deepstone.fr" class="hover:text-sky-400 transition">phpMyAdmin</a>
-                    <a href="https://panel.orinstone.deepstone.fr" class="hover:text-sky-400 transition">Panel</a>
-                </div>
-            </div>
-
-            <div class="flex flex-col justify-end gap-3 items-start md:items-end">
-                <span class="text-xs text-gray-400 font-semibold tracking-wider uppercase">Moyens de Paiements Acceptés</span>
-                <div class="flex items-center gap-3 bg-white/[0.02] border border-white/5 p-3 rounded-xl">
-                    <img src="https://azurhosts.com/assets/images/logos/psrl/card-icons/card_cb.svg" alt="CB" class="h-8 object-contain" />
-                    <img src="https://azurhosts.com/assets/images/logos/psrl/card-icons/card_visa.svg" alt="Visa" class="h-8 object-contain" />
-                    <img src="https://azurhosts.com/assets/images/logos/psrl/card-icons/card_mastercard.svg" alt="Mastercard" class="h-8 object-contain" />
-                    <img src="https://azurhosts.com/assets/images/logos/psrl/card-icons/card_paypal.svg" alt="PayPal" class="h-8 object-contain" />
-                </div>
-            </div>
-
-        </div>
-
-        <hr class="border-white/10 mb-8">
-
-     <div class="flex flex-col md:flex-row items-start justify-between gap-6 text-xs text-gray-500">
-            
-            <div class="flex items-center gap-2">
-                <span class="text-2xl font-black tracking-tighter text-white">Orin<span class="text-sky-500">Heberge</span></span>
-            </div>
-
-            <div class="flex flex-col gap-2 md:text-left">
-                <div class="flex flex-wrap gap-x-4 gap-y-1 text-gray-400 font-medium">
-                    <a href="/mentions-legales/" class="hover:text-sky-400 transition">Mentions Légales</a>
-                    <span class="text-white/10">|</span>
-                    <a href="/cgu/" class="hover:text-sky-400 transition">Conditions Générales d'Utilisation</a>
-                    <span class="text-white/10">|</span>
-                    <a href="/politique-confidentialite/" class="hover:text-sky-400 transition">Politique de Confidentialité</a>
-                </div>
-                <div class="flex flex-col gap-0.5">
-                    <div>© 2026-2029 OrinHeberge — Infrastructure OrinStone. Tous droits réservés.</div>
-                    <div class="text-[10px] text-gray-600 mt-1">
-                        Propulsé par <span class="text-sky-500/70 font-medium hover:text-sky-400 transition">Orinstone Studio</span>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-    </div>
-</footer>
+     <?php require_once __DIR__ . '../../inc/footer.php'; ?>
 </body>
 </html>
