@@ -14,6 +14,7 @@ require_once __DIR__ . '/lib/stripe/stripe.php';
 require_once __DIR__ . '/lib/paypal/paypal.php';
 require_once __DIR__ . '/lib/promo/promo.php';
 require_once __DIR__ . '/webhook/discord.php';
+require_once __DIR__ . '/inc/lang.php';
 
 // ─── Clés extensions depuis BDD ──────────────────────────────
 $ext_settings_raw = $pdo->query("
