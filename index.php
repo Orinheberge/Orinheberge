@@ -242,20 +242,20 @@ try {
             <div class="glass p-6 rounded-2xl border border-white/[0.05] text-center flex flex-col items-center">
                 <div class="relative mb-4">
                     <div class="w-20 h-20 bg-gradient-to-tr from-sky-400 to-purple-500 rounded-full p-0.5 shadow-xl">
-                        <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150&q=80" alt="Avatar" class="w-full h-full object-cover rounded-full bg-[#060911]">
+                        <img src="/img/staff/Mathéo-Favier.jpg" alt="Avatar" class="w-full h-full object-cover rounded-full bg-[#060911]">
                     </div>
                     <span class="absolute bottom-0 right-1 h-3 w-3 rounded-full bg-green-400 border-2 border-[#060911]"></span>
                 </div>
-                <h4 class="font-bold text-white text-lg">Alexandre</h4>
+                <h4 class="font-bold text-white text-lg">Mathéo Favier</h4>
                 <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/20 mt-1 mb-3">Fondateur & Dev SysAdmin</span>
                 <p class="text-gray-500 text-xs leading-relaxed max-w-xs">Garant de l'architecture serveur et du développement global du panel.</p>
                 <div class="flex gap-3 mt-4 text-gray-400 text-sm">
-                    <a href="#" class="hover:text-white transition"><i class="fab fa-github"></i></a>
-                    <a href="#" class="hover:text-sky-400 transition"><i class="fab fa-twitter"></i></a>
+                    <a href="https://github.com/metal54400" class="hover:text-white transition"><i class="fab fa-github"></i></a>
+                    <a href="https://portfolio.deepstone.fr" class="hover:text-sky-400 transition"><i class="fab fa-avatar"></i></a>
                 </div>
             </div>
 
-            <div class="glass p-6 rounded-2xl border border-white/[0.05] text-center flex flex-col items-center">
+            <!-- <div class="glass p-6 rounded-2xl border border-white/[0.05] text-center flex flex-col items-center">
                 <div class="relative mb-4">
                     <div class="w-20 h-20 bg-gradient-to-tr from-purple-500 to-pink-500 rounded-full p-0.5 shadow-xl">
                         <img src="https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=150&h=150&q=80" alt="Avatar" class="w-full h-full object-cover rounded-full bg-[#060911]">
@@ -269,9 +269,9 @@ try {
                     <a href="#" class="hover:text-white transition"><i class="fab fa-github"></i></a>
                     <a href="#" class="hover:text-purple-400 transition"><i class="fab fa-discord"></i></a>
                 </div>
-            </div>
+            </div>-->
 
-            <div class="glass p-6 rounded-2xl border border-white/[0.05] text-center flex flex-col items-center sm:col-span-2 lg:col-span-1">
+           <!-- <div class="glass p-6 rounded-2xl border border-white/[0.05] text-center flex flex-col items-center sm:col-span-2 lg:col-span-1">
                 <div class="relative mb-4">
                     <div class="w-20 h-20 bg-gradient-to-tr from-amber-400 to-orange-500 rounded-full p-0.5 shadow-xl">
                         <img src="https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=150&h=150&q=80" alt="Avatar" class="w-full h-full object-cover rounded-full bg-[#060911]">
@@ -284,7 +284,7 @@ try {
                 <div class="flex gap-3 mt-4 text-gray-400 text-sm">
                     <a href="#" class="hover:text-amber-400 transition"><i class="fab fa-discord"></i></a>
                 </div>
-            </div>
+            </div>-->
         </div>
     </section>
 
