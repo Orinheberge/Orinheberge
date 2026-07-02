@@ -774,17 +774,107 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_sidebar.php';
          VUE CLIENTS
     ════════════════════════════════════════════════════ -->
     <?php elseif ($view === 'clients'): ?>
+
+    <!-- Modals par client (impersonate / changer email / changer mdp) -->
+    <?php foreach ($all_users as $u): ?>
+    <div id="modal-client-<?php echo $u['id']; ?>" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" style="backdrop-filter:blur(8px)">
+        <div class="card w-full max-w-md p-6 space-y-4">
+            <!-- Header -->
+            <div class="flex items-center justify-between mb-1">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-full bg-sky-500/15 flex items-center justify-center text-sky-400 font-black text-sm">
+                        <?php echo strtoupper(substr($u['pseudo'] ?: $u['firstname'], 0, 1)); ?>
+                    </div>
+                    <div>
+                        <div class="text-sm font-bold text-white"><?php echo htmlspecialchars($u['pseudo'] ?: $u['firstname'].' '.$u['lastname']); ?></div>
+                        <div class="text-xs text-gray-500"><?php echo htmlspecialchars($u['email']); ?> · #<?php echo $u['id']; ?></div>
+                    </div>
+                </div>
+                <button onclick="document.getElementById('modal-client-<?php echo $u['id']; ?>').classList.add('hidden')" class="text-gray-500 hover:text-white text-xl leading-none w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/5">&times;</button>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2 text-xs text-center">
+                <div class="rounded-lg p-2" style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06)">
+                    <div class="text-white font-bold text-base"><?php echo $u['server_count']; ?></div>
+                    <div class="text-gray-500">Serveurs</div>
+                </div>
+                <div class="rounded-lg p-2" style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06)">
+                    <div class="<?php echo $u['is_admin'] ? 'text-rose-400' : 'text-sky-400'; ?> font-bold text-sm"><?php echo $u['is_admin'] ? 'Admin' : 'Client'; ?></div>
+                    <div class="text-gray-500">Rôle</div>
+                </div>
+                <div class="rounded-lg p-2" style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06)">
+                    <div class="text-gray-300 font-bold text-sm"><?php echo $u['created_at'] ? date('d/m/y', strtotime($u['created_at'])) : '—'; ?></div>
+                    <div class="text-gray-500">Inscription</div>
+                </div>
+            </div>
+
+            <!-- Se connecter en tant que ce client -->
+            <?php if ($u['id'] !== (int)$_SESSION['user_id']): ?>
+            <form method="POST" action="/admin/?view=clients" onsubmit="return confirm('Se connecter en tant que <?php echo htmlspecialchars(addslashes($u['pseudo'] ?: $u['firstname'])); ?> ?')">
+                <input type="hidden" name="action" value="impersonate_user">
+                <input type="hidden" name="user_id" value="<?php echo $u['id']; ?>">
+                <button type="submit" class="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-sm transition"
+                    style="background:rgba(14,165,233,.12);border:1px solid rgba(14,165,233,.25);color:#0ea5e9;">
+                    <i class="fas fa-user-secret"></i> Se connecter en tant que ce client
+                </button>
+            </form>
+            <?php endif; ?>
+
+            <!-- Changer l'email -->
+            <div>
+                <div class="text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-2">Changer l'email</div>
+                <form method="POST" action="/admin/?view=clients" class="flex gap-2">
+                    <input type="hidden" name="action" value="change_user_email">
+                    <input type="hidden" name="user_id" value="<?php echo $u['id']; ?>">
+                    <input type="email" name="new_email" required placeholder="<?php echo htmlspecialchars($u['email']); ?>" class="flex-1 !py-2 !text-xs rounded-lg">
+                    <button type="submit" class="btn-action btn-blue whitespace-nowrap"><i class="fas fa-at"></i> Valider</button>
+                </form>
+            </div>
+
+            <!-- Changer le mot de passe -->
+            <div>
+                <div class="text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-2">Changer le mot de passe <span class="text-gray-600 normal-case font-normal">(site + panel)</span></div>
+                <form method="POST" action="/admin/?view=clients" class="flex gap-2">
+                    <input type="hidden" name="action" value="change_user_password">
+                    <input type="hidden" name="user_id" value="<?php echo $u['id']; ?>">
+                    <input type="text" name="new_password" required placeholder="Nouveau mot de passe…" minlength="6" class="flex-1 !py-2 !text-xs rounded-lg font-mono">
+                    <button type="submit" class="btn-action btn-orange whitespace-nowrap"><i class="fas fa-key"></i> Valider</button>
+                </form>
+                <p class="text-[10px] text-gray-600 mt-1">Un email sera envoyé au client avec son nouveau mot de passe.</p>
+            </div>
+
+            <!-- Autres actions -->
+            <?php if ($u['id'] !== (int)$_SESSION['user_id']): ?>
+            <div class="flex gap-2 pt-1">
+                <button onclick="document.getElementById('modal-client-<?php echo $u['id']; ?>').classList.add('hidden'); openEmail('<?php echo htmlspecialchars($u['email']); ?>')"
+                    class="flex-1 btn-action btn-sky justify-center py-2 rounded-xl text-xs">
+                    <i class="fas fa-envelope mr-1"></i> Envoyer un email
+                </button>
+                <form method="POST" action="/admin/?view=clients" class="flex-1"
+                    onsubmit="return confirmDel('Supprimer le compte #<?php echo $u['id']; ?> et tous ses serveurs ?')">
+                    <input type="hidden" name="action" value="delete_user">
+                    <input type="hidden" name="user_id" value="<?php echo $u['id']; ?>">
+                    <button type="submit" class="w-full btn-action btn-red justify-center py-2 rounded-xl text-xs">
+                        <i class="fas fa-trash mr-1"></i> Supprimer le compte
+                    </button>
+                </form>
+            </div>
+            <?php endif; ?>
+        </div>
+    </div>
+    <?php endforeach; ?>
+
     <div class="card overflow-hidden">
         <div class="px-5 py-4 border-b border-white/[0.05] flex items-center justify-between">
             <h2 class="text-sm font-bold text-white flex items-center gap-2"><i class="fas fa-users text-sky-400 text-xs"></i> Clients (<?php echo count($all_users); ?>)</h2>
+            <input type="text" id="client-search" onkeyup="filterClients()" placeholder="Rechercher…" class="!w-48 !py-1.5 !text-xs !rounded-lg !bg-white/5 !border-white/10">
         </div>
         <div class="overflow-x-auto">
-            <table class="w-full text-sm">
+            <table class="w-full text-sm" id="clients-table">
                 <thead>
                     <tr class="border-b border-white/5">
                         <th class="text-left px-6 py-3 text-xs text-gray-400 font-semibold uppercase tracking-wide">#</th>
                         <th class="text-left px-6 py-3 text-xs text-gray-400 font-semibold uppercase tracking-wide">Client</th>
-                        <th class="text-left px-6 py-3 text-xs text-gray-400 font-semibold uppercase tracking-wide">Email</th>
                         <th class="text-left px-6 py-3 text-xs text-gray-400 font-semibold uppercase tracking-wide">Serveurs</th>
                         <th class="text-left px-6 py-3 text-xs text-gray-400 font-semibold uppercase tracking-wide">Inscrit le</th>
                         <th class="text-left px-6 py-3 text-xs text-gray-400 font-semibold uppercase tracking-wide">Rôle</th>
@@ -793,7 +883,7 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_sidebar.php';
                 </thead>
                 <tbody>
                 <?php foreach ($all_users as $u): ?>
-                <tr>
+                <tr data-search="<?php echo strtolower(htmlspecialchars($u['pseudo'].' '.$u['firstname'].' '.$u['lastname'].' '.$u['email'])); ?>">
                     <td class="text-gray-500 text-xs"><?php echo $u['id']; ?></td>
                     <td>
                         <div class="flex items-center gap-2.5">
@@ -808,24 +898,24 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_sidebar.php';
                             </div>
                         </div>
                     </td>
-                    <td><span class="badge badge-blue"><?php echo $u['server_count']; ?> serveur(s)</span></td>
+                    <td><span class="badge badge-blue"><?php echo $u['server_count']; ?></span></td>
                     <td class="text-gray-500 text-xs"><?php echo $u['created_at'] ? date('d/m/Y', strtotime($u['created_at'])) : '—'; ?></td>
                     <td><span class="badge <?php echo $u['is_admin'] ? 'badge-rose' : 'badge-gray'; ?>"><?php echo $u['is_admin'] ? 'Admin' : 'Client'; ?></span></td>
                     <td>
                         <div class="flex items-center gap-1.5">
-                            <button onclick="openEmail('<?php echo htmlspecialchars($u['email']); ?>')" class="btn-action btn-sky"><i class="fas fa-envelope"></i> Email</button>
+                            <!-- Bouton Gérer → ouvre le modal -->
+                            <button onclick="document.getElementById('modal-client-<?php echo $u['id']; ?>').classList.remove('hidden')"
+                                class="btn-action btn-blue">
+                                <i class="fas fa-sliders-h"></i> Gérer
+                            </button>
                             <?php if ($u['id'] !== (int)$_SESSION['user_id']): ?>
+                            <!-- Toggle admin rapide -->
                             <form method="POST" action="/admin/?view=clients" style="display:inline">
                                 <input type="hidden" name="action" value="toggle_admin">
                                 <input type="hidden" name="user_id" value="<?php echo $u['id']; ?>">
-                                <button type="submit" class="btn-action <?php echo $u['is_admin'] ? 'btn-orange' : 'btn-blue'; ?>" title="<?php echo $u['is_admin'] ? 'Rétrograder' : 'Promouvoir admin'; ?>">
+                                <button type="submit" class="btn-action <?php echo $u['is_admin'] ? 'btn-orange' : 'btn-sky'; ?>" title="<?php echo $u['is_admin'] ? 'Rétrograder' : 'Promouvoir admin'; ?>">
                                     <i class="fas <?php echo $u['is_admin'] ? 'fa-user-minus' : 'fa-user-shield'; ?>"></i>
                                 </button>
-                            </form>
-                            <form method="POST" action="/admin/" onsubmit="return confirmDel('Supprimer #<?php echo $u['id']; ?> et ses serveurs ?')" style="display:inline">
-                                <input type="hidden" name="action" value="delete_user">
-                                <input type="hidden" name="user_id" value="<?php echo $u['id']; ?>">
-                                <button type="submit" class="btn-action btn-red"><i class="fas fa-trash"></i></button>
                             </form>
                             <?php endif; ?>
                         </div>
@@ -836,6 +926,14 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_sidebar.php';
             </table>
         </div>
     </div>
+    <script>
+    function filterClients() {
+        const q = document.getElementById('client-search').value.toLowerCase();
+        document.querySelectorAll('#clients-table tbody tr').forEach(tr => {
+            tr.style.display = tr.dataset.search.includes(q) ? '' : 'none';
+        });
+    }
+    </script>
 
     <!-- ═══════════════════════════════════════════════════
          VUE SERVEURS
