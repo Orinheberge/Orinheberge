@@ -180,7 +180,6 @@ function getCardStyle($tier_key) {
         .hero-glow {position:absolute;border-radius:50%;filter:blur(140px);pointer-events:none;animation:pulse-orb 8s ease-in-out infinite;z-index: 1;}
         @keyframes pulse-orb{0%,100%{opacity:.4;transform:translate(-50%, -50%) scale(1);}50%{opacity:.7;transform:translate(-50%, -50%) scale(1.1);}}
         
-        .offer-badge{position:absolute;top:.875rem;right:.875rem;z-index:10;padding:.2rem .7rem;border-radius:9999px;font-size:.65rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;}
     </style>
     <script>
         if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('/sw.js').catch(()=>{});});}
@@ -269,14 +268,6 @@ function getCardStyle($tier_key) {
             <?php endforeach; ?>
         </div>
     </header>
-    <section id="cat-view" class="py-20 px-6">
-        <div class="text-center mb-12">
-            <h2 class="text-4xl md:text-5xl font-black uppercase tracking-wider mb-3 gradient-text" id="cat-view-title"></h2>
-            <div class="h-1 w-20 bg-sky-500 mx-auto rounded-full"></div>
-        </div>
-        <div class="max-w-7xl mx-auto cat-grid" id="cat-view-grid"></div>
-    </section>
-
     <div id="all-sections">
     <?php foreach ($sections as $tier_key => $tier_data): ?>
         <?php if (empty($tier_data['offers'])) continue; ?>
