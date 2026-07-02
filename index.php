@@ -185,27 +185,6 @@ function getCardStyle($tier_key) {
     <script>
         if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('/sw.js').catch(()=>{});});}
         function toggleMenu(){document.getElementById('mobileMenu').classList.toggle('active');}
-        function filterCategory(id){
-            document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-            document.getElementById('tab-'+id).classList.add('active');
-            const cv=document.getElementById('cat-view');
-            const al=document.getElementById('all-sections');
-            if(!cv || !al) return;
-            if(id==='all'){cv.style.display='none';al.style.display='block';return;}
-            al.style.display='none';cv.style.display='block';
-            const labels={minecraft:'Minecraft',php:'Web / PHP',python:'Python',nodejs:'Node.js'};
-            document.getElementById('cat-view-title').textContent=labels[id]||id;
-            const grid=document.getElementById('cat-view-grid');
-            if(!grid) return;
-            const cards=Array.from(document.querySelectorAll('#all-sections .offer-card[data-category="'+id+'"]'));
-            grid.innerHTML='';
-            cards.forEach(c=>{
-                const cl=c.cloneNode(true);
-                cl.style.display='flex';
-                grid.appendChild(cl);
-            });
-        }
-        window.addEventListener('DOMContentLoaded',()=>filterCategory('all'));
     </script>
 </head>
 <body class="text-gray-200 font-sans min-h-screen flex flex-col antialiased">
@@ -257,6 +236,46 @@ function getCardStyle($tier_key) {
     </section>
 
     <section id="offres" class="py-20 px-6 max-w-7xl mx-auto scroll-mt-10">
+        <script>
+const categoryLabels = <?php echo json_encode(array_map(fn($cat) => t($cat['name_key']), $dynamic_categories), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+
+function filterCategory(catId) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    if(document.getElementById('tab-' + catId)) {
+        document.getElementById('tab-' + catId).classList.add('active');
+    }
+    
+    const catView = document.getElementById('cat-view');
+    const catTitle = document.getElementById('cat-view-title');
+    const catGrid = document.getElementById('cat-view-grid');
+    const allSections = document.getElementById('all-sections');
+    
+    if (catId === 'all') { 
+        catView.style.display = 'none'; 
+        allSections.style.display = 'block'; 
+        return; 
+    }
+    
+    allSections.style.display = 'none'; 
+    catView.style.display = 'block';
+    
+    catTitle.textContent = categoryLabels[catId] || catId.toUpperCase();
+    
+    const cards = Array.from(document.querySelectorAll('#all-sections .offer-card[data-category="' + catId + '"]'));
+    
+    catGrid.innerHTML = '';
+    if (cards.length === 0) {
+        catGrid.innerHTML = '<div class="col-span-full py-12 text-center text-gray-500 text-sm">Aucune offre disponible pour le moment dans cette catégorie.</div>';
+    } else {
+        cards.forEach(card => { 
+            const clone = card.cloneNode(true); 
+            clone.style.display = 'flex'; 
+            catGrid.appendChild(clone); 
+        });
+    }
+}
+window.addEventListener('DOMContentLoaded', () => filterCategory('all'));
+</script>
     <section id="cat-view" class="py-20 px-6">
         <div class="text-center mb-12">
             <h2 class="text-4xl md:text-5xl font-black uppercase tracking-wider mb-3 gradient-text" id="cat-view-title"></h2>
@@ -509,48 +528,6 @@ function getCardStyle($tier_key) {
     </section>
 
 </main>
-
-<script>
-const categoryLabels = <?php echo json_encode(array_map(fn($cat) => t($cat['name_key']), $dynamic_categories), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
-
-function filterCategory(catId) {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    if(document.getElementById('tab-' + catId)) {
-        document.getElementById('tab-' + catId).classList.add('active');
-    }
-    
-    const catView = document.getElementById('cat-view');
-    const catTitle = document.getElementById('cat-view-title');
-    const catGrid = document.getElementById('cat-view-grid');
-    const allSections = document.getElementById('all-sections');
-    
-    if (catId === 'all') { 
-        catView.style.display = 'none'; 
-        allSections.style.display = 'block'; 
-        return; 
-    }
-    
-    allSections.style.display = 'none'; 
-    catView.style.display = 'block';
-    
-    catTitle.textContent = categoryLabels[catId] || catId.toUpperCase();
-    
-    const cards = Array.from(document.querySelectorAll('#all-sections .offer-card[data-category="' + catId + '"]'));
-    
-    catGrid.innerHTML = '';
-    if (cards.length === 0) {
-        catGrid.innerHTML = '<div class="col-span-full py-12 text-center text-gray-500 text-sm">Aucune offre disponible pour le moment dans cette catégorie.</div>';
-    } else {
-        cards.forEach(card => { 
-            const clone = card.cloneNode(true); 
-            clone.style.display = 'flex'; 
-            catGrid.appendChild(clone); 
-        });
-    }
-}
-window.addEventListener('DOMContentLoaded', () => filterCategory('all'));
-</script>
-
 
 <?php include __DIR__ . '/inc/footer.php'; ?>
 
