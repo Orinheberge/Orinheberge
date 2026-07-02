@@ -474,16 +474,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'chang
             $u_row->execute([$uid]);
             $u_data = $u_row->fetch();
             if ($u_data) {
-                $search = pterodactylApi($panel_url, $headers_admin, 'users?filter[email]=' . urlencode($u_data['email']));
-                $panel_uid = $search['data'][0]['attributes']['id'] ?? null;
+                // Chercher l'utilisateur sur le panel
+                $ch = curl_init($panel_url . '/api/application/users?filter[email]=' . urlencode($u_data['email']));
+                curl_setopt_array($ch, [CURLOPT_HTTPHEADER => $headers_admin, CURLOPT_RETURNTRANSFER => true, CURLOPT_SSL_VERIFYPEER => false, CURLOPT_TIMEOUT => 10]);
+                $res = curl_exec($ch); curl_close($ch);
+                $panel_data = $res ? json_decode($res, true) : null;
+                $panel_uid  = $panel_data['data'][0]['attributes']['id'] ?? null;
                 if ($panel_uid) {
-                    pterodactylApi($panel_url, $headers_admin, 'users/' . $panel_uid, [
+                    adminApiCall($panel_url, $headers_admin, 'users/' . $panel_uid, 'PATCH', [
                         'email'      => $u_data['email'],
                         'username'   => $u_data['pseudo'] ?? ('user' . $uid),
                         'first_name' => $u_data['firstname'] ?? 'User',
                         'last_name'  => $u_data['lastname']  ?? 'Account',
                         'password'   => $new_pass,
-                    ], 'PATCH');
+                    ]);
                     $pdo->prepare('UPDATE users SET panel_password=? WHERE id=?')->execute([$new_pass, $uid]);
                 }
             }
