@@ -257,55 +257,6 @@ function getCardStyle($tier_key) {
     </section>
 
     <section id="offres" class="py-20 px-6 max-w-7xl mx-auto scroll-mt-10">
-        <div class="text-center mb-10">
-            <h2 class="text-3xl md:text-4xl font-black mb-3">Choisissez votre <span class="gradient-text">Environnement</span></h2>
-            <p class="text-gray-500 text-sm">Déployez votre projet instantanément sur l'une de nos configurations.</p>
-        </div>
-        <div id="cat-view">
-            <h3 class="text-xl font-bold mb-6 flex items-center gap-2"><span class="h-2 w-2 rounded-full bg-sky-400"></span> Offres <span id="cat-view-title" class="text-sky-400"></span></h3>
-            <div id="cat-view-grid" class="grid grid-cols-1 md:grid-cols-3 gap-6"></div>
-        </div>
-<script>
-const categoryLabels = <?php echo json_encode(array_map(fn($cat) => t($cat['name_key']), $dynamic_categories), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
-
-function filterCategory(catId) {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    if(document.getElementById('tab-' + catId)) {
-        document.getElementById('tab-' + catId).classList.add('active');
-    }
-    
-    const catView = document.getElementById('cat-view');
-    const catTitle = document.getElementById('cat-view-title');
-    const catGrid = document.getElementById('cat-view-grid');
-    const allSections = document.getElementById('all-sections');
-    
-    if (catId === 'all') { 
-        catView.style.display = 'none'; 
-        allSections.style.display = 'block'; 
-        return; 
-    }
-    
-    allSections.style.display = 'none'; 
-    catView.style.display = 'block';
-    
-    catTitle.textContent = categoryLabels[catId] || catId.toUpperCase();
-    
-    const cards = Array.from(document.querySelectorAll('#all-sections .offer-card[data-category="' + catId + '"]'));
-    
-    catGrid.innerHTML = '';
-    if (cards.length === 0) {
-        catGrid.innerHTML = '<div class="col-span-full py-12 text-center text-gray-500 text-sm">Aucune offre disponible pour le moment dans cette catégorie.</div>';
-    } else {
-        cards.forEach(card => { 
-            const clone = card.cloneNode(true); 
-            clone.style.display = 'flex'; 
-            catGrid.appendChild(clone); 
-        });
-    }
-}
-window.addEventListener('DOMContentLoaded', () => filterCategory('all'));
-</script>
-
  <header class="text-center py-16 px-6 relative overflow-hidden">
         <h1 class="text-5xl md:text-7xl font-black tracking-tight leading-none gradient-text"><?php echo t('offers.title'); ?></h1>
         
@@ -501,6 +452,7 @@ window.addEventListener('DOMContentLoaded', () => filterCategory('all'));
         </div>
     </section>
 
+
     <section class="py-20 px-6 max-w-7xl mx-auto">
         <div class="text-center mb-12">
             <h2 class="text-3xl md:text-4xl font-black mb-3">Pourquoi <span class="gradient-text">OrinHeberge</span> ?</h2>
@@ -570,6 +522,48 @@ window.addEventListener('DOMContentLoaded', () => filterCategory('all'));
     </section>
 
 </main>
+
+<script>
+const categoryLabels = <?php echo json_encode(array_map(fn($cat) => t($cat['name_key']), $dynamic_categories), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+
+function filterCategory(catId) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    if(document.getElementById('tab-' + catId)) {
+        document.getElementById('tab-' + catId).classList.add('active');
+    }
+    
+    const catView = document.getElementById('cat-view');
+    const catTitle = document.getElementById('cat-view-title');
+    const catGrid = document.getElementById('cat-view-grid');
+    const allSections = document.getElementById('all-sections');
+    
+    if (catId === 'all') { 
+        catView.style.display = 'none'; 
+        allSections.style.display = 'block'; 
+        return; 
+    }
+    
+    allSections.style.display = 'none'; 
+    catView.style.display = 'block';
+    
+    catTitle.textContent = categoryLabels[catId] || catId.toUpperCase();
+    
+    const cards = Array.from(document.querySelectorAll('#all-sections .offer-card[data-category="' + catId + '"]'));
+    
+    catGrid.innerHTML = '';
+    if (cards.length === 0) {
+        catGrid.innerHTML = '<div class="col-span-full py-12 text-center text-gray-500 text-sm">Aucune offre disponible pour le moment dans cette catégorie.</div>';
+    } else {
+        cards.forEach(card => { 
+            const clone = card.cloneNode(true); 
+            clone.style.display = 'flex'; 
+            catGrid.appendChild(clone); 
+        });
+    }
+}
+window.addEventListener('DOMContentLoaded', () => filterCategory('all'));
+</script>
+
 
 <?php include __DIR__ . '/inc/footer.php'; ?>
 
