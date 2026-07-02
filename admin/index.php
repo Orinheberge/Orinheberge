@@ -177,7 +177,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // Supprimer un serveur spécifique
+    // Supprimer un serveur définitivement (immédiat, sans backup)
     if ($action === 'delete_server') {
         $uuid      = trim($_POST['server_uuid'] ?? '');
         $server_id = (int)($_POST['server_id'] ?? 0);
@@ -185,22 +185,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $srv_stmt = $pdo->prepare('SELECT o.*, u.email AS user_email FROM orders o LEFT JOIN users u ON u.id=o.user_id WHERE o.uuid=? LIMIT 1');
             $srv_stmt->execute([$uuid]);
             $server = $srv_stmt->fetch();
-            $backup_uuid = $server ? requestServerBackup($panel_url, $headers_client, $server) : null;
-            $delete_after = date('Y-m-d H:i:s', strtotime('+15 days'));
-            $pdo->prepare("
-                UPDATE orders
-                SET status='pending_deletion',
-                    deletion_reason='admin_delete',
-                    deletion_requested_at=NOW(),
-                    backup_requested_at=NOW(),
-                    backup_uuid=?,
-                    delete_after=?
-                WHERE uuid=?
-            ")->execute([$backup_uuid, $delete_after, $uuid]);
-            if ($server && !empty($server['user_email'])) {
-                sendServerDeletionScheduledEmail($server, $delete_after, $backup_uuid);
+
+            // Supprimer sur le panel si on a l'ID
+            if ($server_id) {
+                adminApiCall($panel_url, $headers_admin, 'servers/' . $server_id, 'DELETE');
             }
-            $flash = adminFlash('ok', 'Suppression programmee dans 15 jours. Backup demande et email client envoye si SMTP disponible.');
+
+            // Supprimer de la BDD
+            $pdo->prepare('DELETE FROM orders WHERE uuid=?')->execute([$uuid]);
+
+            // Email client
+            if ($server && !empty($server['user_email'])) {
+                sendServerPermanentDeletionEmail($server);
+            }
+
+            $flash = adminFlash('ok', 'Serveur supprimé définitivement et email client envoyé.');
         }
     }
 
