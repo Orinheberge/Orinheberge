@@ -759,6 +759,30 @@ $paypalme_url = getPaypalMeLink($paypalme_username, $final_price);
             </div>
             <?php endif; ?>
 
+            <!-- Formulaire code promo -->
+            <div class="mb-5">
+                <?php if ($applied_promo): ?>
+                <div class="flex items-center justify-between gap-2 bg-white/[0.02] border border-white/[0.07] rounded-xl px-4 py-3">
+                    <span class="text-sm text-gray-300">
+                        <i class="fas fa-tag text-green-400 mr-1"></i>
+                        Code <strong class="text-white"><?= htmlspecialchars($applied_promo['code'], ENT_QUOTES, 'UTF-8') ?></strong> appliqué
+                    </span>
+                    <a href="?plan=<?= urlencode($bundle_param) ?>&clear_promo=1" class="text-xs text-red-400 hover:text-red-300 transition">
+                        <i class="fas fa-times"></i> Retirer
+                    </a>
+                </div>
+                <?php else: ?>
+                <form method="POST" action="?plan=<?= urlencode($bundle_param) ?>" class="flex gap-2">
+                    <input type="text" name="promo_code" placeholder="Code promo (optionnel)"
+                           class="flex-1 bg-white/[0.02] border border-white/[0.07] rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-sky-500/40 transition">
+                    <button type="submit"
+                            class="bg-sky-600/20 hover:bg-sky-600/40 border border-sky-500/30 text-sky-400 px-5 py-3 rounded-xl text-sm font-semibold transition">
+                        Appliquer
+                    </button>
+                </form>
+                <?php endif; ?>
+            </div>
+
             <div class="space-y-3">
                 <a href="<?= htmlspecialchars($stripe_url, ENT_QUOTES, 'UTF-8') ?>"
                    class="flex items-center justify-center gap-3 bg-[#635BFF] hover:bg-[#4F46E5] text-white p-4 rounded-xl font-bold transition shadow-lg transform hover:-translate-y-0.5">
