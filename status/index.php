@@ -16,7 +16,7 @@ $is_logged_in = isset($_SESSION['user_id']);
 $my_services = [
     'Site Web'              => 'heberge.orinstone.deepstone.fr',
     'Panel de gestion'      => 'panel.orinstone.deepstone.fr',
-    'Panel de Plesk'      => 'plesk.orinstone.deepstone.fr',
+    'Panel de Plesk'        => 'plesk.orinstone.deepstone.fr',
     'phpMyAdmin'            => 'php.orinstone.deepstone.fr',
     'Node OrinStone'        => 'node.orinstone.deepstone.fr',
     'Node DeepStone Global' => 'node.deepstone.fr'
@@ -33,14 +33,12 @@ foreach ($my_services as $name => $host) {
     }
 }
 
-// Fonction utilitaire pour formater la date avec les mois traduits
 function getLocalizedDate($date_str, $lang) {
     $timestamp = strtotime($date_str);
     $day = date('d', $timestamp);
-    $month_lower = strtolower(date('M', $timestamp)); // ex: jan, feb, mar...
+    $month_lower = strtolower(date('M', $timestamp));
     $year = date('Y', $timestamp);
     
-    // Clé de traduction correspondante (ex: month.jan)
     $month_translated = t('month.' . $month_lower);
     
     if ($lang === 'en') {
@@ -49,8 +47,6 @@ function getLocalizedDate($date_str, $lang) {
         return $day . ' ' . $month_translated . ' ' . $year;
     }
 }
-
-include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php';
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo $lang; ?>">
@@ -61,9 +57,7 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php';
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root {
-            --sidebar: 240px;
-        }
+        :root { --sidebar: 240px; }
         * { box-sizing: border-box; }
         body {
             background-color: #0b0f19;
@@ -72,7 +66,7 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php';
             min-height: 100vh;
         }
         
-        /* Sidebar layout styles matching both files */
+        /* Styles de la Sidebar commune */
         .sidebar {
             position: fixed; top: 0; left: 0; width: var(--sidebar); height: 100vh;
             background: #111318; border-right: 1px solid rgba(255,255,255,.06);
@@ -92,15 +86,15 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php';
         .nav-separator { height: 1px; background: rgba(255,255,255,.05); margin: .5rem .75rem; }
         .sidebar-footer { padding: .875rem 1rem; border-top: 1px solid rgba(255,255,255,.05); }
 
-        /* Main structure layout */
+        /* Conteneur principal */
         .main-content { margin-left: var(--sidebar); min-height: 100vh; display: flex; flex-direction: column; }
         .topbar { background: #111318; border-bottom: 1px solid rgba(255,255,255,.06); padding: .875rem 1.75rem; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 30; }
         
-        /* UI Components */
+        /* Effets visuels */
         .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
         .gradient-text { background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         
-        /* Tooltip system */
+        /* Système d'infobulles (Tooltip) */
         .tooltip { position: relative; }
         .tooltip .tooltip-text {
             visibility: hidden; position: absolute; bottom: 130%; left: 50%; transform: translateX(-50%);
@@ -109,26 +103,31 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php';
         }
         .tooltip:hover .tooltip-text { visibility: visible; opacity: 1; bottom: 145%; }
 
-        /* Mobile adaptation */
+        /* Overlay mobile */
+        .mobile-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 39; }
+
         @media(max-width:768px){
             .sidebar { transform: translateX(-100%); transition: transform .25s; }
             .sidebar.open { transform: translateX(0); }
+            .mobile-overlay.open { display: block; }
             .main-content { margin-left: 0; }
         }
     </style>
 </head>
-<body>
+<body class="text-gray-200 min-h-screen">
 
     <?php include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php'; ?>
+    <div id="mobileOverlay" class="mobile-overlay" onclick="toggleMenu()"></div>
 
     <div class="main-content">
         
         <header class="topbar md:hidden flex items-center justify-between px-4 py-3">
-            <button onclick="toggleSidebar()" class="text-gray-400 hover:text-white text-xl">
+            <button onclick="toggleMenu()" class="text-gray-400 hover:text-white text-xl">
                 <i class="fas fa-bars"></i>
             </button>
             <span class="font-bold text-white text-sm">OrinHeberge Status</span>
-            <div class="w-5"></div> </header>
+            <div class="w-5"></div>
+        </header>
 
         <main class="max-w-4xl mx-auto w-full px-4 py-12 flex-grow">
             
@@ -150,7 +149,9 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php';
                             if ((int)$online === 1) $days_online++;
                         }
                         $uptime_pct = round(($days_online / $days_recorded) * 100, 2);
-                    } else { $uptime_pct = 100.00; }
+                    } else {
+                        $uptime_pct = 100.00;
+                    }
 
                     $today_str = date('Y-m-d');
                     $current_online = isset($status_data[$name][$today_str]) ? (int)$status_data[$name][$today_str] : 1;
@@ -217,9 +218,11 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php';
     </div>
 
     <script>
-        function toggleSidebar() {
+        function toggleMenu() {
             const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('mobileOverlay');
             sidebar.classList.toggle('open');
+            overlay.classList.toggle('open');
         }
     </script>
 </body>
