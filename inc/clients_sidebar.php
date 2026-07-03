@@ -9,6 +9,10 @@ function cs_active(string $path): string {
     return str_starts_with($current_path, $path) ? 'active' : '';
 }
 ?>
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+<script src="https://cdn.tailwindcss.com"></script>
 <aside id="sidebar" class="sidebar">
     <div class="sidebar-logo">
         <a href="/" class="flex items-center gap-2.5">
@@ -68,7 +72,7 @@ function cs_active(string $path): string {
     <div class="sidebar-footer">
         <?php if (!empty($_SESSION['is_admin'])): ?>
         <a href="/admin/" class="nav-item mb-1" style="color:#fb923c;border-color:rgba(251,146,60,.15);background:rgba(251,146,60,.05);">
-            <i class="fas fa-shield-halved icon"></i> Administration
+            <i class="fas fa-user-tie"></i> Administration
         </a>
         <?php endif; ?>
         <a href="/profil/" class="flex items-center gap-2.5 group mb-2 px-1 py-1 rounded-xl hover:bg-white/5 transition">

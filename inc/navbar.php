@@ -9,6 +9,10 @@
  */
 $active_nav = $active_nav ?? '';
 ?>
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+<script src="https://cdn.tailwindcss.com"></script>
 <nav class="sticky top-0 z-50 glass p-5 border-b border-white/5">
     <?php if (!empty($_SESSION['admin_impersonating'])): ?>
     <div style="background:rgba(244,63,94,.15);border-bottom:1px solid rgba(244,63,94,.3);" class="px-5 py-2 flex items-center justify-between text-xs">
@@ -82,7 +86,7 @@ $active_nav = $active_nav ?? '';
                         
                         <?php if (!empty($_SESSION['is_admin'])): ?>
                             <a href="/admin/" class="flex items-center gap-2 px-4 py-2 text-sm text-amber-400 hover:bg-white/5 hover:text-amber-300">
-                                <i class="fas fa-shield-halved text-sky-400 w-4"></i> Administration
+                                <i class="fas fa-user-tie"></i> Administration
                             </a>
                         <?php endif; ?>
                         <hr class="my-2 border-white/10">
@@ -140,7 +144,7 @@ $active_nav = $active_nav ?? '';
             </a>
             <?php if (!empty($_SESSION['is_admin'])): ?>
                 <a href="/admin/" class="block py-2 px-4 rounded-xl flex items-center gap-2 text-sm font-medium bg-amber-600/10 border border-amber-500/30 text-amber-400">
-                    <i class="fas fa-shield-halved w-5 text-center"></i> Administration
+                    <i class="fas fa-user-tie"></i> Administration
                 </a>
             <?php endif; ?>
             <a href="/logout/" class="block py-2 px-4 rounded-xl flex items-center gap-2 text-sm font-medium bg-red-600/10 border border-red-500/30 text-red-400">

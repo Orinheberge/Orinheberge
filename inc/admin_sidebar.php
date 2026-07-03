@@ -12,6 +12,8 @@ $_servers_count  = isset($all_servers) ? count($all_servers) : ($pdo->query('SEL
 $_tickets_count  = isset($open_tickets) ? $open_tickets      : ($pdo->query("SELECT COUNT(*) FROM support_tickets WHERE status != 'Fermé'")->fetchColumn());
 ?>
 
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
 <script src="https://cdn.tailwindcss.com"></script>
 <aside id="sidebar" class="sidebar">
   <div class="sidebar-logo">
