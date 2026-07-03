@@ -31,7 +31,6 @@ function ensureCartTable(PDO $pdo): void {
     }
 
     try {
-        // Triple guillemets """ n'existent pas en PHP -> erreur fatale corrigée
         $pdo->exec("
             CREATE TABLE IF NOT EXISTS carts (
                 id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -151,7 +150,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         syncCartWithStorage($pdo, $_SESSION['cart']);
     } elseif ($action === 'apply_promo') {
         $promo_code = trim($_POST['promo_code'] ?? '');
-        $_SESSION['promo_code'] = $promo_code;
+        if ($promo_code === '') {
+            unset($_SESSION['promo_code']);
+        } else {
+            $_SESSION['promo_code'] = $promo_code;
+        }
+        syncCartWithStorage($pdo, $_SESSION['cart']);
+    } elseif ($action === 'clear_promo') {
+        unset($_SESSION['promo_code']);
         syncCartWithStorage($pdo, $_SESSION['cart']);
     } elseif ($action === 'checkout') {
         try {
@@ -177,6 +183,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // il crée immédiatement les serveurs des offres gratuites du bundle,
             // et démarre le paiement Stripe pour le reste. On ne fait plus
             // aucun traitement ici, on transmet juste tout le panier.
+            // Le code promo (s'il y en a un en session) est repris tel quel
+            // par order.php, qui applique exactement la même logique promo
+            // (checkPromoCode + applyPromo) que celle utilisée ici pour l'aperçu.
             $bundle_items = [];
             $bundle_slugs = [];
             foreach ($_SESSION['cart'] as $slug => $item) {
@@ -224,29 +233,39 @@ foreach ($cart as $item) {
     $subtotal += (float)$item['price'] * (int)$item['quantity'];
 }
 
-$promo_code = trim($_SESSION['promo_code'] ?? '');
-$promo = null;
-$promo_error = null;
-$promo_amount = 0;
-$discount_label = '';
+/*
+|--------------------------------------------------------------------------
+| LOGIQUE CODE PROMO — alignée sur /shop/order/ (mêmes fonctions promo.php)
+|--------------------------------------------------------------------------
+| Le panier n'affiche qu'un APERÇU du prix : le calcul définitif et la
+| création des commandes se font dans order.php, qui applique exactement
+| la même règle (code manuel en session, sinon promo automatique la plus
+| avantageuse) via getActiveAutoPromo() / checkPromoCode() / applyPromo().
+*/
+
+$promo_code   = trim($_SESSION['promo_code'] ?? '');
+$active_promo = getActiveAutoPromo($promos);
+$applied_promo = null;
+$promo_error   = null;
 
 if ($promo_code !== '') {
-    $promo = checkPromoCode($promos, $promo_code, 'cart');
-    if ($promo) {
-        $promo_amount = $promo['type'] === 'percent'
-            ? round($subtotal * $promo['discount'] / 100, 2)
-            : min((float)$promo['discount'], $subtotal);
-        $discount_label = $promo['type'] === 'percent'
-            ? '-' . $promo['discount'] . '%'
-            : '-' . number_format($promo['discount'], 2, '.', '') . '€';
-    } else {
+    $applied_promo = checkPromoCode($promos, $promo_code, 'cart');
+    if (!$applied_promo) {
         $promo_error = 'Code promo invalide ou expiré.';
     }
 }
 
+$promo = $applied_promo ?? $active_promo;
+$prices = $promo ? applyPromo((float)$subtotal, $promo) : [
+    'original_price' => (float)$subtotal,
+    'reduction'       => 0,
+    'final_price'     => (float)$subtotal,
+    'label'           => null,
+];
+
 $shipping = 0;
-$discount_amount = min($promo_amount, max(0, $subtotal));
-$total = max(0.50, $subtotal - $discount_amount + $shipping);
+$discount_amount = $prices['reduction'];
+$total = $prices['final_price'] + $shipping;
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -382,34 +401,56 @@ $total = max(0.50, $subtotal - $discount_amount + $shipping);
                                 <span>Livraison</span>
                                 <span class="text-emerald-400">Gratuite</span>
                             </div>
+
+                            <?php if ($promo && $discount_amount > 0): ?>
+                            <div class="flex items-center justify-between">
+                                <span>Réduction <?= $applied_promo ? '(code)' : '(auto)' ?></span>
+                                <span class="text-emerald-400">-<?= number_format($discount_amount, 2, ',', ' ') ?> €</span>
+                            </div>
+                            <?php endif; ?>
+
                             <div class="border-t border-white/10 pt-3 mt-3 flex items-center justify-between text-base font-semibold text-white">
                                 <span>Total</span>
                                 <span><?= number_format($total, 2, ',', ' ') ?> €</span>
                             </div>
                         </div>
 
-                        <form method="post" class="mt-6 space-y-3">
-                            <input type="hidden" name="action" value="apply_promo">
+                        <div class="mt-6 space-y-3">
                             <label for="promo_code" class="text-sm font-medium text-gray-300">Code promo</label>
-                            <div class="flex gap-2">
+
+                            <?php if ($applied_promo): ?>
+                            <div class="flex items-center justify-between gap-2 rounded-2xl border border-white/10 bg-[#0d1321] px-3 py-2">
+                                <span class="text-sm text-gray-300">
+                                    <i class="fas fa-tag text-emerald-400 mr-1"></i>
+                                    <strong class="text-white"><?= htmlspecialchars($applied_promo['code'], ENT_QUOTES) ?></strong>
+                                </span>
+                                <form method="post">
+                                    <input type="hidden" name="action" value="clear_promo">
+                                    <button type="submit" class="text-xs text-red-400 transition hover:text-red-300">
+                                        <i class="fas fa-times"></i> Retirer
+                                    </button>
+                                </form>
+                            </div>
+                            <?php else: ?>
+                            <form method="post" class="flex gap-2">
+                                <input type="hidden" name="action" value="apply_promo">
                                 <input id="promo_code" name="promo_code" value="<?= htmlspecialchars($promo_code, ENT_QUOTES) ?>" placeholder="Ex. AMOUR14" class="w-full rounded-2xl border border-white/10 bg-[#0d1321] px-3 py-2 text-sm text-white outline-none ring-0">
                                 <button type="submit" class="rounded-2xl border border-sky-500/20 bg-sky-500/10 px-3 py-2 text-sm font-semibold text-sky-300 transition hover:bg-sky-500/20">
                                     Appliquer
                                 </button>
-                            </div>
+                            </form>
+                            <?php endif; ?>
+
                             <?php if ($promo_error): ?>
                                 <p class="text-sm text-red-400"><?= htmlspecialchars($promo_error, ENT_QUOTES) ?></p>
                             <?php elseif ($promo): ?>
-                                <p class="text-sm text-emerald-400">Promo appliquée : <?= htmlspecialchars($promo['name'], ENT_QUOTES) ?></p>
+                                <p class="text-sm text-emerald-400">
+                                    Promo appliquée : <?= htmlspecialchars($promo['name'], ENT_QUOTES) ?>
+                                    (<?= htmlspecialchars($prices['label'], ENT_QUOTES) ?>)
+                                    <?= $applied_promo ? '' : ' — automatique' ?>
+                                </p>
                             <?php endif; ?>
-                        </form>
-
-                        <?php if ($promo && $discount_amount > 0): ?>
-                            <div class="mt-4 flex items-center justify-between text-sm text-gray-300">
-                                <span>Réduction</span>
-                                <span class="text-emerald-400">-<?= number_format($discount_amount, 2, ',', ' ') ?> €</span>
-                            </div>
-                        <?php endif; ?>
+                        </div>
 
                         <div class="mt-6 rounded-2xl border border-sky-500/20 bg-sky-500/10 p-4 text-sm text-sky-300">
                             <i class="fas fa-info-circle mr-2"></i> Le paiement sera poursuivi depuis la suite du tunnel de commande.
