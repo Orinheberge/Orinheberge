@@ -9,7 +9,7 @@ if (!isset($_SESSION['user_id'])) {
 
 // ─── Config centrale depuis BDD ──────────────────────────────
 require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/db.php';
-require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/api/facture.php'; // ✅ Fonction createInvoice()
+require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/api/Facture.php'; // ✅ Fonction createInvoice()
 require_once __DIR__ . '/lib/stripe/stripe.php';
 require_once __DIR__ . '/lib/paypal/paypal.php';
 require_once __DIR__ . '/lib/promo/promo.php';
