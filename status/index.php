@@ -1,3 +1,57 @@
+<?php
+session_start();
+require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/lang.php';
+
+$db_config = ['host' => 'localhost', 'name' => 's43_orinheberge', 'user' => 'root', 'pass' => '1504'];
+try {
+    $pdo = new PDO("mysql:host={$db_config['host']};dbname={$db_config['name']};charset=utf8mb4", $db_config['user'], $db_config['pass'], [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+    ]);
+} catch (Exception $e) {
+    die('Erreur serveur.');
+}
+
+$is_logged_in = isset($_SESSION['user_id']);
+
+$my_services = [
+    'Site Web'              => 'heberge.orinstone.deepstone.fr',
+    'Panel de gestion'      => 'panel.orinstone.deepstone.fr',
+    'Panel de Plesk'      => 'plesk.orinstone.deepstone.fr',
+    'phpMyAdmin'            => 'php.orinstone.deepstone.fr',
+    'Node OrinStone'        => 'node.orinstone.deepstone.fr',
+    'Node DeepStone Global' => 'node.deepstone.fr'
+];
+
+$history_days = 90;
+$status_data  = [];
+
+foreach ($my_services as $name => $host) {
+    $stmt = $pdo->prepare("SELECT check_date, is_online FROM service_uptime WHERE service_name = ? AND check_date >= DATE_SUB(CURDATE(), INTERVAL ? DAY) ORDER BY check_date ASC");
+    $stmt->execute([$name, $history_days]);
+    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+        $status_data[$name][$row['check_date']] = $row['is_online'];
+    }
+}
+
+// Fonction utilitaire pour formater la date avec les mois traduits
+function getLocalizedDate($date_str, $lang) {
+    $timestamp = strtotime($date_str);
+    $day = date('d', $timestamp);
+    $month_lower = strtolower(date('M', $timestamp)); // ex: jan, feb, mar...
+    $year = date('Y', $timestamp);
+    
+    // Clé de traduction correspondante (ex: month.jan)
+    $month_translated = t('month.' . $month_lower);
+    
+    if ($lang === 'en') {
+        return $month_translated . ' ' . $day . ', ' . $year;
+    } else {
+        return $day . ' ' . $month_translated . ' ' . $year;
+    }
+}
+
+include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php';
+?>
 <!DOCTYPE html>
 <html lang="<?php echo $lang; ?>">
 <head>
