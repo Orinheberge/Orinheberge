@@ -206,7 +206,7 @@ function toggleSidebar(){document.getElementById('sidebar').classList.toggle('op
         <a href="<?php echo htmlspecialchars($phpmyadmin_url); ?>" target="_blank" class="qlink"><div class="qlink-icon bg-sky-500/15"><i class="fas fa-database text-sky-400"></i></div><div><div class="text-xs font-semibold text-white">phpMyAdmin</div><div class="text-[10px] text-gray-500">Base de données</div></div></a>
         <a href="/client/billing/" class="qlink"><div class="qlink-icon bg-emerald-500/15"><i class="fas fa-file-invoice-dollar text-emerald-400"></i></div><div><div class="text-xs font-semibold text-white">Facturation</div><div class="text-[10px] text-gray-500">Factures & reçus</div></div></a>
         <?php if(!empty($_SESSION['is_admin'])): ?>
-        <a href="/admin/" class="qlink" style="border-color:rgba(251,146,60,.2)"><div class="qlink-icon bg-orange-500/15"><i class="fas fa-user-tie"></i></div><div><div class="text-xs font-semibold text-orange-400"></div><div class="text-[10px] text-gray-500">Panel admin</div></div></a>
+        <a href="/admin/" class="qlink" style="border-color:rgba(251,146,60,.2)"><div class="qlink-icon bg-orange-500/15"><i class="fas fa-user-tie"></i></div><div><div class="text-xs font-semibold text-orange-400"><div class="text-xs font-semibold text-white">Administration</div></div><div class="text-[10px] text-gray-500">Panel admin</div></div></a>
         <?php endif; ?>
       </div>
 
