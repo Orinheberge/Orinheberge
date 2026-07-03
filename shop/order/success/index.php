@@ -8,10 +8,12 @@ $email      = $_SESSION['success_email']           ?? '—';
 $offer      = $_SESSION['success_offer']           ?? '—';
 $panel_pass = $_SESSION['success_panel_password']  ?? null;
 $orders     = $_SESSION['success_orders']          ?? []; // multi-serveurs (bundle payant), vide sinon
+$invoice_id = $_SESSION['success_invoice_id']      ?? null; // 🔵 AJOUT : ID de la facture
 
 unset(
     $_SESSION['success_order_id'], $_SESSION['success_email'], $_SESSION['success_server_id'],
-    $_SESSION['success_offer'], $_SESSION['success_panel_password'], $_SESSION['success_orders']
+    $_SESSION['success_offer'], $_SESSION['success_panel_password'], $_SESSION['success_orders'],
+    $_SESSION['success_invoice_id'] // 🔵 AJOUT : nettoyage
 );
 $is_logged_in = true;
 ?>
@@ -56,11 +58,26 @@ $is_logged_in = true;
       <p><span class="text-sky-400 font-bold">● <?php echo t('order.label_offer'); ?></span> <?php echo htmlspecialchars($offer,ENT_QUOTES,'UTF-8'); ?></p>
       <?php endif; ?>
       <p><span class="text-purple-400 font-bold">● <?php echo t('order.label_email'); ?></span> <?php echo htmlspecialchars($email,ENT_QUOTES,'UTF-8'); ?></p>
+      
+      <?php if ($invoice_id): ?>
+      <p><span class="text-emerald-400 font-bold">● Facture</span> <span class="text-white"><?php echo htmlspecialchars($invoice_id,ENT_QUOTES,'UTF-8'); ?></span></p>
+      <?php endif; ?>
+      
       <?php if ($panel_pass): ?>
       <p class="text-yellow-300"><span class="font-bold"><?php echo t('order.label_pw'); ?></span> <?php echo htmlspecialchars($panel_pass,ENT_QUOTES,'UTF-8'); ?>
         <br><span class="text-gray-500 text-[10px]"><?php echo t('order.pw_note'); ?></span></p>
       <?php endif; ?>
     </div>
+
+    <!-- 🔵 AJOUT : Bouton pour télécharger la facture -->
+    <?php if ($invoice_id): ?>
+    <a href="/client/billing/invoice/?id=<?php echo urlencode($invoice_id); ?>" 
+       target="_blank"
+       class="mb-6 flex items-center justify-center gap-2 bg-emerald-600/20 hover:bg-emerald-600/40 border border-emerald-500/30 text-emerald-400 hover:text-white px-5 py-3 rounded-xl font-bold transition text-sm w-full">
+      <i class="fas fa-file-invoice"></i>
+      Voir / Télécharger ma facture <?php echo htmlspecialchars($invoice_id, ENT_QUOTES, 'UTF-8'); ?>
+    </a>
+    <?php endif; ?>
 
     <div class="flex gap-3 justify-center flex-wrap">
       <a href="/client/servers/" class="bg-sky-600 hover:bg-sky-500 text-white px-6 py-3 rounded-xl font-bold transition text-sm flex items-center gap-2">
