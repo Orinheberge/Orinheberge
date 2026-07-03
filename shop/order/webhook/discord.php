@@ -1,5 +1,4 @@
 <?php
-
 /*
 |--------------------------------------------------------------------------
 | Les appels Discord passent par un proxy sur le même domaine
@@ -7,6 +6,7 @@
 |--------------------------------------------------------------------------
 */
 
+// ⚠️ CE SECRET DOIT ÊTRE IDENTIQUE dans proxy.php
 define('DISCORD_PROXY_URL',    'https://heberge.orinstone.deepstone.fr/shop/order/webhook/proxy.php');
 define('DISCORD_PROXY_SECRET', 'orin_proxy_2026_secret');
 
@@ -90,11 +90,11 @@ function sendRenewalDiscord(
             "timestamp" => date("c"),
             "footer"    => ["text" => "OrinHeberge Renewal System"],
             "fields"    => [
-                ["name" => "📦 Service",  "value" => $service,                                    "inline" => true],
-                ["name" => "💰 Montant", "value" => number_format($price, 2, '.', '') . "€",      "inline" => true],
-                ["name" => "📅 Échéance","value" => $due_date,                                    "inline" => true],
-                ["name" => "🔢 Commande","value" => "#" . $order_id,                              "inline" => true],
-                ["name" => "📧 Client",  "value" => $email,                                       "inline" => false],
+                ["name" => "📦 Service",   "value" => $service,                                    "inline" => true],
+                ["name" => "💰 Montant",  "value" => number_format($price, 2, '.', '') . "€",      "inline" => true],
+                ["name" => "📅 Échéance", "value" => $due_date,                                    "inline" => true],
+                ["name" => "🔢 Commande", "value" => "#" . $order_id,                              "inline" => true],
+                ["name" => "📧 Client",   "value" => $email,                                       "inline" => false],
             ]
         ]]
     ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
@@ -113,11 +113,20 @@ function _sendViaProxy(string $discord_url, string $json_data): void {
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_SSL_VERIFYPEER => true,
         CURLOPT_SSL_VERIFYHOST => 2,
+        CURLOPT_TIMEOUT        => 10,
         CURLOPT_HTTPHEADER     => [
             'Content-Type: application/json',
             'X-Proxy-Secret: ' . DISCORD_PROXY_SECRET,
             'X-Webhook-Url: '  . $discord_url,
         ],
     ]);
-    curl_exec($ch);
+    $response = curl_exec($ch);
+    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $error = curl_error($ch);
+    curl_close($ch);
+
+    // Log en cas d'erreur (utile pour debug)
+    if ($http_code !== 200 && $http_code !== 204) {
+        error_log("[Discord Proxy] Erreur HTTP {$http_code}: {$error} | Réponse: {$response}");
+    }
 }

@@ -7,31 +7,42 @@
 |--------------------------------------------------------------------------
 */
 
-// Clé secrète pour sécuriser le proxy (à garder privée)
-define('PROXY_SECRET', 'https://discord.com/api/webhooks/1505677242527649872/jFoANIv3OKNtGMib4bViJ79ltRDsf0LJviq59yXwW5hrqZ0uTyU1Yx3nV88yy6rG2eA4');
+// ⚠️ CE SECRET DOIT ÊTRE IDENTIQUE dans discord.php
+define('PROXY_SECRET', 'orin_proxy_2026_secret');
 
+// Autoriser uniquement les requêtes POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
-    die("Method Not Allowed");
+    header('Content-Type: application/json');
+    echo json_encode(['error' => 'Method Not Allowed']);
+    exit();
 }
 
-// Vérification clé secrète
+// Vérification de la clé secrète
 $secret = $_SERVER['HTTP_X_PROXY_SECRET'] ?? '';
 if ($secret !== PROXY_SECRET) {
     http_response_code(403);
-    die("Forbidden");
+    header('Content-Type: application/json');
+    echo json_encode(['error' => 'Forbidden - Invalid proxy secret']);
+    exit();
 }
 
+// Récupération du corps de la requête
 $body = file_get_contents('php://input');
 if (empty($body)) {
     http_response_code(400);
-    die("Empty body");
+    header('Content-Type: application/json');
+    echo json_encode(['error' => 'Empty body']);
+    exit();
 }
 
+// Validation de l'URL du webhook (sécurité : uniquement Discord)
 $webhook_url = $_SERVER['HTTP_X_WEBHOOK_URL'] ?? '';
 if (empty($webhook_url) || !str_starts_with($webhook_url, 'https://discord.com/api/webhooks/')) {
     http_response_code(400);
-    die("Invalid webhook URL");
+    header('Content-Type: application/json');
+    echo json_encode(['error' => 'Invalid webhook URL - must be a Discord webhook']);
+    exit();
 }
 
 // Relai vers Discord
@@ -43,10 +54,20 @@ curl_setopt_array($ch, [
     CURLOPT_RETURNTRANSFER => true,
     CURLOPT_SSL_VERIFYPEER => true,
     CURLOPT_SSL_VERIFYHOST => 2,
+    CURLOPT_TIMEOUT        => 15,
 ]);
 
 $response = curl_exec($ch);
 $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+$curl_error = curl_error($ch);
+curl_close($ch);
 
+// Log en cas d'erreur
+if ($http_code < 200 || $http_code >= 300) {
+    error_log("[Discord Proxy] Échec envoi vers Discord - HTTP {$http_code}: {$curl_error} | Réponse: {$response}");
+}
+
+// Retourner la réponse de Discord
 http_response_code($http_code);
+header('Content-Type: application/json');
 echo $response;

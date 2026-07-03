@@ -13,6 +13,7 @@ require_once __DIR__ . '/../lib/stripe/stripe.php';
 require_once __DIR__ . '/../lib/paypal/paypal.php';
 require_once __DIR__ . '/../lib/renewal/renewal.php';
 require_once __DIR__ . '/../webhook/discord.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/api/facture.php'; // 🔵 AJOUTÉ
 
 $discord_webhook_url = "https://discord.com/api/webhooks/1505677242527649872/jFoANIv3OKNtGMib4bViJ79ltRDsf0LJviq59yXwW5hrqZ0uTyU1Yx3nV88yy6rG2eA4";
 $stripe_secret_key   = "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";
@@ -64,17 +65,17 @@ if (isset($_GET['session_id'])) {
         $pdo->prepare("UPDATE orders SET status='paid', suspended_at=NULL, delete_after=NULL WHERE id=?")->execute([$order_row_id]);
     }
 
-    // ── Générer la facture de renouvellement ─────────────────────────────────
-    $invoice_count = (int)$pdo->query("SELECT COUNT(*)+1 FROM invoices")->fetchColumn();
-    $invoice_id    = 'INV-' . date('Y') . '-' . str_pad($invoice_count, 5, '0', STR_PAD_LEFT);
-    $next_pay_date = date("Y-m-01", strtotime("+1 month"));
-    $pdo->prepare("
-        INSERT INTO invoices (invoice_id, user_id, order_id, service_name, amount, type,
-            status, payment_method, payment_ref, paid_at, created_at)
-        VALUES (?, ?, ?, ?, ?, 'renewal', 'paid', 'stripe', ?, NOW(), NOW())
-    ")->execute([
-        $invoice_id, $_SESSION['user_id'], $order['order_id'], $order['service_name'],
-        $price, $_GET['session_id']
+    // 🔵 MODIFICATION : Remplacement du bloc INSERT INTO invoices par createInvoice()
+    $created_invoice = createInvoice($pdo, [
+        'user_id'        => $_SESSION['user_id'],
+        'order_id'       => $order['order_id'],
+        'service_name'   => $order['service_name'],
+        'amount'         => $price,
+        'type'           => 'renewal',
+        'status'         => 'paid',
+        'payment_method' => 'stripe',
+        'payment_ref'    => $_GET['session_id'],
+        'paid_at'        => date('Y-m-d H:i:s'),
     ]);
 
     // ── Email de confirmation renouvellement ─────────────────────────────────
@@ -83,6 +84,8 @@ if (isset($_GET['session_id'])) {
     $u_stmt->execute([$_SESSION['user_id']]);
     $u_row = $u_stmt->fetch();
     $username_display = !empty($u_row['pseudo']) ? $u_row['pseudo'] : ($u_row['firstname'] ?? '');
+    $next_pay_date = date("Y-m-01", strtotime("+1 month"));
+    
     send_renewal_confirmation_email(
         $pdo, $_SESSION['email'] ?? $order['email'] ?? '',
         $username_display,
