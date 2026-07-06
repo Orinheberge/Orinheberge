@@ -34,26 +34,30 @@ $_tickets_count  = isset($open_tickets) ? $open_tickets      : ($pdo->query("SEL
     <a href="/admin/" class="nav-item <?= ($active_nav === 'dashboard' || $active_nav === '') ? 'active' : '' ?>">
       <i class="fas fa-chart-bar icon"></i> Vue d'ensemble
     </a>
+    
+    <a href="/admin/annonce/" class="nav-item <?= $active_nav === 'announcements' ? 'active' : '' ?>">
+      <i class="fas fa-bell icon"></i> Annonces
+    </a>
 
     <div class="nav-separator"></div>
+
     <div class="nav-section">Infrastructure</div>
+
     <a href="/admin/nodes/" class="nav-item <?= $active_nav === 'nodes' ? 'active' : '' ?>">
       <i class="fas fa-network-wired icon"></i> Nodes
     </a>
+
     <a href="/admin/eggs/" class="nav-item <?= $active_nav === 'eggs' ? 'active' : '' ?>">
       <i class="fas fa-egg icon"></i> Eggs
-    </a>
-     <div class="nav-separator"></div>
-    <div class="nav-section">Annonce</div>
-     <a href="/admin/annonce/" class="nav-item <?= $active_nav === 'announcements' ? 'active' : '' ?>">
-      <i class="fas fa-language icon"></i> Annonces
     </a>
 
     <div class="nav-separator"></div>
     <div class="nav-section">Boutique</div>
+
     <a href="/admin/products/" class="nav-item <?= $active_nav === 'products' ? 'active' : '' ?>">
       <i class="fas fa-box icon"></i> Produits
     </a>
+
     <a href="/admin/extensions/" class="nav-item <?= $active_nav === 'extensions' ? 'active' : '' ?>">
       <i class="fas fa-puzzle-piece icon"></i> Extensions
     </a>
@@ -61,6 +65,7 @@ $_tickets_count  = isset($open_tickets) ? $open_tickets      : ($pdo->query("SEL
      <a href="/admin/categories/" class="nav-item <?= $active_nav === 'categories' ? 'active' : '' ?>">
       <i class="fas fa-folder icon"></i> Catégories
     </a>
+
     <a href="/admin/lang/" class="nav-item <?= $active_nav === 'lang' ? 'active' : '' ?>">
       <i class="fas fa-language icon"></i> Langues boutique
     </a>
@@ -68,18 +73,23 @@ $_tickets_count  = isset($open_tickets) ? $open_tickets      : ($pdo->query("SEL
     
 
     <div class="nav-separator"></div>
+
     <div class="nav-section">Gestion</div>
+
     <a href="/admin/servers/create/" class="nav-item <?= $active_nav === 'create_server' ? 'active' : '' ?>" style="<?= $active_nav === 'create_server' ? '' : 'color:#f43f5e;' ?>">
       <i class="fas fa-plus-circle icon"></i> Créer un serveur
     </a>
+
     <a href="/admin/?view=clients" class="nav-item <?= $active_nav === 'clients' ? 'active' : '' ?>">
       <i class="fas fa-users icon"></i> Clients
       <span class="ml-auto text-[10px] bg-white/5 text-gray-500 px-1.5 py-0.5 rounded-full"><?= $_users_count ?></span>
     </a>
+
     <a href="/admin/?view=servers" class="nav-item <?= $active_nav === 'servers' ? 'active' : '' ?>">
       <i class="fas fa-server icon"></i> Serveurs
       <span class="ml-auto text-[10px] bg-white/5 text-gray-500 px-1.5 py-0.5 rounded-full"><?= $_servers_count ?></span>
     </a>
+
     <a href="/admin/?view=invoices" class="nav-item <?= $active_nav === 'invoices' ? 'active' : '' ?>">
       <i class="fas fa-file-invoice-dollar icon"></i> Factures
       <?php
@@ -89,30 +99,38 @@ $_tickets_count  = isset($open_tickets) ? $open_tickets      : ($pdo->query("SEL
         <span class="ml-auto text-[10px] bg-amber-500/15 text-amber-400 border border-amber-500/20 px-1.5 py-0.5 rounded-full font-bold"><?= $_inv_count ?></span>
       <?php endif; ?>
     </a>
+
     <a href="/support/admin_tickets/" class="nav-item <?= $active_nav === 'tickets' ? 'active' : '' ?>">
       <i class="fas fa-ticket-alt icon"></i> Tickets
       <?php if ($_tickets_count > 0): ?>
         <span class="ml-auto text-[10px] bg-rose-500/15 text-rose-400 border border-rose-500/20 px-1.5 py-0.5 rounded-full font-bold"><?= $_tickets_count ?></span>
       <?php endif; ?>
     </a>
+
     <a href="/admin/?view=email" class="nav-item <?= $active_nav === 'email' ? 'active' : '' ?>">
       <i class="fas fa-envelope icon"></i> Emails
     </a>
 
     <div class="nav-separator"></div>
+
     <div class="nav-section">Configuration</div>
+
     <a href="/admin/?view=settings" class="nav-item <?= $active_nav === 'settings' ? 'active' : '' ?>">
       <i class="fas fa-sliders-h icon"></i> Paramètres
     </a>
 
     <div class="nav-separator"></div>
+
     <div class="nav-section">Espace Client</div>
+
     <a href="/client/" class="nav-item">
       <i class="fas fa-home icon"></i> Mon tableau de bord
     </a>
+
     <a href="/client/servers/" class="nav-item">
       <i class="fas fa-server icon"></i> Mes serveurs
     </a>
+
     <a href="/client/billing/" class="nav-item">
       <i class="fas fa-file-invoice-dollar icon"></i> Facturation
     </a>
@@ -133,6 +151,7 @@ $_tickets_count  = isset($open_tickets) ? $open_tickets      : ($pdo->query("SEL
         <div class="text-[10px] text-rose-400 font-semibold">Administrateur</div>
       </div>
     </a>
+    
     <a href="/logout/" class="nav-item" style="color:#ef4444;">
       <i class="fas fa-sign-out-alt icon"></i> Déconnexion
     </a>
