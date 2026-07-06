@@ -1,475 +1,370 @@
 <?php
+ini_set('display_errors', 1); error_reporting(E_ALL);
 session_start();
-include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_sidebar.php';
-include $_SERVER['DOCUMENT_ROOT'] . '/inc/db.php';
-include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_layout.php';
+if (!isset($_SESSION['user_id'])) { header('Location: /login/'); exit(); }
 
-require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/lang.php';
-require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/db.php';
+$pdo = new PDO('mysql:host=localhost;dbname=s43_orinheberge;charset=utf8mb4','root','1504',
+    [PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC]);
 
-if (!isset($_SESSION['user_id'])) { 
-    header('Location: /login/'); 
-    exit(); 
-}
+$stmt = $pdo->prepare('SELECT id,pseudo,firstname,avatar,is_admin FROM users WHERE id=? LIMIT 1');
+$stmt->execute([$_SESSION['user_id']]); $admin = $stmt->fetch();
+if (!$admin || !$admin['is_admin']) { http_response_code(403); die('403 Forbidden'); }
 
+$flash = '';
 
-$chk = $pdo->prepare('SELECT is_admin, pseudo, firstname, avatar FROM users WHERE id=? LIMIT 1');
-$chk->execute([$_SESSION['user_id']]);
-$admin = $chk->fetch();
-
-if (!$admin || !$admin['is_admin']) { 
-    http_response_code(403); 
-    die('403 — Accès refusé.'); 
-}
-
-$_SESSION['username'] = !empty($admin['pseudo']) ? $admin['pseudo'] : $admin['firstname'];
-
-// Traitement du formulaire
-$message_success = '';
-$message_error = '';
-
+// ── Actions POST ──────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $title = trim($_POST['title'] ?? '');
-    $message_content = trim($_POST['message'] ?? '');
-    $link = trim($_POST['link'] ?? '');
-    $type = trim($_POST['type'] ?? 'info');
-    $target_users = $_POST['target_users'] ?? 'all'; // all, specific, role
-    $specific_user_ids = $_POST['specific_user_ids'] ?? '';
-    
-    // Validation
-    if (empty($title)) {
-        $message_error = 'Le titre est obligatoire.';
-    } elseif (empty($message_content)) {
-        $message_error = 'Le message est obligatoire.';
-    } else {
-        try {
-            $pdo->beginTransaction();
-            
-            if ($target_users === 'all') {
-                // Envoyer à tous les utilisateurs
-                $stmt = $pdo->prepare('SELECT id FROM users');
-                $stmt->execute();
-                $users = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+    $action = $_POST['action'] ?? '';
+
+    if ($action === 'add' || $action === 'edit') {
+
+        $id            = (int)($_POST['id'] ?? 0);
+        $title         = trim($_POST['title'] ?? '');
+        $message       = trim($_POST['message'] ?? '');
+        $link          = trim($_POST['link'] ?? null);
+        $type          = trim($_POST['type'] ?? 'info');
+        $target_type   = trim($_POST['target_type'] ?? 'all'); // all, specific
+        $specific_ids  = trim($_POST['specific_ids'] ?? '');
+        
+        // Validation
+        if ($title && $message) {
+            try {
+                $pdo->beginTransaction();
                 
-                $insertStmt = $pdo->prepare('
-                    INSERT INTO notifications (user_id, title, message, link, type, meta) 
-                    VALUES (?, ?, ?, ?, ?, ?)
-                ');
+                // Déterminer les destinataires
+                $userIds = [];
                 
-                $meta = json_encode(['broadcast' => true, 'created_by' => $_SESSION['user_id']]);
-                
-                foreach ($users as $userId) {
-                    $insertStmt->execute([
-                        $userId,
-                        $title,
-                        $message_content,
-                        $link ?: null,
-                        $type,
-                        $meta
-                    ]);
-                }
-                
-                $count = count($users);
-                $message_success = "Annonce envoyée avec succès à {$count} utilisateur(s).";
-                
-            } elseif ($target_users === 'specific' && !empty($specific_user_ids)) {
-                // Envoyer à des utilisateurs spécifiques
-                $userIds = array_filter(array_map('intval', explode(',', $specific_user_ids)));
-                
-                if (empty($userIds)) {
-                    throw new Exception('Aucun ID utilisateur valide spécifié.');
-                }
-                
-                $insertStmt = $pdo->prepare('
-                    INSERT INTO notifications (user_id, title, message, link, type, meta) 
-                    VALUES (?, ?, ?, ?, ?, ?)
-                ');
-                
-                $meta = json_encode(['broadcast' => false, 'created_by' => $_SESSION['user_id']]);
-                $count = 0;
-                
-                foreach ($userIds as $userId) {
-                    // Vérifier que l'utilisateur existe
-                    $checkUser = $pdo->prepare('SELECT id FROM users WHERE id = ?');
-                    $checkUser->execute([$userId]);
+                if ($target_type === 'all') {
+                    // Tous les utilisateurs
+                    $usersStmt = $pdo->query('SELECT id FROM users');
+                    $userIds = $usersStmt->fetchAll(PDO::FETCH_COLUMN);
+                } elseif ($target_type === 'specific' && !empty($specific_ids)) {
+                    // Utilisateurs spécifiques
+                    $idsArray = array_filter(array_map('intval', explode(',', $specific_ids)));
                     
-                    if ($checkUser->fetch()) {
-                        $insertStmt->execute([
-                            $userId,
-                            $title,
-                            $message_content,
-                            $link ?: null,
-                            $type,
-                            $meta
-                        ]);
-                        $count++;
+                    if (!empty($idsArray)) {
+                        $placeholders = implode(',', array_fill(0, count($idsArray), '?'));
+                        $stmt = $pdo->prepare("SELECT id FROM users WHERE id IN ($placeholders)");
+                        $stmt->execute($idsArray);
+                        $userIds = $stmt->fetchAll(PDO::FETCH_COLUMN);
                     }
                 }
                 
-                $message_success = "Annonce envoyée avec succès à {$count} utilisateur(s).";
+                if (empty($userIds)) {
+                    throw new Exception('Aucun utilisateur cible trouvé.');
+                }
                 
-            } else {
-                throw new Exception('Sélectionnez une option de destination valide.');
+                // Préparer les métadonnées
+                $meta = json_encode([
+                    'broadcast' => ($target_type === 'all'),
+                    'created_by' => $_SESSION['user_id'],
+                    'target_type' => $target_type
+                ]);
+                
+                if ($action == 'add') {
+                    // Insertion en masse
+                    $insertStmt = $pdo->prepare("
+                        INSERT INTO notifications 
+                        (user_id, title, message, link, type, meta, is_read)
+                        VALUES (?, ?, ?, ?, ?, ?, 0)
+                    ");
+                    
+                    $count = 0;
+                    foreach ($userIds as $userId) {
+                        $insertStmt->execute([$userId, $title, $message, $link ?: null, $type, $meta]);
+                        $count++;
+                    }
+                    
+                    $pdo->commit();
+                    
+                    $flash = '<div class="bg-green-500/15 text-green-400 border border-green-500/25 p-3 rounded-xl text-sm mb-4">
+                    ✅ Annonce envoyée avec succès à <strong>' . $count . '</strong> utilisateur(s).
+                    </div>';
+                    
+                } else {
+                    // Mode édition : mettre à jour une notification spécifique
+                    $pdo->prepare("
+                        UPDATE notifications
+                        SET title=?, message=?, link=?, type=?, meta=?
+                        WHERE id=?
+                    ")->execute([$title, $message, $link ?: null, $type, $meta, $id]);
+                    
+                    $pdo->commit();
+                    
+                    $flash = '<div class="bg-green-500/15 text-green-400 border border-green-500/25 p-3 rounded-xl text-sm mb-4">
+                    ✅ Annonce modifiée avec succès.
+                    </div>';
+                }
+                
+            } catch(Exception $e){
+                $pdo->rollBack();
+                $flash = '<div class="bg-red-500/15 text-red-400 border border-red-500/25 p-3 rounded-xl text-sm mb-4">
+                ❌ '.$e->getMessage().'
+                </div>';
             }
+        } else {
+            $flash = '<div class="bg-red-500/15 text-red-400 border border-red-500/25 p-3 rounded-xl text-sm mb-4">
+            ❌ Le titre et le message sont obligatoires.
+            </div>';
+        }
+    }
+
+    if ($action === 'delete') {
+        $id = (int)($_POST['id'] ?? 0);
+        // Supprimer toutes les notifications liées (même titre/message créé ensemble)
+        $notif = $pdo->prepare('SELECT title, message, created_at FROM notifications WHERE id=? LIMIT 1');
+        $notif->execute([$id]);
+        $data = $notif->fetch();
+        
+        if ($data) {
+            // Supprimer les notifications similaires créées au même moment (broadcast)
+            $pdo->prepare("
+                DELETE FROM notifications 
+                WHERE title=? AND message=? AND created_at=?
+            ")->execute([$data['title'], $data['message'], $data['created_at']]);
             
-            $pdo->commit();
-            
-        } catch (Exception $e) {
-            $pdo->rollBack();
-            $message_error = 'Erreur lors de l\'envoi de l\'annonce : ' . $e->getMessage();
+            $flash = '<div class="bg-green-500/15 text-green-400 border border-green-500/25 p-3 rounded-xl text-sm mb-4">
+            ✅ Annonce supprimée.
+            </div>';
         }
     }
 }
 
-// Récupérer les types disponibles
+// Charger les annonces (regroupées par titre pour éviter les doublons visuels)
+$announcements = $pdo->query('
+    SELECT 
+        n.id,
+        n.title,
+        n.message,
+        n.link,
+        n.type,
+        n.meta,
+        n.is_read,
+        n.created_at,
+        COUNT(*) as recipient_count,
+        u.pseudo as creator_pseudo,
+        u.firstname as creator_firstname
+    FROM notifications n
+    LEFT JOIN users u ON JSON_EXTRACT(n.meta, "$.created_by") = u.id
+    GROUP BY n.title, n.message, n.created_at
+    ORDER BY n.created_at DESC
+')->fetchAll();
+
+// Types de notifications disponibles
 $notification_types = [
-    'info' => ['label' => 'Information', 'icon' => 'fa-info-circle', 'color' => 'blue'],
-    'warning' => ['label' => 'Avertissement', 'icon' => 'fa-exclamation-triangle', 'color' => 'orange'],
+    'info' => ['label' => 'Information', 'icon' => 'fa-info-circle', 'color' => 'sky'],
+    'warning' => ['label' => 'Avertissement', 'icon' => 'fa-exclamation-triangle', 'color' => 'amber'],
     'success' => ['label' => 'Succès', 'icon' => 'fa-check-circle', 'color' => 'green'],
     'error' => ['label' => 'Erreur', 'icon' => 'fa-times-circle', 'color' => 'red'],
     'announcement' => ['label' => 'Annonce', 'icon' => 'fa-bullhorn', 'color' => 'rose'],
 ];
 
-$active_nav = 'annonce';
+$active_nav = 'announcements';
+include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_layout.php';
 ?>
-
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Créer une Annonce - Administration</title>
-    <style>
-        :root{--sidebar:240px;}
-        *{box-sizing:border-box;}
-        body{background:#0d0f14;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;min-height:100vh;}
-        .sidebar{position:fixed;top:0;left:0;width:var(--sidebar);height:100vh;background:#111318;border-right:1px solid rgba(255,255,255,.06);display:flex;flex-direction:column;z-index:40;overflow-y:auto;}
-        .sidebar-logo{padding:1.5rem 1.25rem 1rem;border-bottom:1px solid rgba(255,255,255,.05);}
-        .sidebar-nav{padding:.75rem .75rem;flex:1;}
-        .nav-item{display:flex;align-items:center;gap:.75rem;padding:.625rem .875rem;border-radius:.625rem;font-size:.82rem;font-weight:500;color:#6b7280;transition:all .15s;text-decoration:none;margin-bottom:.15rem;border:1px solid transparent;}
-        .nav-item:hover{background:rgba(255,255,255,.04);color:#d1d5db;}
-        .nav-item.active{background:rgba(244,63,94,.08);color:#f43f5e;border-color:rgba(244,63,94,.15);}
-        .nav-item .icon{width:1.1rem;text-align:center;font-size:.85rem;flex-shrink:0;}
-        .nav-section{font-size:.65rem;font-weight:700;letter-spacing:.1em;color:#374151;text-transform:uppercase;padding:.75rem .875rem .35rem;}
-        .nav-separator{height:1px;background:rgba(255,255,255,.05);margin:.5rem .75rem;}
-        .sidebar-footer{padding:.875rem 1rem;border-top:1px solid rgba(255,255,255,.05);}
-        .main-content{margin-left:var(--sidebar);min-height:100vh;display:flex;flex-direction:column;}
-        .topbar{background:#111318;border-bottom:1px solid rgba(255,255,255,.06);padding:.875rem 1.75rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:30;}
-        .content{padding:1.75rem;flex:1;}
-        .card{background:#161a22;border:1px solid rgba(255,255,255,.07);border-radius:.875rem;padding:1.5rem;margin-bottom:1.5rem;}
-        .stat-card{background:linear-gradient(135deg,#161a22,#1a1f2a);border:1px solid rgba(255,255,255,.07);border-radius:.875rem;padding:1.25rem;}
-        .badge{display:inline-flex;align-items:center;gap:.35rem;padding:.2rem .65rem;border-radius:9999px;font-size:.72rem;font-weight:600;}
-        .badge-green{background:rgba(34,197,94,.1);color:#22c55e;border:1px solid rgba(34,197,94,.2);}
-        .badge-orange{background:rgba(249,115,22,.1);color:#f97316;border:1px solid rgba(249,115,22,.2);}
-        .badge-red{background:rgba(239,68,68,.1);color:#ef4444;border:1px solid rgba(239,68,68,.2);}
-        .badge-gray{background:rgba(107,114,128,.1);color:#9ca3af;border:1px solid rgba(107,114,128,.2);}
-        .badge-blue{background:rgba(56,189,248,.1);color:#38bdf8;border:1px solid rgba(56,189,248,.2);}
-        .badge-rose{background:rgba(244,63,94,.1);color:#f43f5e;border:1px solid rgba(244,63,94,.2);}
-        table{width:100%;border-collapse:collapse;}
-        th{text-align:left;padding:.625rem 1rem;font-size:.7rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#4b5563;border-bottom:1px solid rgba(255,255,255,.05);}
-        td{padding:.875rem 1rem;font-size:.83rem;border-bottom:1px solid rgba(255,255,255,.04);}
-        tr:last-child td{border-bottom:none;}
-        tr:hover td{background:rgba(255,255,255,.015);}
-        input,textarea,select{background:#1e2330 !important;border:1px solid rgba(255,255,255,.08) !important;color:#e2e8f0 !important;border-radius:.625rem;padding:.6rem .875rem;font-size:.83rem;width:100%;outline:none;transition:border-color .15s;}
-        input:focus,textarea:focus,select:focus{border-color:rgba(244,63,94,.4) !important;}
-        .btn-action{display:inline-flex;align-items:center;gap:.35rem;padding:.5rem 1rem;border-radius:.5rem;font-size:.8rem;font-weight:600;transition:all .15s;border:1px solid transparent;cursor:pointer;text-decoration:none;}
-        .btn-red{background:rgba(239,68,68,.1);color:#ef4444;border-color:rgba(239,68,68,.2);}
-        .btn-red:hover{background:rgba(239,68,68,.2);}
-        .btn-orange{background:rgba(249,115,22,.1);color:#f97316;border-color:rgba(249,115,22,.2);}
-        .btn-orange:hover{background:rgba(249,115,22,.2);}
-        .btn-blue{background:rgba(56,189,248,.1);color:#38bdf8;border-color:rgba(56,189,248,.2);}
-        .btn-blue:hover{background:rgba(56,189,248,.2);}
-        .btn-sky{background:rgba(14,165,233,.1);color:#0ea5e9;border-color:rgba(14,165,233,.2);}
-        .btn-sky:hover{background:rgba(14,165,233,.2);}
-        .btn-green{background:rgba(34,197,94,.1);color:#22c55e;border-color:rgba(34,197,94,.2);}
-        .btn-green:hover{background:rgba(34,197,94,.2);}
-        .mobile-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:39;}
-        
-        /* Styles spécifiques pour la page */
-        .form-group{margin-bottom:1.25rem;}
-        .form-label{display:block;font-size:.78rem;font-weight:600;color:#9ca3af;margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.05em;}
-        .form-hint{font-size:.72rem;color:#6b7280;margin-top:.35rem;}
-        .alert{padding:1rem 1.25rem;border-radius:.625rem;margin-bottom:1.25rem;font-size:.83rem;}
-        .alert-success{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.2);color:#22c55e;}
-        .alert-error{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);color:#ef4444;}
-        .type-selector{display:grid;grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));gap:.75rem;margin-top:.5rem;}
-        .type-option{padding:.75rem;border:2px solid rgba(255,255,255,.08);border-radius:.625rem;cursor:pointer;transition:all .15s;text-align:center;}
-        .type-option:hover{border-color:rgba(255,255,255,.15);background:rgba(255,255,255,.02);}
-        .type-option.selected{border-color:currentColor;}
-        .type-option input[type="radio"]{display:none;}
-        .page-header{margin-bottom:1.5rem;}
-        .page-title{font-size:1.5rem;font-weight:700;margin-bottom:.5rem;}
-        .page-subtitle{font-size:.875rem;color:#6b7280;}
-        
-        @media(max-width:768px){
-            .sidebar{transform:translateX(-100%);transition:transform .25s;}
-            .sidebar.open{transform:translateX(0);}
-            .mobile-overlay.open{display:block;}
-            .main-content{margin-left:0;}
-            .topbar,.content{padding:.875rem 1rem;}
-            .type-selector{grid-template-columns:1fr;}
-        }
-    </style>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-</head>
-<body>
-    <?php include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_sidebar.php'; ?>
-    
-    <div class="mobile-overlay" id="overlay" onclick="toggleSidebar()"></div>
-    
-    <div class="main-content">
-        <div class="topbar">
-            <button class="btn-action btn-blue" onclick="toggleSidebar()" style="display:none;" id="menu-toggle">
-                <i class="fas fa-bars"></i>
-            </button>
-            <div style="font-weight:600;">Créer une Annonce</div>
-            <div style="display:flex;align-items:center;gap:.75rem;">
-                <span style="font-size:.83rem;color:#9ca3af;"><?php echo htmlspecialchars($_SESSION['username']); ?></span>
-            </div>
-        </div>
-        
-        <div class="content">
-            <div class="page-header">
-                <h1 class="page-title"><i class="fas fa-bullhorn" style="color:#f43f5e;margin-right:.5rem;"></i>Créer une Nouvelle Annonce</h1>
-                <p class="page-subtitle">Envoyez une notification à un ou plusieurs utilisateurs</p>
-            </div>
-            
-            <?php if ($message_success): ?>
-                <div class="alert alert-success">
-                    <i class="fas fa-check-circle" style="margin-right:.5rem;"></i>
-                    <?php echo htmlspecialchars($message_success); ?>
-                </div>
-            <?php endif; ?>
-            
-            <?php if ($message_error): ?>
-                <div class="alert alert-error">
-                    <i class="fas fa-exclamation-circle" style="margin-right:.5rem;"></i>
-                    <?php echo htmlspecialchars($message_error); ?>
-                </div>
-            <?php endif; ?>
-            
-            <div class="card">
-                <form method="POST" action="">
-                    <!-- Titre -->
-                    <div class="form-group">
-                        <label class="form-label" for="title">
-                            <i class="fas fa-heading" style="margin-right:.35rem;"></i>Titre de l'annonce *
-                        </label>
-                        <input 
-                            type="text" 
-                            id="title" 
-                            name="title" 
-                            placeholder="Ex: Maintenance prévue ce weekend"
-                            required
-                            maxlength="255"
-                            value="<?php echo htmlspecialchars($_POST['title'] ?? ''); ?>"
-                        >
-                    </div>
-                    
-                    <!-- Message -->
-                    <div class="form-group">
-                        <label class="form-label" for="message">
-                            <i class="fas fa-comment-alt" style="margin-right:.35rem;"></i>Message *
-                        </label>
-                        <textarea 
-                            id="message" 
-                            name="message" 
-                            rows="6" 
-                            placeholder="Détails de l'annonce..."
-                            required
-                        ><?php echo htmlspecialchars($_POST['message'] ?? ''); ?></textarea>
-                        <div class="form-hint">Le message peut contenir du texte simple. Évitez le HTML.</div>
-                    </div>
-                    
-                    <!-- Lien optionnel -->
-                    <div class="form-group">
-                        <label class="form-label" for="link">
-                            <i class="fas fa-link" style="margin-right:.35rem;"></i>Lien (optionnel)
-                        </label>
-                        <input 
-                            type="url" 
-                            id="link" 
-                            name="link" 
-                            placeholder="https://heberge.orinstone.deepstone.fr/"
-                            value="<?php echo htmlspecialchars($_POST['link'] ?? ''); ?>"
-                        >
-                        <div class="form-hint">Les utilisateurs pourront cliquer sur ce lien depuis la notification</div>
-                    </div>
-                    
-                    <!-- Type de notification -->
-                    <div class="form-group">
-                        <label class="form-label">
-                            <i class="fas fa-tag" style="margin-right:.35rem;"></i>Type d'annonce
-                        </label>
-                        <div class="type-selector">
-                            <?php foreach ($notification_types as $key => $type): ?>
-                                <label class="type-option badge-<?php echo $type['color']; ?> <?php echo ($_POST['type'] ?? 'announcement') === $key ? 'selected' : ''; ?>">
-                                    <input 
-                                        type="radio" 
-                                        name="type" 
-                                        value="<?php echo $key; ?>" 
-                                        <?php echo ($_POST['type'] ?? 'announcement') === $key ? 'checked' : ''; ?>
-                                    >
-                                    <i class="fas <?php echo $type['icon']; ?>" style="font-size:1.25rem;margin-bottom:.35rem;display:block;"></i>
-                                    <div style="font-size:.78rem;font-weight:600;"><?php echo $type['label']; ?></div>
-                                </label>
-                            <?php endforeach; ?>
-                        </div>
-                    </div>
-                    
-                    <!-- Destinataires -->
-                    <div class="form-group">
-                        <label class="form-label">
-                            <i class="fas fa-users" style="margin-right:.35rem;"></i>Destinataires
-                        </label>
-                        <select name="target_users" id="target_users" onchange="toggleSpecificUsers()">
-                            <option value="all" <?php echo ($_POST['target_users'] ?? 'all') === 'all' ? 'selected' : ''; ?>>
-                                Tous les utilisateurs
-                            </option>
-                            <option value="specific" <?php echo ($_POST['target_users'] ?? '') === 'specific' ? 'selected' : ''; ?>>
-                                Utilisateurs spécifiques
-                            </option>
-                        </select>
-                    </div>
-                    
-                    <!-- IDs utilisateurs spécifiques (caché par défaut) -->
-                    <div class="form-group" id="specific_users_group" style="<?php echo ($_POST['target_users'] ?? '') !== 'specific' ? 'display:none;' : ''; ?>">
-                        <label class="form-label" for="specific_user_ids">
-                            <i class="fas fa-id-badge" style="margin-right:.35rem;"></i>IDs des utilisateurs
-                        </label>
-                        <input 
-                            type="text" 
-                            id="specific_user_ids" 
-                            name="specific_user_ids" 
-                            placeholder="Ex: 1, 5, 12, 45"
-                            value="<?php echo htmlspecialchars($_POST['specific_user_ids'] ?? ''); ?>"
-                        >
-                        <div class="form-hint">Séparez les IDs par des virgules. Exemple: 1, 5, 12</div>
-                    </div>
-                    
-                    <!-- Boutons -->
-                    <div style="display:flex;gap:.75rem;margin-top:1.5rem;">
-                        <button type="submit" class="btn-action btn-green" style="flex:1;justify-content:center;padding:.75rem;">
-                            <i class="fas fa-paper-plane"></i>
-                            Envoyer l'annonce
-                        </button>
-                        <a href="/admin/" class="btn-action btn-blue" style="justify-content:center;padding:.75rem;">
-                            <i class="fas fa-arrow-left"></i>
-                            Retour
-                        </a>
-                    </div>
-                </form>
-            </div>
-            
-            <!-- Historique des dernières annonces -->
-            <div class="card">
-                <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:1rem;">
-                    <i class="fas fa-history" style="color:#38bdf8;margin-right:.5rem;"></i>
-                    Dernières annonces envoyées
-                </h2>
-                
-                <?php
-                // Récupérer les 10 dernières annonces broadcast
-                $recentStmt = $pdo->prepare('
-                    SELECT n.*, u.pseudo, u.firstname 
-                    FROM notifications n
-                    LEFT JOIN users u ON n.meta->>"$.created_by" = u.id
-                    WHERE JSON_EXTRACT(n.meta, "$.broadcast") = true
-                    ORDER BY n.created_at DESC
-                    LIMIT 10
-                ');
-                $recentStmt->execute();
-                $recentAnnouncements = $recentStmt->fetchAll();
-                
-                if (count($recentAnnouncements) > 0):
-                ?>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Titre</th>
-                            <th>Type</th>
-                            <th>Créé par</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($recentAnnouncements as $ann): ?>
-                        <tr>
-                            <td><?php echo date('d/m/Y H:i', strtotime($ann['created_at'])); ?></td>
-                            <td>
-                                <strong><?php echo htmlspecialchars($ann['title']); ?></strong><br>
-                                <small style="color:#6b7280;"><?php echo htmlspecialchars(substr($ann['message'], 0, 80)); ?>...</small>
-                            </td>
-                            <td>
-                                <?php 
-                                $typeInfo = $notification_types[$ann['type']] ?? $notification_types['info'];
-                                echo '<span class="badge badge-' . $typeInfo['color'] . '">';
-                                echo '<i class="fas ' . $typeInfo['icon'] . '" style="margin-right:.25rem;"></i>';
-                                echo $typeInfo['label'];
-                                echo '</span>';
-                                ?>
-                            </td>
-                            <td><?php echo htmlspecialchars($ann['pseudo'] ?? $ann['firstname'] ?? 'Inconnu'); ?></td>
-                            <td>
-                                <?php if ($ann['link']): ?>
-                                    <a href="<?php echo htmlspecialchars($ann['link']); ?>" target="_blank" class="btn-action btn-blue" style="padding:.25rem .5rem;font-size:.7rem;">
-                                        <i class="fas fa-external-link-alt"></i> Lien
-                                    </a>
-                                <?php endif; ?>
-                            </td>
-                        </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-                <?php else: ?>
-                <div style="text-align:center;padding:2rem;color:#6b7280;">
-                    <i class="fas fa-inbox" style="font-size:2rem;margin-bottom:.75rem;display:block;"></i>
-                    Aucune annonce récente
-                </div>
-                <?php endif; ?>
-            </div>
-        </div>
+<div class="main-content">
+  <div class="topbar">
+    <div>
+      <div class="text-sm font-bold text-white flex items-center gap-2"><i class="fas fa-bullhorn text-rose-400 text-xs"></i> Gestion des Annonces</div>
+      <div class="text-xs text-gray-500"><?= count($announcements) ?> annonce(s) envoyée(s)</div>
     </div>
+    <button onclick="openAddModal()" class="btn btn-primary">
+      <i class="fas fa-plus text-xs"></i> Créer une Annonce
+    </button>
+  </div>
+
+  <div class="content">
+    <?= $flash ?>
+
+    <div class="card overflow-hidden">
+      <div class="px-5 py-4 border-b border-white/[0.05]">
+        <span class="text-sm font-bold text-white flex items-center gap-2"><i class="fas fa-list text-rose-400 text-xs"></i> Historique des annonces</span>
+      </div>
+      <?php if (empty($announcements)): ?>
+        <div class="px-5 py-12 text-center text-gray-500 text-sm">Aucune annonce envoyée.</div>
+      <?php else: ?>
+      <div class="overflow-x-auto">
+      <table class="tbl">
+        <thead>
+          <tr><th>Date</th><th>Titre</th><th>Type</th><th>Destinataires</th><th>Créé par</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+          <?php foreach ($announcements as $a): 
+            $typeInfo = $notification_types[$a['type']] ?? $notification_types['info'];
+            $creator = $a['creator_pseudo'] ?? $a['creator_firstname'] ?? 'Inconnu';
+            $recipientCount = (int)$a['recipient_count'];
+          ?>
+          <tr>
+            <td class="text-xs text-gray-400 whitespace-nowrap">
+              <div><?= date('d/m/Y', strtotime($a['created_at'])) ?></div>
+              <div class="text-[10px] text-gray-600"><?= date('H:i', strtotime($a['created_at'])) ?></div>
+            </td>
+            <td>
+              <div class="font-semibold text-white text-sm"><?= htmlspecialchars($a['title']) ?></div>
+              <div class="text-xs text-gray-500 mt-0.5 line-clamp-1"><?= htmlspecialchars(substr($a['message'], 0, 80)) ?>...</div>
+              <?php if ($a['link']): ?>
+                <a href="<?= htmlspecialchars($a['link']) ?>" target="_blank" class="text-xs text-sky-400 hover:text-sky-300 inline-flex items-center gap-1 mt-1">
+                  <i class="fas fa-external-link-alt text-[10px]"></i> Lien
+                </a>
+              <?php endif; ?>
+            </td>
+            <td>
+              <span class="badge badge-<?= $typeInfo['color'] ?>">
+                <i class="fas <?= $typeInfo['icon'] ?> text-[10px] mr-1"></i>
+                <?= $typeInfo['label'] ?>
+              </span>
+            </td>
+            <td>
+              <span class="text-xs bg-white/5 text-gray-300 border border-white/10 px-2 py-0.5 rounded-full font-medium">
+                <i class="fas fa-users text-[10px] mr-1"></i><?= $recipientCount ?> utilisateur(s)
+              </span>
+            </td>
+            <td class="text-xs text-gray-400"><?= htmlspecialchars($creator) ?></td>
+            <td>
+              <div class="flex items-center gap-1.5">
+                <button onclick='openEditModal(<?= htmlspecialchars(json_encode($a), ENT_QUOTES) ?>)' class="btn btn-ghost text-xs" title="Voir les détails">
+                  <i class="fas fa-eye"></i>
+                </button>
+                
+                <form method="POST" class="inline" onsubmit="return confirm('Supprimer cette annonce et toutes ses copies ?')">
+                  <input type="hidden" name="action" value="delete">
+                  <input type="hidden" name="id" value="<?= $a['id'] ?>">
+                  <button class="btn btn-danger text-xs"><i class="fas fa-trash"></i></button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+      </div>
+      <?php endif; ?>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Ajouter/Modifier -->
+<div id="modalAnnouncement" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" style="backdrop-filter:blur(6px)">
+  <div class="bg-[#161a22] border border-white/10 rounded-2xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
+    <div class="flex items-center justify-between mb-5">
+      <h3 id="modalTitle" class="text-base font-bold text-white">Créer une Annonce</h3>
+      <button onclick="document.getElementById('modalAnnouncement').classList.add('hidden')" class="text-gray-500 hover:text-white"><i class="fas fa-times"></i></button>
+    </div>
+    <form method="POST" class="space-y-4">
+      <input type="hidden" name="action" id="aAction" value="add">
+      <input type="hidden" name="id" id="aId" value="">
+
+      <!-- Titre -->
+      <div>
+        <label class="block text-xs font-semibold text-gray-400 mb-1.5">Titre de l'annonce <span class="text-red-400">*</span></label>
+        <input name="title" id="aTitle" class="input" placeholder="Ex: Maintenance prévue ce weekend" required maxlength="255">
+      </div>
+
+      <!-- Message -->
+      <div>
+        <label class="block text-xs font-semibold text-gray-400 mb-1.5">Message <span class="text-red-400">*</span></label>
+        <textarea name="message" id="aMessage" class="input" rows="5" placeholder="Détails de l'annonce..." required></textarea>
+        <div class="text-[10px] text-gray-600 mt-1">Le message peut contenir du texte simple. Évitez le HTML.</div>
+      </div>
+
+      <!-- Lien optionnel -->
+      <div>
+        <label class="block text-xs font-semibold text-gray-400 mb-1.5">Lien (optionnel)</label>
+        <input name="link" id="aLink" class="input" placeholder="https://example.com/page" type="url">
+      </div>
+
+      <!-- Type d'annonce -->
+      <div>
+        <label class="block text-xs font-semibold text-gray-400 mb-1.5">Type d'annonce</label>
+        <div class="grid grid-cols-5 gap-2">
+          <?php foreach ($notification_types as $key => $type): ?>
+          <label class="cursor-pointer">
+            <input type="radio" name="type" value="<?= $key ?>" class="peer hidden" <?= $key === 'announcement' ? 'checked' : '' ?>>
+            <div class="border border-white/10 rounded-lg p-2 text-center transition-all peer-checked:border-<?= $type['color'] ?>-500 peer-checked:bg-<?= $type['color'] ?>-500/10 hover:bg-white/5">
+              <i class="fas <?= $type['icon'] ?> text-<?= $type['color'] ?>-400 text-lg mb-1 block"></i>
+              <div class="text-[10px] text-gray-400"><?= $type['label'] ?></div>
+            </div>
+          </label>
+          <?php endforeach; ?>
+        </div>
+      </div>
+
+      <!-- Destinataires -->
+      <div>
+        <label class="block text-xs font-semibold text-gray-400 mb-1.5">Destinataires</label>
+        <select name="target_type" id="aTargetType" class="input" onchange="toggleSpecificIds()">
+          <option value="all">Tous les utilisateurs</option>
+          <option value="specific">Utilisateurs spécifiques</option>
+        </select>
+      </div>
+
+      <!-- IDs spécifiques (caché par défaut) -->
+      <div id="specificIdsGroup" class="hidden">
+        <label class="block text-xs font-semibold text-gray-400 mb-1.5">IDs des utilisateurs</label>
+        <input name="specific_ids" id="aSpecificIds" class="input font-mono" placeholder="Ex: 1, 5, 12, 45">
+        <div class="text-[10px] text-gray-600 mt-1">Séparez les IDs par des virgules. Exemple: 1, 5, 12</div>
+      </div>
+
+      <div class="flex gap-3 pt-2">
+        <button type="submit" class="btn btn-primary flex-1">
+          <i class="fas fa-paper-plane mr-2"></i>Envoyer l'annonce
+        </button>
+        <button type="button" onclick="document.getElementById('modalAnnouncement').classList.add('hidden')" class="btn btn-ghost flex-1">Annuler</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function openAddModal() {
+    document.getElementById('modalTitle').textContent = 'Créer une Annonce';
+    document.getElementById('aAction').value = 'add';
+    document.getElementById('aId').value = '';
+    document.getElementById('aTitle').value = '';
+    document.getElementById('aMessage').value = '';
+    document.getElementById('aLink').value = '';
+    document.querySelector('input[name="type"][value="announcement"]').checked = true;
+    document.getElementById('aTargetType').value = 'all';
+    document.getElementById('aSpecificIds').value = '';
+    document.getElementById('specificIdsGroup').classList.add('hidden');
+    document.getElementById('modalAnnouncement').classList.remove('hidden');
+}
+
+function openEditModal(a) {
+    document.getElementById('modalTitle').textContent = 'Détails de l\'Annonce';
+    document.getElementById('aAction').value = 'edit';
+    document.getElementById('aId').value = a.id;
+    document.getElementById('aTitle').value = a.title;
+    document.getElementById('aMessage').value = a.message;
+    document.getElementById('aLink').value = a.link || '';
     
-    <script>
-        function toggleSidebar(){
-            document.getElementById('sidebar').classList.toggle('open');
-            document.getElementById('overlay').classList.toggle('open');
-        }
-        
-        function toggleSpecificUsers(){
-            const select = document.getElementById('target_users');
-            const group = document.getElementById('specific_users_group');
-            if (select.value === 'specific') {
-                group.style.display = 'block';
-            } else {
-                group.style.display = 'none';
-            }
-        }
-        
-        // Gestion de la sélection visuelle des types
-        document.querySelectorAll('.type-option').forEach(option => {
-            option.addEventListener('click', function() {
-                document.querySelectorAll('.type-option').forEach(opt => opt.classList.remove('selected'));
-                this.classList.add('selected');
-            });
-        });
-        
-        // Afficher le bouton menu sur mobile
-        if (window.innerWidth <= 768) {
-            document.getElementById('menu-toggle').style.display = 'inline-flex';
-        }
-        
-        window.addEventListener('resize', function() {
-            if (window.innerWidth <= 768) {
-                document.getElementById('menu-toggle').style.display = 'inline-flex';
-            } else {
-                document.getElementById('menu-toggle').style.display = 'none';
-                document.getElementById('sidebar').classList.remove('open');
-                document.getElementById('overlay').classList.remove('open');
-            }
-        });
-    </script>
-</body>
-</html>
+    // Sélectionner le type
+    const typeRadio = document.querySelector(`input[name="type"][value="${a.type}"]`);
+    if (typeRadio) typeRadio.checked = true;
+    
+    // Désactiver la modification des destinataires en mode édition
+    document.getElementById('aTargetType').disabled = true;
+    document.getElementById('specificIdsGroup').classList.add('hidden');
+    
+    document.getElementById('modalAnnouncement').classList.remove('hidden');
+}
+
+function toggleSpecificIds() {
+    const select = document.getElementById('aTargetType');
+    const group = document.getElementById('specificIdsGroup');
+    if (select.value === 'specific') {
+        group.classList.remove('hidden');
+    } else {
+        group.classList.add('hidden');
+    }
+}
+
+// Réinitialiser le disabled quand on ouvre en mode ajout
+document.querySelector('button[onclick="openAddModal()"]').addEventListener('click', function() {
+    document.getElementById('aTargetType').disabled = false;
+});
+</script>
+</body></html>

@@ -45,7 +45,7 @@ $_tickets_count  = isset($open_tickets) ? $open_tickets      : ($pdo->query("SEL
     </a>
      <div class="nav-separator"></div>
     <div class="nav-section">Annonce</div>
-     <a href="/admin/annonce/" class="nav-item <?= $active_nav === 'annonce' ? 'active' : '' ?>">
+     <a href="/admin/annonce/" class="nav-item <?= $active_nav === 'announcements' ? 'active' : '' ?>">
       <i class="fas fa-language icon"></i> Annonces
     </a>
 
