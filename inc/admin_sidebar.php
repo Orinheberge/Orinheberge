@@ -43,6 +43,11 @@ $_tickets_count  = isset($open_tickets) ? $open_tickets      : ($pdo->query("SEL
     <a href="/admin/eggs/" class="nav-item <?= $active_nav === 'eggs' ? 'active' : '' ?>">
       <i class="fas fa-egg icon"></i> Eggs
     </a>
+     <div class="nav-separator"></div>
+    <div class="nav-section">Annonce</div>
+     <a href="/admin/annonce/" class="nav-item <?= $active_nav === 'annonce' ? 'active' : '' ?>">
+      <i class="fas fa-language icon"></i> Annonces
+    </a>
 
     <div class="nav-separator"></div>
     <div class="nav-section">Boutique</div>
@@ -59,6 +64,8 @@ $_tickets_count  = isset($open_tickets) ? $open_tickets      : ($pdo->query("SEL
     <a href="/admin/lang/" class="nav-item <?= $active_nav === 'lang' ? 'active' : '' ?>">
       <i class="fas fa-language icon"></i> Langues boutique
     </a>
+
+    
 
     <div class="nav-separator"></div>
     <div class="nav-section">Gestion</div>
