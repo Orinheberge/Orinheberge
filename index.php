@@ -52,6 +52,14 @@ $sections = [
         'bg'           => 'bg-black/20',
         'offers'       => []
     ],
+    'mythic' => [
+        'title_key'    => 'tier.mythic.title', 
+        'subtitle_key' => 'tier.mythic.subtitle', 
+        'label_key'    => 'tier.mythic.label', 
+        'accent'       => 'bg-red-500', 
+        'bg'           => 'bg-black/30',
+        'offers'       => []
+    ],
 ];
 
 // Conteneurs pour les données dynamiques des catégories
