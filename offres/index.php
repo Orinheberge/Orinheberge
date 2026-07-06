@@ -9,6 +9,8 @@ $sections = [
     'basic'   => ['title_key'=>'tier.basic.title',   'subtitle_key'=>'tier.basic.subtitle',   'label_key'=>'tier.basic.label',   'accent'=>'bg-blue-500',   'bg'=>'bg-black/10', 'offers'=>[]],
     'medium'  => ['title_key'=>'tier.medium.title',  'subtitle_key'=>'tier.medium.subtitle',  'label_key'=>'tier.medium.label',  'accent'=>'bg-purple-500', 'bg'=>'bg-white/[0.02] border-y border-white/5', 'offers'=>[]],
     'premium' => ['title_key'=>'tier.premium.title', 'subtitle_key'=>'tier.premium.subtitle', 'label_key'=>'tier.premium.label', 'accent'=>'bg-yellow-500', 'bg'=>'bg-black/20', 'offers'=>[]],
+    'mythic' => ['title_key'=>'tier.mythic.title', 'subtitle_key'=>'tier.mythic.subtitle', 'label_key'=>'tier.mythic.label', 'accent'=>'bg-rose-500', 'bg'=>'bg-black/20', 'offers'=>[]],
+
 ];
 $dynamic_categories = [];
 
