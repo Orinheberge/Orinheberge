@@ -2,6 +2,7 @@
 session_start();
 require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/lang.php';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/db.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/api/facture.php';
 
 if (!isset($_SESSION['user_id'])) { header('Location: /login/'); exit(); }
 $chk = $pdo->prepare('SELECT is_admin, pseudo, firstname, avatar FROM users WHERE id=? LIMIT 1');
@@ -99,6 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $server_id  = $server['attributes']['id'];
         $uuid       = $server['attributes']['uuid'];
+        $identifier = $server['attributes']['identifier'] ?? $uuid;
         $order_id   = 'ADMIN-' . strtoupper(substr(md5(uniqid()), 0, 10));
         $expires_at = date('Y-m-d H:i:s', strtotime("+{$days} days"));
         $next_pay   = date('Y-m-d', strtotime("+{$days} days"));
@@ -114,19 +116,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ")->execute([
             $client['id'], $order_id, $product['name'],
             $product['ram'], $product['disk'], $product['cpu'],
-            $server_id, $uuid, $uuid,
+            $server_id, $uuid, $identifier,
             $price, $price, $next_pay, $expires_at,
             $product['id']
         ]);
 
-        // 5. Créer une facture si prix > 0
-        if ($price > 0) {
-            $inv_num   = 'INV-' . date('Y') . '-' . str_pad((int)$pdo->query("SELECT COUNT(*)+1 FROM invoices")->fetchColumn(), 5, '0', STR_PAD_LEFT);
-            $pdo->prepare("INSERT INTO invoices (invoice_id,user_id,order_id,service_name,amount,type,status,payment_method,paid_at) VALUES (?,?,?,?,?,'purchase','paid','admin',NOW())")
-                ->execute([$inv_num, $client['id'], $order_id, $product['name'], $price]);
-        }
+        // 🔵 Création de la facture via createInvoice()
+        $invoice_method = $price > 0 ? 'admin' : 'free';
+        $created_invoice = createInvoice($pdo, [
+            'user_id'        => $client['id'],
+            'order_id'       => $order_id,
+            'service_name'   => $product['name'],
+            'amount'         => $price,
+            'type'           => 'purchase',
+            'status'         => 'paid',
+            'payment_method' => $invoice_method,
+            'payment_ref'    => 'ADMIN-MANUAL-' . $_SESSION['user_id'],
+            'paid_at'        => date('Y-m-d H:i:s'),
+        ]);
 
-        header('Location: /admin/?view=servers&created=' . urlencode($order_id));
+        $invoice_id = $created_invoice['invoice_id'] ?? null;
+
+        // 🔵 REDIRECTION VERS LA PAGE DE SUCCÈS
+        $success_params = http_build_query([
+            'order'   => $order_id,
+            'invoice' => $invoice_id ?? '',
+            'uuid'    => $uuid,
+            'client'  => $client['id'],
+            'product' => $product['id'],
+            'server'  => $server_id,
+        ]);
+        
+        header('Location: /admin/servers/create/success/?' . $success_params);
         exit();
     }
 }
@@ -271,7 +292,7 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_sidebar.php';
                     <div>
                         <label class="mb-1.5 block text-[.7rem] font-bold uppercase tracking-wider text-gray-500">Prix facturé (€)</label>
                         <input type="number" name="price" id="priceInput" value="0" min="0" step="0.01" class="w-full rounded-lg border border-white/[.08] bg-[#1e2330] px-3.5 py-2.5 text-[.83rem] text-slate-200">
-                        <div class="mt-1 text-[.7rem] text-gray-500">0€ = gratuit, pas de facture générée</div>
+                        <div class="mt-1 text-[.7rem] text-gray-500">0€ = gratuit, facture marquée "free"</div>
                     </div>
 
                     <!-- Note interne -->
