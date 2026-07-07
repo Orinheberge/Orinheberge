@@ -1,8 +1,9 @@
 <?php
+ini_set('display_errors', 1); error_reporting(E_ALL);
 session_start();
 require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/lang.php';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/db.php';
-require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/api/facture.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/api/Facture.php';
 
 if (!isset($_SESSION['user_id'])) { header('Location: /login/'); exit(); }
 $chk = $pdo->prepare('SELECT is_admin, pseudo, firstname, avatar FROM users WHERE id=? LIMIT 1');
