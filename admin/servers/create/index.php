@@ -1,4 +1,5 @@
 <?php
+ini_set('display_errors', 1); error_reporting(E_ALL);
 session_start();
 require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/lang.php';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/db.php';
