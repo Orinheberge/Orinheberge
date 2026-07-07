@@ -3,13 +3,21 @@
  * inc/admin_sidebar.php — Sidebar partagée pour TOUTES les pages admin
  * Requiert avant l'inclusion :
  *   - $admin (array avec pseudo/firstname/avatar/is_admin)
- *   - $active_nav (string: 'dashboard','nodes','eggs','products','extensions','clients','servers','tickets','settings','email')
+ *   - $active_nav (string: 'dashboard','nodes','eggs','products','extensions','clients','servers','tickets','settings','email','maintenance')
  *   - Variables de comptage optionnelles : $all_users, $all_servers, $open_tickets
  */
 $admin_username  = !empty($admin['pseudo']) ? $admin['pseudo'] : ($admin['firstname'] ?? 'Admin');
 $_users_count    = isset($all_users)   ? count($all_users)   : ($pdo->query('SELECT COUNT(*) FROM users')->fetchColumn());
 $_servers_count  = isset($all_servers) ? count($all_servers) : ($pdo->query('SELECT COUNT(*) FROM orders')->fetchColumn());
 $_tickets_count  = isset($open_tickets) ? $open_tickets      : ($pdo->query("SELECT COUNT(*) FROM support_tickets WHERE status != 'Fermé'")->fetchColumn());
+
+// 🔵 AJOUT : Compteur de maintenances actives
+$_maintenance_count = $pdo->query("
+    SELECT COUNT(*) FROM maintenance 
+    WHERE is_active = 1 
+      AND status IN ('scheduled', 'in_progress')
+      AND end_date >= NOW()
+")->fetchColumn();
 ?>
 
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -51,6 +59,14 @@ $_tickets_count  = isset($open_tickets) ? $open_tickets      : ($pdo->query("SEL
       <i class="fas fa-egg icon"></i> Eggs
     </a>
 
+    <!-- 🔵 AJOUT : Lien vers les maintenances -->
+    <a href="/admin/maintenance/" class="nav-item <?= $active_nav === 'maintenance' ? 'active' : '' ?>">
+      <i class="fas fa-wrench icon"></i> Maintenances
+      <?php if ($_maintenance_count > 0): ?>
+        <span class="ml-auto text-[10px] bg-sky-500/15 text-sky-400 border border-sky-500/20 px-1.5 py-0.5 rounded-full font-bold"><?= $_maintenance_count ?></span>
+      <?php endif; ?>
+    </a>
+
     <div class="nav-separator"></div>
     <div class="nav-section">Boutique</div>
 
@@ -69,8 +85,6 @@ $_tickets_count  = isset($open_tickets) ? $open_tickets      : ($pdo->query("SEL
     <a href="/admin/lang/" class="nav-item <?= $active_nav === 'lang' ? 'active' : '' ?>">
       <i class="fas fa-language icon"></i> Langues boutique
     </a>
-
-    
 
     <div class="nav-separator"></div>
 

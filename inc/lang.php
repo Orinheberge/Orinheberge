@@ -233,34 +233,6 @@ $translations = [
     // ══════════════════════════════════════════════════════════════════════
     'ui.back_home'        => ['fr' => 'Retour à l\'accueil', 'en' => 'Back to home'],
     'ui.loading'          => ['fr' => 'Chargement...',       'en' => 'Loading...'],
-	// ══════════════════════════════════════════════════════════════════════
-    // PAGE DE STATUT (status_index.php)
-    // ══════════════════════════════════════════════════════════════════════
-    'status.nav'          => ['fr' => 'Statut',            'en' => 'Status'],
-    'status.title'        => ['fr' => 'Statut des Services | OrinHeberge', 'en' => 'Service Status | OrinHeberge'],
-    'status.heading'      => ['fr' => 'Statut des',        'en' => 'Services'],
-    'status.heading2'     => ['fr' => 'Services',          'en' => 'Status'],
-    'status.subtitle'     => ['fr' => 'Disponibilité en temps réel et historique de nos infrastructures sur les 90 derniers jours.', 'en' => 'Real-time availability and uptime history of our infrastructures over the last 90 days.'],
-    'status.operational'  => ['fr' => 'Opérationnel',      'en' => 'Operational'],
-    'status.disruption'   => ['fr' => 'Perturbation',      'en' => 'Disruption'],
-    'status.log_ok'       => ['fr' => 'Aucun incident',    'en' => 'No incidents'],
-    'status.log_ko'       => ['fr' => 'Perturbation détectée', 'en' => 'Disruption detected'],
-    'status.days_ago'     => ['fr' => 'Il y a 90 jours',   'en' => '90 days ago'],
-    'status.today'        => ['fr' => 'Aujourd\'hui',       'en' => 'Today'],
-    'status.uptime_pct'   => ['fr' => '% de disponibilité', 'en' => '% uptime'],
-	// Mois (Versions courtes)
-    'month.jan'           => ['fr' => 'Jan',               'en' => 'Jan'],
-    'month.feb'           => ['fr' => 'Fév',               'en' => 'Feb'],
-    'month.mar'           => ['fr' => 'Mar',               'en' => 'Mar'],
-    'month.apr'           => ['fr' => 'Avr',               'en' => 'Apr'],
-    'month.may'           => ['fr' => 'Mai',               'en' => 'May'],
-    'month.jun'           => ['fr' => 'Juin',              'en' => 'Jun'],
-    'month.jul'           => ['fr' => 'Juil',              'en' => 'Jul'],
-    'month.aug'           => ['fr' => 'Août',              'en' => 'Aug'],
-    'month.sep'           => ['fr' => 'Sep',               'en' => 'Sep'],
-    'month.oct'           => ['fr' => 'Oct',               'en' => 'Oct'],
-    'month.nov'           => ['fr' => 'Nov',               'en' => 'Nov'],
-    'month.dec'           => ['fr' => 'Déc',               'en' => 'Dec'],
 // ══════════════════════════════════════════════════════════════════════
     // COOKIES (inc/cookie.php)
     // ══════════════════════════════════════════════════════════════════════
@@ -406,9 +378,7 @@ $translations['infra.sec.desc']           = ['fr' => "Une protection anti-DDoS r
 $translations['infra.up.title']           = ['fr' => 'Disponibilité 99.9%',                           'en' => '99.9% Uptime'];
 $translations['infra.up.desc']            = ['fr' => "Grâce à l'écosystème DeepStone, profitez d'une redondance réseau complète assurant la continuité de vos projets web et serveurs.", 'en' => 'Thanks to the DeepStone ecosystem, enjoy full network redundancy ensuring the continuity of your web projects and servers.'];
 
-// ══════════════════════════════════════════════════════════════════════
-// ADMIN TICKETS
-// ══════════════════════════════════════════════════════════════════════
+
 $translations['admin.title']              = ['fr' => 'Admin | Gestion des tickets',                   'en' => 'Admin | Ticket management'];
 $translations['admin.heading']            = ['fr' => 'Gestion des tickets',                           'en' => 'Ticket management'];
 $translations['admin.no_ticket']          = ['fr' => 'Aucun ticket ouvert.',                          'en' => 'No open tickets.'];
@@ -418,3 +388,85 @@ $translations['admin.status']             = ['fr' => 'Statut',                  
 $translations['admin.reply_saved']        = ['fr' => '✅ Réponse enregistrée et statut mis à jour !', 'en' => '✅ Reply saved and status updated!'];
 $translations['admin.reply_empty']        = ['fr' => '⚠️ Le message de réponse ne peut pas être vide.','en' => '⚠️ The reply message cannot be empty.'];
 $translations['admin.closed_ok']          = ['fr' => '🔒 Ticket marqué comme Fermé.',                 'en' => '🔒 Ticket marked as Closed.'];
+
+// ══════════════════════════════════════════════════════════════════════
+// Status
+// ══════════════════════════════════════════════════════════════════════
+$translations['status.title']              = ['fr' => 'Statut des services | OrinHeberge',                    'en' => 'Service Status | OrinHeberge'];
+$translations['status.heading']            = ['fr' => 'Statut de nos',                                        'en' => 'Status of our'];
+$translations['status.heading2']           = ['fr' => 'services',                                             'en' => 'services'];
+$translations['status.subtitle']           = ['fr' => 'Consultez en temps réel la disponibilité de l\'ensemble de notre infrastructure et de nos services.', 'en' => 'Check in real time the availability of our entire infrastructure and services.'];
+
+// ── Statut global ─────────────────────────────────────────────
+$translations['status.global_operational'] = ['fr' => 'Tous les systèmes sont opérationnels',                 'en' => 'All systems are operational'];
+$translations['status.global_degraded']    = ['fr' => 'Certains services sont dégradés',                      'en' => 'Some services are degraded'];
+$translations['status.global_maintenance'] = ['fr' => 'Maintenance en cours',                                 'en' => 'Maintenance in progress'];
+
+// ── Compteurs et infos ────────────────────────────────────────
+$translations['status.services_online']    = ['fr' => 'services en ligne',                                    'en' => 'services online'];
+$translations['status.degraded']           = ['fr' => 'dégradé(s)',                                           'en' => 'degraded'];
+$translations['status.last_check']         = ['fr' => 'Dernière vérification',                                'en' => 'Last check'];
+
+// ── Statut des services individuels ──────────────────────────
+$translations['status.operational']        = ['fr' => 'Opérationnel',                                         'en' => 'Operational'];
+$translations['status.disruption']         = ['fr' => 'Perturbation',                                         'en' => 'Disruption'];
+$translations['status.log_ok']             = ['fr' => '✅ Service en ligne',                                  'en' => '✅ Service online'];
+$translations['status.log_ko']             = ['fr' => '❌ Service hors ligne',                                'en' => '❌ Service offline'];
+
+// ── Timeline et statistiques ─────────────────────────────────
+$translations['status.days']               = ['fr' => 'jours',                                                'en' => 'days'];
+$translations['status.days_ago']           = ['fr' => 'jours en arrière',                                     'en' => 'days ago'];
+$translations['status.uptime_pct']         = ['fr' => 'de disponibilité',                                     'en' => 'uptime'];
+$translations['status.today']              = ['fr' => 'Aujourd\'hui',                                         'en' => 'Today'];
+
+// ── Maintenances ─────────────────────────────────────────────
+$translations['status.ongoing_maintenance']  = ['fr' => 'Maintenance en cours',                               'en' => 'Ongoing maintenance'];
+$translations['status.upcoming_maintenance'] = ['fr' => 'Maintenances planifiées',                            'en' => 'Scheduled maintenance'];
+$translations['status.recent_maintenance']   = ['fr' => 'Maintenances récentes',                              'en' => 'Recent maintenance'];
+
+// ── Sections ─────────────────────────────────────────────────
+$translations['status.services_status']      = ['fr' => 'État des services',                                  'en' => 'Service status'];
+
+// ── Temps relatif ────────────────────────────────────────────
+$translations['status.in_days']              = ['fr' => 'Dans',                                               'en' => 'In'];
+$translations['status.in_hours']             = ['fr' => 'Dans',                                               'en' => 'In'];
+$translations['status.soon']                 = ['fr' => 'Bientôt',                                            'en' => 'Soon'];
+$translations['status.hours_remaining']      = ['fr' => 'h restantes',                                        'en' => 'h remaining'];
+$translations['status.minutes_remaining']    = ['fr' => 'min restantes',                                      'en' => 'min remaining'];
+
+// ── Sévérité ─────────────────────────────────────────────────
+$translations['status.severity_info']        = ['fr' => 'Information',                                        'en' => 'Information'];
+$translations['status.severity_warning']     = ['fr' => 'Attention',                                          'en' => 'Warning'];
+$translations['status.severity_critical']    = ['fr' => 'Critique',                                           'en' => 'Critical'];
+
+// ── Types de maintenance ─────────────────────────────────────
+$translations['status.type_planned']         = ['fr' => 'Planifiée',                                          'en' => 'Planned'];
+$translations['status.type_emergency']       = ['fr' => 'Urgence',                                            'en' => 'Emergency'];
+$translations['status.type_improvement']     = ['fr' => 'Amélioration',                                       'en' => 'Improvement'];
+$translations['status.type_security']        = ['fr' => 'Sécurité',                                           'en' => 'Security'];
+
+// ── Abonnement et notifications ──────────────────────────────
+$translations['status.subscribe_title']      = ['fr' => 'Restez informé',                                     'en' => 'Stay informed'];
+$translations['status.subscribe_desc']       = ['fr' => 'Rejoignez notre Discord pour recevoir les notifications en temps réel.', 'en' => 'Join our Discord to receive real-time notifications.'];
+
+// ── Discord ──────────────────────────────────────────────────
+$translations['discord.help']                = ['fr' => 'Besoin d\'aide ?',                                   'en' => 'Need help?'];
+$translations['discord.join']                = ['fr' => 'Rejoindre Discord',                                  'en' => 'Join Discord'];
+
+// ── Navigation ───────────────────────────────────────────────
+$translations['status.nav']                  = ['fr' => 'Statut',                                             'en' => 'Status'];
+
+// ── Mois (pour getLocalizedDate) ─────────────────────────────
+$translations['month.jan']                   = ['fr' => 'janvier',    'en' => 'January'];
+$translations['month.feb']                   = ['fr' => 'février',    'en' => 'February'];
+$translations['month.mar']                   = ['fr' => 'mars',       'en' => 'March'];
+$translations['month.apr']                   = ['fr' => 'avril',      'en' => 'April'];
+$translations['month.may']                   = ['fr' => 'mai',        'en' => 'May'];
+$translations['month.jun']                   = ['fr' => 'juin',       'en' => 'June'];
+$translations['month.jul']                   = ['fr' => 'juillet',    'en' => 'July'];
+$translations['month.aug']                   = ['fr' => 'août',       'en' => 'August'];
+$translations['month.sep']                   = ['fr' => 'septembre',  'en' => 'September'];
+$translations['month.oct']                   = ['fr' => 'octobre',    'en' => 'October'];
+$translations['month.nov']                   = ['fr' => 'novembre',   'en' => 'November'];
+$translations['month.dec']                   = ['fr' => 'décembre',   'en' => 'December'];
+	
