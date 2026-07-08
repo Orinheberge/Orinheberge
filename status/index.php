@@ -617,13 +617,5 @@ function timeAgo($datetime, $lang) {
         <?php include $_SERVER['DOCUMENT_ROOT'] . '/inc/footer.php'; ?>
     </div>
 
-    <script>
-        function toggleMenu() {
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.getElementById('mobileOverlay');
-            sidebar.classList.toggle('open');
-            overlay.classList.toggle('open');
-        }
-    </script>
 </body>
 </html>

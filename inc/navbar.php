@@ -49,24 +49,41 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
 
-<style>
-    /* Animation du menu mobile */
+    <style>
+    /* Animation du menu mobile - CORRIGÉ */
     #mobileMenu {
         transition: all 0.3s ease-in-out;
-    }
-    #mobileMenu.hidden {
+        max-height: 0;
+        overflow: hidden;
         opacity: 0;
-        transform: translateY(-10px);
-        pointer-events: none;
     }
-    #mobileMenu:not(.hidden) {
+    #mobileMenu.active {
+        max-height: 2000px;
         opacity: 1;
-        transform: translateY(0);
+        padding-bottom: 1rem;
     }
     
     /* Animation du dropdown */
     .dropdown-menu {
         transition: all 0.2s ease-in-out;
+    }
+    
+    /* Mobile dropdown */
+    .mobile-dropdown-content {
+        transition: max-height 0.3s ease-in-out;
+        max-height: 0;
+        overflow: hidden;
+    }
+    .mobile-dropdown-content.active {
+        max-height: 500px;
+    }
+    
+    /* Rotation de l'icône */
+    .rotate-icon {
+        transition: transform 0.3s ease;
+    }
+    .rotate-icon.rotated {
+        transform: rotate(180deg);
     }
     
     /* Badge notification pulse */
@@ -246,139 +263,144 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
         </button>
     </div>
 
-    <!-- ═══════════════════════════════════════════════════════════════ -->
-    <!-- MENU MOBILE -->
-    <!-- ═══════════════════════════════════════════════════════════════ -->
-    <div id="mobileMenu" class="md:hidden hidden px-4 pb-4 space-y-2">
-        
-        <!-- Liens principaux -->
-        <a href="/" class="block py-2.5 px-4 rounded-xl flex items-center gap-3 text-sm font-medium border <?php echo $active_nav === 'home' ? 'bg-sky-600/20 border-sky-500/40 text-sky-400' : 'bg-white/[0.02] border-white/5 text-gray-300'; ?>">
-            <i class="fas fa-home w-5 text-center"></i> <?php echo t('nav.home'); ?>
-        </a>
-        
-        <?php if (isset($_SESSION['user_id'])): ?>
-        <a href="/client/servers/" class="block py-2.5 px-4 rounded-xl flex items-center gap-3 text-sm font-medium border <?php echo $active_nav === 'servers' ? 'bg-slate-600/20 border-slate-500/40 text-slate-300' : 'bg-white/[0.02] border-white/5 text-gray-300'; ?>">
-            <i class="fas fa-server w-5 text-center"></i> <?php echo t('nav.servers'); ?>
-        </a>
-        <?php endif; ?>
 
-        <!-- 🔵 Dropdown Boutique mobile -->
-        <div class="bg-white/[0.02] border border-white/5 rounded-xl overflow-hidden">
-            <button onclick="toggleMobileDropdown('shopDropdown')" class="w-full py-2.5 px-4 flex items-center justify-between text-sm font-medium text-gray-300">
-                <span class="flex items-center gap-3">
-                    <i class="fas fa-tags w-5 text-center"></i> Boutique
-                </span>
-                <i class="fas fa-chevron-down text-xs transition" id="shopDropdownIcon"></i>
-            </button>
-            <div id="shopDropdown" class="hidden border-t border-white/5 bg-black/20">
-                <a href="/shop/" class="block py-2 px-4 pl-12 text-sm text-gray-400 hover:bg-white/5 hover:text-white">
-                    <i class="fas fa-tags w-4 mr-2"></i> <?php echo t('nav.offers'); ?>
-                </a>
-                <a href="/shop/cart/" class="block py-2 px-4 pl-12 text-sm text-gray-400 hover:bg-white/5 hover:text-white">
-                    <i class="fas fa-shopping-cart w-4 mr-2"></i> Mon panier
-                </a>
-                <?php if (isset($_SESSION['user_id'])): ?>
-                <a href="/client/billing/" class="block py-2 px-4 pl-12 text-sm text-gray-400 hover:bg-white/5 hover:text-white">
-                    <i class="fas fa-file-invoice-dollar w-4 mr-2"></i> Facturation
-                </a>
-                <?php endif; ?>
-            </div>
-        </div>
 
-        <a href="/support/" class="block py-2.5 px-4 rounded-xl flex items-center gap-3 text-sm font-medium border <?php echo $active_nav === 'support' ? 'bg-purple-600/20 border-purple-500/40 text-purple-400' : 'bg-white/[0.02] border-white/5 text-gray-300'; ?>">
-            <i class="fas fa-headset w-5 text-center"></i> <?php echo t('nav.support'); ?>
-        </a>
+<!-- Remplace la section menu mobile par ceci : -->
 
-        <a href="/status/" class="block py-2.5 px-4 rounded-xl flex items-center gap-3 text-sm font-medium border bg-emerald-600/10 border-emerald-500/30 text-emerald-400">
-            <i class="fas fa-signal w-5 text-center"></i> <?php echo t('status.nav'); ?>
-        </a>
+<div id="mobileMenu" class="md:hidden px-4 space-y-2">
+    
+    <!-- Liens principaux -->
+    <a href="/" class="block py-2.5 px-4 rounded-xl flex items-center gap-3 text-sm font-medium border <?php echo $active_nav === 'home' ? 'bg-sky-600/20 border-sky-500/40 text-sky-400' : 'bg-white/[0.02] border-white/5 text-gray-300'; ?>">
+        <i class="fas fa-home w-5 text-center"></i> <?php echo t('nav.home'); ?>
+    </a>
+    
+    <?php if (isset($_SESSION['user_id'])): ?>
+    <a href="/client/servers/" class="block py-2.5 px-4 rounded-xl flex items-center gap-3 text-sm font-medium border <?php echo $active_nav === 'servers' ? 'bg-slate-600/20 border-slate-500/40 text-slate-300' : 'bg-white/[0.02] border-white/5 text-gray-300'; ?>">
+        <i class="fas fa-server w-5 text-center"></i> <?php echo t('nav.servers'); ?>
+    </a>
+    <?php endif; ?>
 
-        <hr class="border-white/10">
-
-        <!-- 🔵 Notifications mobile -->
-        <?php if (isset($_SESSION['user_id']) && $notif_count > 0): ?>
-        <a href="/notifications/" class="block py-2.5 px-4 rounded-xl flex items-center gap-3 text-sm font-medium border bg-rose-600/10 border-rose-500/30 text-rose-400">
-            <i class="fas fa-bell w-5 text-center"></i> 
-            <span>Notifications</span>
-            <span class="ml-auto bg-rose-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full"><?= $notif_count ?></span>
-        </a>
-        <?php endif; ?>
-
-        <!-- 🔵 Menu utilisateur mobile -->
-        <?php if (isset($_SESSION['user_id'])): ?>
-            <a href="/profil/" class="block py-2.5 px-4 rounded-xl flex items-center gap-3 text-sm font-medium bg-white/[0.02] border border-white/5 text-gray-300">
-                <i class="fas fa-user w-5 text-center"></i> Profil
+    <!-- Dropdown Boutique mobile CORRIGÉ -->
+    <div class="bg-white/[0.02] border border-white/5 rounded-xl overflow-hidden">
+        <button onclick="toggleMobileDropdown('shopDropdown')" class="w-full py-2.5 px-4 flex items-center justify-between text-sm font-medium text-gray-300">
+            <span class="flex items-center gap-3">
+                <i class="fas fa-tags w-5 text-center"></i> Boutique
+            </span>
+            <i class="fas fa-chevron-down text-xs rotate-icon" id="shopDropdownIcon"></i>
+        </button>
+        <div id="shopDropdown" class="mobile-dropdown-content border-t border-white/5 bg-black/20">
+            <a href="/shop/" class="block py-2 px-4 pl-12 text-sm text-gray-400 hover:bg-white/5 hover:text-white">
+                <i class="fas fa-tags w-4 mr-2"></i> <?php echo t('nav.offers'); ?>
             </a>
-            <a href="/client/servers/" class="block py-2.5 px-4 rounded-xl flex items-center gap-3 text-sm font-medium bg-white/[0.02] border border-white/5 text-gray-300">
-                <i class="fas fa-server w-5 text-center"></i> Mes serveurs
+            <a href="/shop/cart/" class="block py-2 px-4 pl-12 text-sm text-gray-400 hover:bg-white/5 hover:text-white">
+                <i class="fas fa-shopping-cart w-4 mr-2"></i> Mon panier
             </a>
-            <a href="/client/billing/" class="block py-2.5 px-4 rounded-xl flex items-center gap-3 text-sm font-medium bg-white/[0.02] border border-white/5 text-gray-300">
-                <i class="fas fa-file-invoice-dollar w-5 text-center"></i> Facturation
+            <?php if (isset($_SESSION['user_id'])): ?>
+            <a href="/client/billing/" class="block py-2 px-4 pl-12 text-sm text-gray-400 hover:bg-white/5 hover:text-white">
+                <i class="fas fa-file-invoice-dollar w-4 mr-2"></i> Facturation
             </a>
-            <?php if (!empty($_SESSION['is_admin'])): ?>
-                <a href="/admin/" class="block py-2.5 px-4 rounded-xl flex items-center gap-3 text-sm font-medium bg-amber-600/10 border border-amber-500/30 text-amber-400">
-                    <i class="fas fa-user-tie w-5 text-center"></i> Administration
-                </a>
             <?php endif; ?>
-            <a href="/logout/" class="block py-2.5 px-4 rounded-xl flex items-center gap-3 text-sm font-medium bg-red-600/10 border border-red-500/30 text-red-400">
-                <i class="fas fa-sign-out-alt w-5 text-center"></i> Déconnexion
-            </a>
-        <?php else: ?>
-            <a href="/login/" class="block py-2.5 px-4 rounded-xl flex items-center gap-3 text-sm font-medium bg-white/5 border border-white/5 text-gray-300">
-                <i class="fas fa-sign-in-alt w-5 text-center"></i> <?php echo t('nav.login'); ?>
-            </a>
-            <a href="/register/" class="block py-2.5 px-4 rounded-xl flex items-center gap-3 text-sm font-medium bg-sky-600/20 border border-sky-500/30 text-sky-400">
-                <i class="fas fa-user-plus w-5 text-center"></i> <?php echo t('nav.register'); ?>
-            </a>
-        <?php endif; ?>
-
-        <hr class="border-white/10">
-
-        <div class="pt-1">
-            <?php include __DIR__ . '/lang_switcher.php'; ?>
         </div>
     </div>
-</nav>
+
+    <a href="/support/" class="block py-2.5 px-4 rounded-xl flex items-center gap-3 text-sm font-medium border <?php echo $active_nav === 'support' ? 'bg-purple-600/20 border-purple-500/40 text-purple-400' : 'bg-white/[0.02] border-white/5 text-gray-300'; ?>">
+        <i class="fas fa-headset w-5 text-center"></i> <?php echo t('nav.support'); ?>
+    </a>
+
+    <a href="/status/" class="block py-2.5 px-4 rounded-xl flex items-center gap-3 text-sm font-medium border bg-emerald-600/10 border-emerald-500/30 text-emerald-400">
+        <i class="fas fa-signal w-5 text-center"></i> <?php echo t('status.nav'); ?>
+    </a>
+
+    <hr class="border-white/10">
+
+    <!-- Notifications mobile -->
+    <?php if (isset($_SESSION['user_id']) && $notif_count > 0): ?>
+    <a href="/notifications/" class="block py-2.5 px-4 rounded-xl flex items-center gap-3 text-sm font-medium border bg-rose-600/10 border-rose-500/30 text-rose-400">
+        <i class="fas fa-bell w-5 text-center"></i> 
+        <span>Notifications</span>
+        <span class="ml-auto bg-rose-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full"><?= $notif_count ?></span>
+    </a>
+    <?php endif; ?>
+
+    <!-- Menu utilisateur mobile -->
+    <?php if (isset($_SESSION['user_id'])): ?>
+        <a href="/profil/" class="block py-2.5 px-4 rounded-xl flex items-center gap-3 text-sm font-medium bg-white/[0.02] border border-white/5 text-gray-300">
+            <i class="fas fa-user w-5 text-center"></i> Profil
+        </a>
+        <a href="/client/servers/" class="block py-2.5 px-4 rounded-xl flex items-center gap-3 text-sm font-medium bg-white/[0.02] border border-white/5 text-gray-300">
+            <i class="fas fa-server w-5 text-center"></i> Mes serveurs
+        </a>
+        <a href="/client/billing/" class="block py-2.5 px-4 rounded-xl flex items-center gap-3 text-sm font-medium bg-white/[0.02] border border-white/5 text-gray-300">
+            <i class="fas fa-file-invoice-dollar w-5 text-center"></i> Facturation
+        </a>
+        <?php if (!empty($_SESSION['is_admin'])): ?>
+            <a href="/admin/" class="block py-2.5 px-4 rounded-xl flex items-center gap-3 text-sm font-medium bg-amber-600/10 border border-amber-500/30 text-amber-400">
+                <i class="fas fa-user-tie w-5 text-center"></i> Administration
+            </a>
+        <?php endif; ?>
+        <a href="/logout/" class="block py-2.5 px-4 rounded-xl flex items-center gap-3 text-sm font-medium bg-red-600/10 border border-red-500/30 text-red-400">
+            <i class="fas fa-sign-out-alt w-5 text-center"></i> Déconnexion
+        </a>
+    <?php else: ?>
+        <a href="/login/" class="block py-2.5 px-4 rounded-xl flex items-center gap-3 text-sm font-medium bg-white/5 border border-white/5 text-gray-300">
+            <i class="fas fa-sign-in-alt w-5 text-center"></i> <?php echo t('nav.login'); ?>
+        </a>
+        <a href="/register/" class="block py-2.5 px-4 rounded-xl flex items-center gap-3 text-sm font-medium bg-sky-600/20 border border-sky-500/30 text-sky-400">
+            <i class="fas fa-user-plus w-5 text-center"></i> <?php echo t('nav.register'); ?>
+        </a>
+    <?php endif; ?>
+
+    <hr class="border-white/10">
+
+    <div class="pt-1">
+        <?php include __DIR__ . '/lang_switcher.php'; ?>
+    </div>
+</div>
 
 <script>
-// Toggle menu mobile
+// Toggle menu mobile CORRIGÉ
 function toggleMobileMenu() {
     const menu = document.getElementById('mobileMenu');
     const icon = document.getElementById('menuIcon');
-    menu.classList.toggle('hidden');
     
-    if (menu.classList.contains('hidden')) {
-        icon.className = 'fas fa-bars';
-    } else {
+    menu.classList.toggle('active');
+    
+    if (menu.classList.contains('active')) {
         icon.className = 'fas fa-times';
+    } else {
+        icon.className = 'fas fa-bars';
     }
 }
 
-// Toggle dropdown mobile
+// Toggle dropdown mobile CORRIGÉ
 function toggleMobileDropdown(id) {
     const dropdown = document.getElementById(id);
     const icon = document.getElementById(id + 'Icon');
-    dropdown.classList.toggle('hidden');
     
-    if (dropdown.classList.contains('hidden')) {
-        icon.style.transform = 'rotate(0deg)';
-    } else {
-        icon.style.transform = 'rotate(180deg)';
-    }
+    dropdown.classList.toggle('active');
+    icon.classList.toggle('rotated');
 }
 
-// Fermer le menu mobile au clic sur un lien
+// Fermer le menu mobile au clic sur un lien (sauf dropdowns)
 document.addEventListener('DOMContentLoaded', function() {
     const mobileMenu = document.getElementById('mobileMenu');
-    const links = mobileMenu.querySelectorAll('a');
     
-    links.forEach(link => {
+    // Fermer le menu au clic sur un lien direct (pas les boutons dropdown)
+    mobileMenu.querySelectorAll('a').forEach(link => {
         link.addEventListener('click', () => {
             if (window.innerWidth < 768) {
-                mobileMenu.classList.add('hidden');
+                mobileMenu.classList.remove('active');
                 document.getElementById('menuIcon').className = 'fas fa-bars';
             }
         });
+    });
+    
+    // Fermer le menu si on redimensionne la fenêtre en desktop
+    window.addEventListener('resize', () => {
+        if (window.innerWidth >= 768) {
+            mobileMenu.classList.remove('active');
+            document.getElementById('menuIcon').className = 'fas fa-bars';
+        }
     });
 });
 </script>
