@@ -30,14 +30,14 @@
                 </p>
                 
                 <!-- Réseaux sociaux -->
-                <div class="flex items-center gap-2 mt-2">
+              <div class="flex items-center gap-2 mt-2">
                     <a href="/discord/" target="_blank" class="w-9 h-9 rounded-lg bg-[#5865F2]/10 border border-[#5865F2]/20 flex items-center justify-center text-[#5865F2] hover:bg-[#5865F2]/20 transition" title="Discord">
                         <i class="fab fa-discord"></i>
                     </a>
-                    <a href="https://x.com/orinheberge" target="_blank" class="w-9 h-9 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400 hover:bg-sky-500/20 transition" title="Twitter">
-                        <i class="fab fa-x"></i>
+                    <a href="https://x.com/orinheberge" target="_blank" class="w-9 h-9 rounded-lg bg-black/10 border border-white/10 flex items-center justify-center text-white hover:bg-white/10 transition" title="X (Twitter)">
+                        <i class="fab fa-x-twitter"></i>
                     </a>
-                    <a href="https://www.tiktok.com/@orinheberge5" target="_blank" class="w-9 h-9 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400 hover:bg-sky-500/20 transition" title="Twitter">
+                    <a href="https://www.tiktok.com/@orinheberge5" target="_blank" class="w-9 h-9 rounded-lg bg-black/10 border border-white/10 flex items-center justify-center text-white hover:bg-white/10 transition" title="TikTok">
                         <i class="fab fa-tiktok"></i>
                     </a>
                     <a href="https://github.com/orinheberge" target="_blank" class="w-9 h-9 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:bg-white/10 transition" title="GitHub">
@@ -46,7 +46,7 @@
                     <a href="mailto:deepstone@deepstone.fr" class="w-9 h-9 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 hover:bg-rose-500/20 transition" title="Email">
                         <i class="fas fa-envelope"></i>
                     </a>
-                </div>
+</div>
             </div>
 
             <!-- Colonne 2 : Navigation -->
