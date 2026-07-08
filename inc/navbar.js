@@ -1,9 +1,22 @@
+document.addEventListener('DOMContentLoaded', () => {
+    const menu = document.getElementById('mobileMenu');
+    const icon = document.getElementById('menuIcon');
+
+    if (menu) {
+        // Force l'état initial pour éviter le bug du premier clic
+        menu.style.maxHeight = '0px';
+        menu.style.opacity = '0';
+    }
+});
+
+// Menu mobile principal (Burger)
 function toggleMobileMenu() {
     const menu = document.getElementById('mobileMenu');
     const icon = document.getElementById('menuIcon');
     
-    // On vérifie si le menu est caché (soit 0px, soit vide, soit contenant opacity 0)
-    if (menu.style.maxHeight === '0px' || menu.style.maxHeight === '' || menu.classList.contains('opacity-0')) {
+    if (!menu || !icon) return;
+
+    if (menu.style.maxHeight === '0px' || menu.classList.contains('opacity-0')) {
         menu.classList.remove('opacity-0');
         menu.style.maxHeight = menu.scrollHeight + "px";
         menu.style.opacity = '1';
@@ -21,28 +34,38 @@ function toggleMobileDropdown(id) {
     const icon = document.getElementById(id + 'Icon');
     const menu = document.getElementById('mobileMenu');
     
-    if (dropdown.style.maxHeight === '0px' || dropdown.style.maxHeight === '') {
+    if (!dropdown || !menu) return;
+
+    if (dropdown.style.maxHeight === '0px' || !dropdown.style.maxHeight) {
         dropdown.style.maxHeight = dropdown.scrollHeight + "px";
-        icon.style.transform = 'rotate(180deg)';
-        // On réajuste la hauteur globale du menu parent pour inclure le sous-menu
+        if (icon) icon.style.transform = 'rotate(180deg)';
+        
+        // Réajuste la hauteur du parent pour ne pas masquer le sous-menu
         setTimeout(() => {
             menu.style.maxHeight = menu.scrollHeight + "px";
         }, 50);
     } else {
         dropdown.style.maxHeight = '0px';
-        icon.style.transform = 'rotate(0deg)';
+        if (icon) icon.style.transform = 'rotate(0deg)';
+        
         setTimeout(() => {
-            menu.style.maxHeight = (menu.scrollHeight - dropdown.scrollHeight) + "px";
+            menu.style.maxHeight = menu.scrollHeight + "px";
         }, 50);
     }
 }
 
-// Sécurité : Fermeture du menu si basculement en mode PC
+// Sécurité : Ferme le menu si la fenêtre s'agrandit en mode PC
 window.addEventListener('resize', () => {
     if (window.innerWidth >= 768) {
-        const mobileMenu = document.getElementById('mobileMenu');
-        mobileMenu.style.maxHeight = '0px';
-        mobileMenu.style.opacity = '0';
-        document.getElementById('menuIcon').className = 'fas fa-bars';
+        const menu = document.getElementById('mobileMenu');
+        const icon = document.getElementById('menuIcon');
+        
+        if (menu) {
+            menu.style.maxHeight = '0px';
+            menu.style.opacity = '0';
+        }
+        if (icon) {
+            icon.className = 'fas fa-bars';
+        }
     }
 });
