@@ -98,6 +98,44 @@ function tierStyle(string $t): array {
 <link rel="icon" type="image/png" href="/favicon.ico">
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+<!-- Balises de base -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nos Offres - OrinHeberge | Hébergement VPS, Minecraft, PHP et Node.js</title>
+    <meta name="description" content="Découvrez nos offres d'hébergement VPS, Minecraft, PHP et Node.js. Des solutions gratuites et premium adaptées à tous vos projets.">
+    <meta name="keywords" content="hébergement VPS, serveur Minecraft, hébergement PHP, Node.js, VPS gratuit, serveur dédié, hosting, cloud">
+    <meta name="author" content="OrinHeberge">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://heberge.orinstone.deepstone.fr/offres/">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:locale" content="fr_FR">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Nos Offres - OrinHeberge | Hébergement VPS, Minecraft, PHP et Node.js">
+    <meta property="og:description" content="Trouvez l'offre idéale pour vos projets. Des serveurs rapides, sécurisés et à prix compétitifs.">
+    <meta property="og:url" content="https://heberge.orinstone.deepstone.fr/offres/">
+    <meta property="og:site_name" content="OrinHeberge">
+    <meta property="og:image" content="https://heberge.orinstone.deepstone.fr/favicon.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="OrinHeberge - Nos offres d'hébergement">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:site" content="@OrinHeberge">
+    <meta name="twitter:creator" content="@OrinHeberge">
+    <meta name="twitter:title" content="Nos Offres - OrinHeberge | Hébergement VPS, Minecraft, PHP et Node.js">
+    <meta name="twitter:description" content="Trouvez l'offre idéale pour vos projets. Des serveurs rapides, sécurisés et à prix compétitifs.">
+    <meta name="twitter:image" content="https://heberge.orinstone.deepstone.fr/favicon.png">
+    <meta name="twitter:image:alt" content="OrinHeberge - Nos offres d'hébergement">
+
+    <!-- Autres balises SEO -->
+    <meta name="theme-color" content="#6366f1">
+    <meta name="msapplication-TileColor" content="#6366f1">
+    <link rel="icon" type="image/png" href="https://heberge.orinstone.deepstone.fr/favicon.png">
+    <link rel="apple-touch-icon" href="https://heberge.orinstone.deepstone.fr/favicon.png">
+
 <link rel="manifest" href="/manifest.json">
 <style>
 body{background:#0b0f19;scroll-behavior:smooth;}

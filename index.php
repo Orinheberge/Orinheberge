@@ -162,12 +162,60 @@ function getCardStyle($tier_key) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OrinHeberge | Hébergeur</title>
     <link rel="icon" type="image/png" href="/favicon.ico">
-    <meta name="description" content="OrinHeberge - Hébergement VPS, Minecraft, PHP et Node.js ultra rapide, gratuit et premium.">
-    <meta property="og:title" content="OrinHeberge - Hébergeur VPS, Minecraft, PHP et Node.js">
-    <meta property="og:description" content="Serveurs rapides, sécurisés et performants.">
-    <meta property="og:image" content="https://heberge.orinstone.deepstone.fr/favicon.png">
+   
+    <!-- Balises de base -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OrinHeberge - Hébergeur VPS, Minecraft, PHP et Node.js | Gratuit & Premium</title>
+    <meta name="description" content="OrinHeberge - Hébergement VPS, Minecraft, PHP et Node.js ultra rapide, gratuit et premium. Des serveurs rapides, sécurisés et performants pour tous vos projets.">
+    <meta name="keywords" content="hébergement VPS, serveur Minecraft, hébergement PHP, Node.js, VPS gratuit, serveur dédié, hosting, cloud, hébergeur français">
+    <meta name="author" content="OrinHeberge">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://heberge.orinstone.deepstone.fr/">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:locale" content="fr_FR">
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://heberge.orinstone.deepstone.fr">
+    <meta property="og:title" content="OrinHeberge - Hébergeur VPS, Minecraft, PHP et Node.js">
+    <meta property="og:description" content="Hébergement VPS, Minecraft, PHP et Node.js ultra rapide, gratuit et premium. Serveurs rapides, sécurisés et performants.">
+    <meta property="og:url" content="https://heberge.orinstone.deepstone.fr/">
+    <meta property="og:site_name" content="OrinHeberge">
+    <meta property="og:image" content="https://heberge.orinstone.deepstone.fr/favicon.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="OrinHeberge - Hébergement VPS, Minecraft, PHP et Node.js">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:site" content="@OrinHeberge">
+    <meta name="twitter:creator" content="@OrinHeberge">
+    <meta name="twitter:title" content="OrinHeberge - Hébergeur VPS, Minecraft, PHP et Node.js">
+    <meta name="twitter:description" content="Hébergement VPS, Minecraft, PHP et Node.js ultra rapide, gratuit et premium. Serveurs rapides, sécurisés et performants.">
+    <meta name="twitter:image" content="https://heberge.orinstone.deepstone.fr/favicon.png">
+    <meta name="twitter:image:alt" content="OrinHeberge - Hébergement VPS, Minecraft, PHP et Node.js">
+
+    <!-- Autres balises SEO -->
+    <meta name="theme-color" content="#6366f1">
+    <meta name="msapplication-TileColor" content="#6366f1">
+    <link rel="icon" type="image/png" href="https://heberge.orinstone.deepstone.fr/favicon.png">
+    <link rel="apple-touch-icon" href="https://heberge.orinstone.deepstone.fr/favicon.png">
+
+    <!-- Schema.org JSON-LD (SEO avancé) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "OrinHeberge",
+      "url": "https://heberge.orinstone.deepstone.fr/",
+      "description": "Hébergement VPS, Minecraft, PHP et Node.js ultra rapide, gratuit et premium.",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://heberge.orinstone.deepstone.fr/search?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    }
+    </script>
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link rel="manifest" href="/manifest.json">

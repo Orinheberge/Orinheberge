@@ -105,6 +105,58 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link rel="manifest" href="/manifest.json">
+    
+        <meta name="keywords" content="inscription OrinHeberge, créer compte, signup, register, hébergement gratuit, inscription VPS, ouverture compte client">
+    <meta name="author" content="OrinHeberge">
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="canonical" href="https://heberge.orinstone.deepstone.fr/register/">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:locale" content="fr_FR">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Inscription - OrinHeberge | Rejoignez-nous">
+    <meta property="og:description" content="Rejoignez OrinHeberge ! Créez votre compte gratuitement en quelques secondes pour accéder à nos hébergements VPS, Minecraft, PHP et Node.js performants.">
+    <meta property="og:url" content="https://heberge.orinstone.deepstone.fr/register/">
+    <meta property="og:site_name" content="OrinHeberge">
+    <meta property="og:image" content="https://heberge.orinstone.deepstone.fr/favicon.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="OrinHeberge - Inscription gratuite">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:site" content="@OrinHeberge">
+    <meta name="twitter:creator" content="@OrinHeberge">
+    <meta name="twitter:title" content="Inscription - OrinHeberge | Rejoignez-nous">
+    <meta name="twitter:description" content="Rejoignez OrinHeberge ! Créez votre compte gratuitement en quelques secondes pour accéder à nos hébergements VPS, Minecraft, PHP et Node.js performants.">
+    <meta name="twitter:image" content="https://heberge.orinstone.deepstone.fr/favicon.png">
+    <meta name="twitter:image:alt" content="OrinHeberge - Inscription gratuite">
+
+    <!-- Autres balises SEO -->
+    <meta name="theme-color" content="#6366f1">
+    <meta name="msapplication-TileColor" content="#6366f1">
+    <link rel="apple-touch-icon" href="https://heberge.orinstone.deepstone.fr/favicon.ico">
+
+    <!-- Schema.org JSON-LD (SEO avancé) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "RegisterAction",
+      "name": "Inscription OrinHeberge",
+      "url": "https://heberge.orinstone.deepstone.fr/register/",
+      "description": "Page d'inscription pour créer un compte client chez OrinHeberge.",
+      "agent": {
+        "@type": "Person",
+        "name": "Nouveau Client"
+      },
+      "result": {
+        "@type": "Organization",
+        "name": "OrinHeberge",
+        "url": "https://heberge.orinstone.deepstone.fr/"
+      }
+    }
+    </script>
+    
     <style>
         body { background: radial-gradient(circle at top left, #1e293b, #020617); }
         .glass { background: rgba(255,255,255,0.03); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }

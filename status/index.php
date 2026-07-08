@@ -156,6 +156,60 @@ function timeAgo($datetime, $lang) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo t('status.title'); ?></title>
+    
+        <!-- Balises de base -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Statut des Services - OrinHeberge | Monitoring en temps réel</title>
+    <meta name="description" content="Consultez l'état en temps réel des services OrinHeberge. Monitoring 24/7 de nos serveurs VPS, Minecraft, PHP et Node.js.">
+    <meta name="keywords" content="statut serveur, monitoring, état des services, uptime, disponibilité, OrinHeberge status, monitoring VPS, état Minecraft">
+    <meta name="author" content="OrinHeberge">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://heberge.orinstone.deepstone.fr/status/">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:locale" content="fr_FR">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Statut des Services - OrinHeberge">
+    <meta property="og:description" content="Consultez l'état en temps réel des services OrinHeberge. Monitoring 24/7 de nos serveurs VPS, Minecraft, PHP et Node.js.">
+    <meta property="og:url" content="https://heberge.orinstone.deepstone.fr/status/">
+    <meta property="og:site_name" content="OrinHeberge">
+    <meta property="og:image" content="https://heberge.orinstone.deepstone.fr/favicon.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="OrinHeberge - Statut des services en temps réel">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:site" content="@OrinHeberge">
+    <meta name="twitter:creator" content="@OrinHeberge">
+    <meta name="twitter:title" content="Statut des Services - OrinHeberge">
+    <meta name="twitter:description" content="Consultez l'état en temps réel des services OrinHeberge. Monitoring 24/7 de nos serveurs VPS, Minecraft, PHP et Node.js.">
+    <meta name="twitter:image" content="https://heberge.orinstone.deepstone.fr/favicon.png">
+    <meta name="twitter:image:alt" content="OrinHeberge - Statut des services en temps réel">
+
+    <!-- Autres balises SEO -->
+    <meta name="theme-color" content="#6366f1">
+    <meta name="msapplication-TileColor" content="#6366f1">
+    <link rel="icon" type="image/png" href="https://heberge.orinstone.deepstone.fr/favicon.png">
+    <link rel="apple-touch-icon" href="https://heberge.orinstone.deepstone.fr/favicon.png">
+
+    <!-- Schema.org JSON-LD (SEO avancé) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Service",
+      "name": "OrinHeberge - Statut des Services",
+      "provider": {
+        "@type": "Organization",
+        "name": "OrinHeberge",
+        "url": "https://heberge.orinstone.deepstone.fr/"
+      },
+      "url": "https://heberge.orinstone.deepstone.fr/status/",
+      "description": "Page de statut et monitoring en temps réel des services d'hébergement OrinHeberge."
+    }
+    </script>
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="icon" type="image/png" href="https://heberge.orinstone.deepstone.fr/favicon.ico">
