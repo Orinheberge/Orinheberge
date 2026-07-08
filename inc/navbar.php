@@ -319,4 +319,4 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
     </div>
 </nav>
 
-<script src="navbar.js"></script>
+<script src="/navbar.js"></script>
