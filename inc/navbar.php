@@ -49,41 +49,15 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
 
-    <style>
-    /* Animation du menu mobile - CORRIGÉ */
+<style>
+    /* Animation du menu mobile */
     #mobileMenu {
-        transition: all 0.3s ease-in-out;
-        max-height: 0;
-        overflow: hidden;
-        opacity: 0;
-    }
-    #mobileMenu.active {
-        max-height: 2000px;
-        opacity: 1;
-        padding-bottom: 1rem;
-    }
-    
-    /* Animation du dropdown */
-    .dropdown-menu {
-        transition: all 0.2s ease-in-out;
-    }
-    
-    /* Mobile dropdown */
-    .mobile-dropdown-content {
-        transition: max-height 0.3s ease-in-out;
-        max-height: 0;
-        overflow: hidden;
-    }
-    .mobile-dropdown-content.active {
-        max-height: 500px;
+        transition: max-height 0.3s ease-in-out, opacity 0.2s ease-in-out;
     }
     
     /* Rotation de l'icône */
     .rotate-icon {
         transition: transform 0.3s ease;
-    }
-    .rotate-icon.rotated {
-        transform: rotate(180deg);
     }
     
     /* Badge notification pulse */
@@ -107,18 +81,18 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
 
 <nav class="sticky top-0 z-50 border-b border-white/5" style="background: rgba(7, 10, 19, 0.8); backdrop-filter: blur(14px);">
     
-    <!-- 🔵 Bandeau de maintenance (si actif) -->
     <?php if ($maintenance_banner): 
+        // Correction Tailwind : Classes écrites en entier pour éviter le problème du compilateur
         $sev_colors = [
-            'info'     => ['bg' => 'sky',    'icon' => 'fa-info-circle'],
-            'warning'  => ['bg' => 'amber',  'icon' => 'fa-exclamation-triangle'],
-            'critical' => ['bg' => 'red',    'icon' => 'fa-radiation'],
+            'info'     => ['bg' => 'bg-sky-500/10',     'border' => 'border-sky-500/20',     'text' => 'text-sky-400',     'icon' => 'fa-info-circle'],
+            'warning'  => ['bg' => 'bg-amber-500/10',   'border' => 'border-amber-500/20',   'text' => 'text-amber-400',   'icon' => 'fa-exclamation-triangle'],
+            'critical' => ['bg' => 'bg-red-500/10',     'border' => 'border-red-500/20',     'text' => 'text-red-400',     'icon' => 'fa-radiation'],
         ];
         $sev = $sev_colors[$maintenance_banner['severity']] ?? $sev_colors['info'];
     ?>
-    <div class="maintenance-banner bg-<?php echo $sev['bg']; ?>-500/10 border-b border-<?php echo $sev['bg']; ?>-500/20 px-4 py-2">
+    <div class="maintenance-banner <?php echo $sev['bg']; ?> <?php echo $sev['border']; ?> border-b px-4 py-2">
         <div class="max-w-7xl mx-auto flex items-center justify-between gap-3">
-            <div class="flex items-center gap-2 text-xs text-<?php echo $sev['bg']; ?>-400">
+            <div class="flex items-center gap-2 text-xs <?php echo $sev['text']; ?>">
                 <i class="fas <?php echo $sev['icon']; ?>"></i>
                 <span class="font-semibold"><?php echo htmlspecialchars($maintenance_banner['title']); ?></span>
                 <span class="hidden sm:inline text-gray-500">—</span>
@@ -126,38 +100,33 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
                     <?php echo date('H:i', strtotime($maintenance_banner['start_date'])); ?> → <?php echo date('H:i', strtotime($maintenance_banner['end_date'])); ?>
                 </span>
             </div>
-            <a href="/status/" class="text-[11px] text-<?php echo $sev['bg']; ?>-400 hover:text-<?php echo $sev['bg']; ?>-300 font-semibold whitespace-nowrap">
+            <a href="/status/" class="text-[11px] <?php echo $sev['text']; ?> hover:underline font-semibold whitespace-nowrap">
                 Plus d'infos <i class="fas fa-arrow-right text-[9px] ml-0.5"></i>
             </a>
         </div>
     </div>
     <?php endif; ?>
 
-    <!-- 🔵 Bandeau impersonification admin -->
     <?php if (!empty($_SESSION['admin_impersonating'])): ?>
     <div style="background:rgba(244,63,94,.15);border-bottom:1px solid rgba(244,63,94,.3);" class="px-5 py-2 flex items-center justify-between text-xs">
         <span class="text-rose-400 font-semibold flex items-center gap-2">
             <i class="fas fa-user-secret"></i>
             Vous êtes connecté en tant que <strong class="text-white ml-1"><?php echo htmlspecialchars($_SESSION['username'] ?? ''); ?></strong>
         </span>
-        <form method="POST" action="/admin/stop_impersonate.php">
-            <button type="submit" class="bg-rose-500/20 hover:bg-rose-500/40 border border-rose-500/40 text-rose-300 px-3 py-1 rounded-lg font-bold transition">
+        <form method="POST" action="/admin/stop_impersonate.php" class="m-0">
+            <button type="submit" class="bg-rose-500/20 hover:bg-rose-500/40 border border-rose-500/40 text-rose-300 px-3 py-1 rounded-lg font-bold transition cursor-pointer">
                 <i class="fas fa-arrow-left mr-1"></i> Retour admin
             </button>
         </form>
     </div>
     <?php endif; ?>
 
-    <!-- Navbar principale -->
     <div class="max-w-7xl mx-auto flex items-center gap-4 p-5">
 
-        <h1 class="text-3xl font-black gradient-text tracking-tight shrink-0">
+        <h1 class="text-3xl font-black text-white tracking-tight shrink-0">
             <a href="/">OrinHeberge</a>
         </h1>
 
-        <!-- ═══════════════════════════════════════════════════════════════ -->
-        <!-- MENU DESKTOP -->
-        <!-- ═══════════════════════════════════════════════════════════════ -->
         <div class="hidden md:flex items-center gap-2 lg:gap-3 flex-1 justify-end flex-wrap">
             <a href="/" class="<?php echo $active_nav === 'home' ? 'bg-sky-600/30 text-sky-400 border-sky-500/50 font-bold' : 'bg-sky-600/5 text-sky-400/70 hover:text-sky-300 border-sky-500/10 hover:bg-sky-600/20'; ?> px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium shadow-md border whitespace-nowrap">
                 <i class="fas fa-home"></i> <?php echo t('nav.home'); ?>
@@ -169,9 +138,8 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
             </a>
             <?php endif; ?>
 
-            <!-- 🔵 Dropdown Boutique amélioré -->
             <div class="relative group">
-                <button class="text-gray-300 hover:text-sky-400 font-bold flex items-center gap-2.5 transition bg-white/5 hover:bg-white/10 px-4 py-2 rounded-full border border-white/5 focus:outline-none text-xs whitespace-nowrap">
+                <button class="text-gray-300 hover:text-sky-400 font-bold flex items-center gap-2.5 transition bg-white/5 hover:bg-white/10 px-4 py-2 rounded-full border border-white/5 focus:outline-none text-xs whitespace-nowrap cursor-pointer">
                     <i class="fas fa-tags"></i> Boutique
                     <i class="fas fa-chevron-down text-[9px] opacity-50"></i>
                 </button>
@@ -196,7 +164,6 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
             </a>
 
             <?php if (isset($_SESSION['user_id'])): ?>
-                <!-- 🔵 Notifications avec badge -->
                 <?php if ($notif_count > 0): ?>
                 <a href="/notifications/" class="relative bg-rose-600/10 hover:bg-rose-600/20 border border-rose-500/20 text-rose-400 px-3 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium whitespace-nowrap">
                     <i class="fas fa-bell"></i>
@@ -206,9 +173,8 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
                 </a>
                 <?php endif; ?>
 
-                <!-- 🔵 Menu utilisateur amélioré -->
                 <div class="relative group">
-                    <button class="text-gray-300 hover:text-sky-400 font-bold flex items-center gap-2.5 transition bg-white/5 hover:bg-white/10 px-4 py-2 rounded-full border border-white/5 focus:outline-none text-xs whitespace-nowrap">
+                    <button class="text-gray-300 hover:text-sky-400 font-bold flex items-center gap-2.5 transition bg-white/5 hover:bg-white/10 px-4 py-2 rounded-full border border-white/5 focus:outline-none text-xs whitespace-nowrap cursor-pointer">
                         <?php if (!empty($_SESSION['avatar']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/' . $_SESSION['avatar'])): ?>
                             <img src="/<?php echo htmlspecialchars($_SESSION['avatar']); ?>" alt="Avatar" class="w-5 h-5 rounded-full object-cover border border-sky-500/30 shrink-0">
                         <?php else: ?>
@@ -257,19 +223,14 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
             <?php include __DIR__ . '/lang_switcher.php'; ?>
         </div>
 
-        <!-- Bouton menu mobile -->
-        <button onclick="toggleMobileMenu()" class="md:hidden text-2xl text-gray-400 hover:text-white transition shrink-0 ml-auto" aria-label="Menu">
+        <button onclick="toggleMobileMenu()" class="md:hidden text-2xl text-gray-400 hover:text-white transition shrink-0 ml-auto cursor-pointer" aria-label="Menu">
             <i class="fas fa-bars" id="menuIcon"></i>
         </button>
     </div>
 
-    <!-- ═══════════════════════════════════════════════════════════════ -->
-    <!-- MENU MOBILE CORRIGÉ -->
-    <!-- ═══════════════════════════════════════════════════════════════ -->
-    <div id="mobileMenu" class="md:hidden transition-all duration-300 ease-in-out" style="max-height: 0; opacity: 0; overflow: hidden;">
+    <div id="mobileMenu" class="md:hidden opacity-0" style="max-height: 0px; overflow: hidden;">
         <div class="px-4 pb-4 space-y-2">
             
-            <!-- Liens principaux -->
             <a href="/" class="block py-2.5 px-4 rounded-xl flex items-center gap-3 text-sm font-medium border <?php echo $active_nav === 'home' ? 'bg-sky-600/20 border-sky-500/40 text-sky-400' : 'bg-white/[0.02] border-white/5 text-gray-300'; ?>">
                 <i class="fas fa-home w-5 text-center"></i> <?php echo t('nav.home'); ?>
             </a>
@@ -280,15 +241,14 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
             </a>
             <?php endif; ?>
 
-            <!-- Dropdown Boutique mobile CORRIGÉ -->
             <div class="bg-white/[0.02] border border-white/5 rounded-xl">
-                <button type="button" onclick="toggleMobileDropdown('shopDropdown')" class="w-full py-2.5 px-4 flex items-center justify-between text-sm font-medium text-gray-300 hover:bg-white/5 transition">
+                <button type="button" onclick="toggleMobileDropdown('shopDropdown')" class="w-full py-2.5 px-4 flex items-center justify-between text-sm font-medium text-gray-300 hover:bg-white/5 transition cursor-pointer">
                     <span class="flex items-center gap-3">
                         <i class="fas fa-tags w-5 text-center"></i> Boutique
                     </span>
                     <i class="fas fa-chevron-down text-xs transition-transform duration-300" id="shopDropdownIcon"></i>
                 </button>
-                <div id="shopDropdown" class="transition-all duration-300 ease-in-out overflow-hidden" style="max-height: 0;">
+                <div id="shopDropdown" class="transition-all duration-300 ease-in-out overflow-hidden" style="max-height: 0px;">
                     <div class="border-t border-white/5 bg-black/20 py-2">
                         <a href="/shop/" class="block py-2 px-4 pl-12 text-sm text-gray-400 hover:bg-white/5 hover:text-white">
                             <i class="fas fa-tags w-4 mr-2"></i> <?php echo t('nav.offers'); ?>
@@ -315,7 +275,6 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
 
             <hr class="border-white/10">
 
-            <!-- Notifications mobile -->
             <?php if (isset($_SESSION['user_id']) && $notif_count > 0): ?>
             <a href="/notifications/" class="block py-2.5 px-4 rounded-xl flex items-center gap-3 text-sm font-medium border bg-rose-600/10 border-rose-500/30 text-rose-400">
                 <i class="fas fa-bell w-5 text-center"></i> 
@@ -324,7 +283,6 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
             </a>
             <?php endif; ?>
 
-            <!-- Menu utilisateur mobile -->
             <?php if (isset($_SESSION['user_id'])): ?>
                 <a href="/profil/" class="block py-2.5 px-4 rounded-xl flex items-center gap-3 text-sm font-medium bg-white/[0.02] border border-white/5 text-gray-300">
                     <i class="fas fa-user w-5 text-center"></i> Profil
@@ -362,62 +320,51 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
 </nav>
 
 <script>
-// Toggle menu mobile CORRIGÉ
+// Menu mobile synchrone
 function toggleMobileMenu() {
     const menu = document.getElementById('mobileMenu');
     const icon = document.getElementById('menuIcon');
     
     if (menu.style.maxHeight === '0px' || menu.style.maxHeight === '') {
-        // Ouvrir le menu
-        menu.style.maxHeight = menu.scrollHeight + 'px';
+        menu.style.maxHeight = menu.scrollHeight + "px";
         menu.style.opacity = '1';
         icon.className = 'fas fa-times';
     } else {
-        // Fermer le menu
         menu.style.maxHeight = '0px';
         menu.style.opacity = '0';
         icon.className = 'fas fa-bars';
     }
 }
 
-// Toggle dropdown mobile CORRIGÉ
+// Dropdown interne mobile
 function toggleMobileDropdown(id) {
     const dropdown = document.getElementById(id);
     const icon = document.getElementById(id + 'Icon');
+    const menu = document.getElementById('mobileMenu');
     
     if (dropdown.style.maxHeight === '0px' || dropdown.style.maxHeight === '') {
-        // Ouvrir le dropdown
-        dropdown.style.maxHeight = dropdown.scrollHeight + 'px';
+        dropdown.style.maxHeight = dropdown.scrollHeight + "px";
         icon.style.transform = 'rotate(180deg)';
+        // On réajuste la hauteur du conteneur parent pour éviter que ça coupe
+        setTimeout(() => {
+            menu.style.maxHeight = menu.scrollHeight + "px";
+        }, 50);
     } else {
-        // Fermer le dropdown
         dropdown.style.maxHeight = '0px';
         icon.style.transform = 'rotate(0deg)';
+        setTimeout(() => {
+            menu.style.maxHeight = menu.scrollHeight + "px";
+        }, 50);
     }
 }
 
-// Fermer le menu mobile au clic sur un lien
-document.addEventListener('DOMContentLoaded', function() {
-    const mobileMenu = document.getElementById('mobileMenu');
-    
-    // Fermer le menu au clic sur un lien
-    mobileMenu.querySelectorAll('a').forEach(link => {
-        link.addEventListener('click', () => {
-            if (window.innerWidth < 768) {
-                mobileMenu.style.maxHeight = '0px';
-                mobileMenu.style.opacity = '0';
-                document.getElementById('menuIcon').className = 'fas fa-bars';
-            }
-        });
-    });
-    
-    // Fermer le menu si on redimensionne en desktop
-    window.addEventListener('resize', () => {
-        if (window.innerWidth >= 768) {
-            mobileMenu.style.maxHeight = '0px';
-            mobileMenu.style.opacity = '0';
-            document.getElementById('menuIcon').className = 'fas fa-bars';
-        }
-    });
+// Nettoyage lors du redimensionnement
+window.addEventListener('resize', () => {
+    if (window.innerWidth >= 768) {
+        const mobileMenu = document.getElementById('mobileMenu');
+        mobileMenu.style.maxHeight = '0px';
+        mobileMenu.style.opacity = '0';
+        document.getElementById('menuIcon').className = 'fas fa-bars';
+    }
 });
 </script>
