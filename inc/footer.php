@@ -40,7 +40,7 @@
                     <a href="https://github.com/orinheberge" target="_blank" class="w-9 h-9 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:bg-white/10 transition" title="GitHub">
                         <i class="fab fa-github"></i>
                     </a>
-                    <a href="mailto:contact@orinstone.deepstone.fr" class="w-9 h-9 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 hover:bg-rose-500/20 transition" title="Email">
+                    <a href="mailto:deepstone@deepstone.fr" class="w-9 h-9 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 hover:bg-rose-500/20 transition" title="Email">
                         <i class="fas fa-envelope"></i>
                     </a>
                 </div>

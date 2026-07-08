@@ -1,10 +1,6 @@
 <?php
 /**
  * inc/admin_sidebar.php — Sidebar partagée pour TOUTES les pages admin
- * Requiert avant l'inclusion :
- *   - $admin (array avec pseudo/firstname/avatar/is_admin)
- *   - $active_nav (string: 'dashboard','nodes','eggs','products','extensions','clients','servers','tickets','settings','email','maintenance','announcements','categories','lang','create_server','invoices')
- *   - Variables de comptage optionnelles : $all_users, $all_servers, $open_tickets
  */
 $admin_username  = !empty($admin['pseudo']) ? $admin['pseudo'] : ($admin['firstname'] ?? 'Admin');
 $_users_count    = isset($all_users)   ? count($all_users)   : ($pdo->query('SELECT COUNT(*) FROM users')->fetchColumn());
@@ -22,10 +18,11 @@ $_maintenance_count = $pdo->query("
 // 🔵 Compteur de factures en attente
 $_inv_pending_count = $pdo->query("SELECT COUNT(*) FROM invoices WHERE status='pending'")->fetchColumn();
 
-// 🔵 Compteur d'utilisateurs actifs récemment (dernières 24h)
+// 🔵 Compteur d'utilisateurs inscrits récemment (dernières 24h)
+// Utilise created_at au lieu de last_login (qui n'existe pas)
 $_recent_users_count = $pdo->query("
     SELECT COUNT(*) FROM users 
-    WHERE last_login >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
+    WHERE created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
 ")->fetchColumn();
 
 // 🔵 Vérifier si une maintenance critique est en cours
@@ -43,7 +40,6 @@ $_critical_maintenance = $pdo->query("
 <script src="https://cdn.tailwindcss.com"></script>
 
 <style>
-    /* Animation pour le badge critique */
     @keyframes pulse-critical {
         0%, 100% { opacity: 1; transform: scale(1); }
         50% { opacity: 0.6; transform: scale(1.1); }
@@ -51,34 +47,10 @@ $_critical_maintenance = $pdo->query("
     .critical-pulse {
         animation: pulse-critical 1.5s infinite;
     }
-    
-    /* Tooltip hover */
-    .nav-item {
-        position: relative;
-    }
-    .nav-item[data-tooltip]:hover::after {
-        content: attr(data-tooltip);
-        position: absolute;
-        left: calc(100% + 8px);
-        top: 50%;
-        transform: translateY(-50%);
-        background: rgba(15, 23, 42, 0.95);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        color: #e2e8f0;
-        padding: 4px 8px;
-        border-radius: 6px;
-        font-size: 11px;
-        white-space: nowrap;
-        z-index: 100;
-        pointer-events: none;
-    }
 </style>
 
 <aside id="sidebar" class="sidebar">
   
-  <!-- ═══════════════════════════════════════════════════════════════ -->
-  <!-- LOGO -->
-  <!-- ═══════════════════════════════════════════════════════════════ -->
   <div class="sidebar-logo">
     <a href="/admin/" class="flex items-center gap-2.5">
       <div class="w-8 h-8 rounded-lg bg-rose-500/20 flex items-center justify-center shrink-0">
@@ -91,9 +63,6 @@ $_critical_maintenance = $pdo->query("
     </a>
   </div>
 
-  <!-- ═══════════════════════════════════════════════════════════════ -->
-  <!-- 🔵 BANDEAU MAINTENANCE CRITIQUE (si actif) -->
-  <!-- ═══════════════════════════════════════════════════════════════ -->
   <?php if ($_critical_maintenance): ?>
   <div class="mx-3 mb-3 p-3 rounded-xl bg-red-500/10 border border-red-500/30">
     <div class="flex items-center gap-2 text-xs">
@@ -106,9 +75,6 @@ $_critical_maintenance = $pdo->query("
 
   <nav class="sidebar-nav">
 
-    <!-- ═══════════════════════════════════════════════════════════════ -->
-    <!-- DASHBOARD -->
-    <!-- ═══════════════════════════════════════════════════════════════ -->
     <div class="nav-section">Dashboard</div>
     
     <a href="/admin/" class="nav-item <?= ($active_nav === 'dashboard' || $active_nav === '') ? 'active' : '' ?>">
@@ -121,9 +87,6 @@ $_critical_maintenance = $pdo->query("
 
     <div class="nav-separator"></div>
 
-    <!-- ═══════════════════════════════════════════════════════════════ -->
-    <!-- INFRASTRUCTURE -->
-    <!-- ═══════════════════════════════════════════════════════════════ -->
     <div class="nav-section">Infrastructure</div>
 
     <a href="/admin/nodes/" class="nav-item <?= $active_nav === 'nodes' ? 'active' : '' ?>">
@@ -134,7 +97,6 @@ $_critical_maintenance = $pdo->query("
       <i class="fas fa-egg icon"></i> Eggs
     </a>
 
-    <!-- 🔵 Lien vers les maintenances avec badge -->
     <a href="/admin/maintenance/" class="nav-item <?= $active_nav === 'maintenance' ? 'active' : '' ?>">
       <i class="fas fa-wrench icon"></i> Maintenances
       <?php if ($_maintenance_count > 0): ?>
@@ -144,9 +106,6 @@ $_critical_maintenance = $pdo->query("
 
     <div class="nav-separator"></div>
 
-    <!-- ═══════════════════════════════════════════════════════════════ -->
-    <!-- BOUTIQUE -->
-    <!-- ═══════════════════════════════════════════════════════════════ -->
     <div class="nav-section">Boutique</div>
 
     <a href="/admin/products/" class="nav-item <?= $active_nav === 'products' ? 'active' : '' ?>">
@@ -167,9 +126,6 @@ $_critical_maintenance = $pdo->query("
 
     <div class="nav-separator"></div>
 
-    <!-- ═══════════════════════════════════════════════════════════════ -->
-    <!-- GESTION -->
-    <!-- ═══════════════════════════════════════════════════════════════ -->
     <div class="nav-section">Gestion</div>
 
     <a href="/admin/servers/create/" class="nav-item <?= $active_nav === 'create_server' ? 'active' : '' ?>" style="<?= $active_nav === 'create_server' ? '' : 'color:#f43f5e;' ?>">
@@ -206,9 +162,6 @@ $_critical_maintenance = $pdo->query("
 
     <div class="nav-separator"></div>
 
-    <!-- ═══════════════════════════════════════════════════════════════ -->
-    <!-- CONFIGURATION -->
-    <!-- ═══════════════════════════════════════════════════════════════ -->
     <div class="nav-section">Configuration</div>
 
     <a href="/admin/?view=settings" class="nav-item <?= $active_nav === 'settings' ? 'active' : '' ?>">
@@ -217,9 +170,6 @@ $_critical_maintenance = $pdo->query("
 
     <div class="nav-separator"></div>
 
-    <!-- ═══════════════════════════════════════════════════════════════ -->
-    <!-- ESPACE CLIENT (raccourcis) -->
-    <!-- ═══════════════════════════════════════════════════════════════ -->
     <div class="nav-section">Espace Client</div>
 
     <a href="/client/" class="nav-item">
@@ -236,12 +186,8 @@ $_critical_maintenance = $pdo->query("
 
   </nav>
 
-  <!-- ═══════════════════════════════════════════════════════════════ -->
-  <!-- FOOTER -->
-  <!-- ═══════════════════════════════════════════════════════════════ -->
   <div class="sidebar-footer">
     
-    <!-- 🔵 NOUVEAU : Sélecteur de langue -->
     <div class="mb-3 px-1">
       <?php if (file_exists(__DIR__ . '/lang_switcher.php')): ?>
         <?php include __DIR__ . '/lang_switcher.php'; ?>
@@ -253,7 +199,6 @@ $_critical_maintenance = $pdo->query("
       <?php endif; ?>
     </div>
 
-    <!-- Profil admin -->
     <a href="/profil/" class="flex items-center gap-2.5 mb-2 group">
       <?php if (!empty($admin['avatar']) && file_exists($_SERVER['DOCUMENT_ROOT'].'/'.$admin['avatar'])): ?>
         <img src="/<?= htmlspecialchars($admin['avatar']) ?>" class="w-8 h-8 rounded-full object-cover border border-white/10">
@@ -269,15 +214,13 @@ $_critical_maintenance = $pdo->query("
       <i class="fas fa-chevron-right text-[9px] text-gray-600 group-hover:text-gray-400 transition"></i>
     </a>
     
-    <!-- Déconnexion -->
     <a href="/logout/" class="nav-item" style="color:#ef4444;">
       <i class="fas fa-sign-out-alt icon"></i> Déconnexion
     </a>
 
-    <!-- 🔵 NOUVEAU : Stats rapides -->
     <div class="mt-3 pt-3 border-t border-white/5 grid grid-cols-2 gap-2 text-center">
       <div class="bg-white/[0.02] rounded-lg p-2">
-        <div class="text-[10px] text-gray-500">Actifs 24h</div>
+        <div class="text-[10px] text-gray-500">Inscrits 24h</div>
         <div class="text-sm font-bold text-emerald-400"><?= $_recent_users_count ?></div>
       </div>
       <div class="bg-white/[0.02] rounded-lg p-2">
@@ -286,7 +229,6 @@ $_critical_maintenance = $pdo->query("
       </div>
     </div>
 
-    <!-- 🔵 NOUVEAU : Version et liens -->
     <div class="mt-3 pt-3 border-t border-white/5 flex items-center justify-center gap-3 text-[10px] text-gray-600">
       <span>v2.0.0</span>
       <span>·</span>
@@ -299,11 +241,11 @@ $_critical_maintenance = $pdo->query("
       </a>
     </div>
     <div class="mt-3 pt-3 border-t border-white/5 flex items-center justify-center gap-3 text-[10px] text-gray-600">
-            <a href="/mentions-legales/" class="hover:text-gray-400 transition">Mentions</a>
-            <span>·</span>
-            <a href="/cgu/" class="hover:text-gray-400 transition">CGU</a>
-            <span>·</span>
-            <a href="/politique-confidentialite/" class="hover:text-gray-400 transition">Confidentialité</a>
-        </div>
+      <a href="/mentions-legales/" class="hover:text-gray-400 transition">Mentions</a>
+      <span>·</span>
+      <a href="/cgu/" class="hover:text-gray-400 transition">CGU</a>
+      <span>·</span>
+      <a href="/politique-confidentialite/" class="hover:text-gray-400 transition">Confidentialité</a>
+    </div>
   </div>
 </aside>
