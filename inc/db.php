@@ -88,7 +88,7 @@ function pterodactylApi(string $panel_url, array $headers, string $endpoint, ?ar
     ]);
     if ($method === 'DELETE') {
         curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'DELETE');
-    } elseif ($data !== null) {
+    } elseif ($method === 'POST' || $data !== null) {
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
     }
@@ -135,6 +135,36 @@ function getOrCreatePanelUser(string $panel_url, array $headers, array $user, PD
 }
 
 /**
+ * 🔵 NOUVELLE FONCTION : Transfère un serveur vers un autre node
+ */
+function transferServerToNode(string $panel_url, array $headers, int $server_id, int $target_node_id): bool {
+    $result = pterodactylApi($panel_url, $headers, "servers/{$server_id}/transfer", [
+        'node_id' => $target_node_id,
+    ], 'POST');
+    
+    // Log pour debug
+    error_log("[Server Transfer] Server {$server_id} → Node {$target_node_id} | Response: " . json_encode($result));
+    
+    return $result !== null;
+}
+
+/**
+ * 🔵 NOUVELLE FONCTION : Vérifie si un produit doit être forcé sur un node spécifique
+ */
+function shouldForceNodeTransfer(string $slug): bool {
+    $forced_slugs = [
+        'terraria_free', 'minecraft_free', 'hytale_free', 'fivem_free',
+        'terraria_basic', 'minecraft_basic', 'fivem_basic',
+        'hytale_medium', 'hytale_premium', 'hytale_mythic',
+        'minecraft_medium', 'minecraft_premium', 'minecraft_mythic',
+        'fivem_medium', 'fivem_premium', 'fivem_mythic',
+        'terrania_medium', 'terraria_premium', 'terraria_mythic',
+    ];
+    
+    return in_array(strtolower($slug), $forced_slugs);
+}
+
+/**
  * Crée un serveur sur le panel depuis un produit BDD
  */
 function createPanelServer(string $panel_url, array $headers, array $product, int $panel_user_id): array {
@@ -171,9 +201,45 @@ function createPanelServer(string $panel_url, array $headers, array $product, in
         die('<pre>SERVER ERROR: ' . htmlspecialchars(json_encode($server, JSON_PRETTY_PRINT)) . '</pre>');
     }
 
+    $server_id = $server['attributes']['id'];
+    $uuid = $server['attributes']['uuid'];
+    $identifier = $server['attributes']['identifier'];
+
+    // 🔵 LOGIQUE DE TRANSFERT AUTOMATIQUE
+    // Si le produit est dans la liste des produits à forcer sur node 2
+    if (shouldForceNodeTransfer($product['slug'] ?? '')) {
+        // Récupérer les infos du serveur pour vérifier le node actuel
+        $server_details = pterodactylApi($panel_url, $headers, "servers/{$server_id}");
+        
+        if ($server_details && isset($server_details['attributes']['node'])) {
+            $current_node_id = $server_details['attributes']['node'];
+            
+            // 🔵 Si le serveur est sur le node 1, le transférer vers le node 2
+            if ($current_node_id == 1) {
+                error_log("[Auto-Transfer] Server {$server_id} ({$product['slug']}) créé sur Node 1 → Transfert vers Node 2");
+                
+                // Attendre 2 secondes que le serveur soit complètement initialisé
+                sleep(2);
+                
+                $transferred = transferServerToNode($panel_url, $headers, $server_id, 2);
+                
+                if ($transferred) {
+                    error_log("[Auto-Transfer] ✅ Serveur {$server_id} transféré avec succès vers Node 2");
+                } else {
+                    error_log("[Auto-Transfer] ❌ Échec du transfert du serveur {$server_id} vers Node 2");
+                }
+            } elseif ($current_node_id == 2) {
+                // Déjà sur le node 2, on ne fait rien
+                error_log("[Auto-Transfer] ✅ Serveur {$server_id} déjà sur Node 2, aucun transfert nécessaire");
+            } else {
+                error_log("[Auto-Transfer] ⚠️ Serveur {$server_id} sur Node {$current_node_id} (non géré)");
+            }
+        }
+    }
+
     return [
-        'id'         => $server['attributes']['id'],
-        'uuid'       => $server['attributes']['uuid'],
-        'identifier' => $server['attributes']['identifier'],
+        'id'         => $server_id,
+        'uuid'       => $uuid,
+        'identifier' => $identifier,
     ];
 }
