@@ -103,7 +103,7 @@ jobs:
 
       - name: Notify Discord
         env:
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
           RELEASE_TAG: ${{ steps.tag_version.outputs.new_tag }}
           RELEASE_URL: ${{ steps.create_release.outputs.html_url }}
           COMMIT_MSG: ${{ needs.deploy.outputs.commit_msg }}
