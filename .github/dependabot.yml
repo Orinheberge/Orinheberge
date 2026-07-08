@@ -1,0 +1,29 @@
+version: 2
+updates:
+  # Mise à jour des dépendances PHP (Composer)
+  - package-ecosystem: "composer"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "php"
+
+  # Optionnel : Mise à jour des actions GitHub Actions elles-mêmes
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "ci-cd"
+
+  # Optionnel : Si vous avez un package.json (Node.js)
+  # - package-ecosystem: "npm"
+  #   directory: "/"
+  #   schedule:
+  #     interval: "weekly"
+  #   labels:
+  #     - "dependencies"
+  #     - "javascript"
