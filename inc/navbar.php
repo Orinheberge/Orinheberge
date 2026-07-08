@@ -82,7 +82,7 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
 <nav class="sticky top-0 z-50 border-b border-white/5" style="background: rgba(7, 10, 19, 0.8); backdrop-filter: blur(14px);">
     
     <?php if ($maintenance_banner): 
-        // Correction Tailwind : Classes écrites en entier pour éviter le problème du compilateur
+        // Correction Tailwind : Classes écrites en entier pour éviter le problème du compilateur à la volée
         $sev_colors = [
             'info'     => ['bg' => 'bg-sky-500/10',     'border' => 'border-sky-500/20',     'text' => 'text-sky-400',     'icon' => 'fa-info-circle'],
             'warning'  => ['bg' => 'bg-amber-500/10',   'border' => 'border-amber-500/20',   'text' => 'text-amber-400',   'icon' => 'fa-exclamation-triangle'],
@@ -345,7 +345,7 @@ function toggleMobileDropdown(id) {
     if (dropdown.style.maxHeight === '0px' || dropdown.style.maxHeight === '') {
         dropdown.style.maxHeight = dropdown.scrollHeight + "px";
         icon.style.transform = 'rotate(180deg)';
-        // On réajuste la hauteur du conteneur parent pour éviter que ça coupe
+        // On réajuste la hauteur globale pour inclure les nouveaux éléments
         setTimeout(() => {
             menu.style.maxHeight = menu.scrollHeight + "px";
         }, 50);
@@ -358,7 +358,7 @@ function toggleMobileDropdown(id) {
     }
 }
 
-// Nettoyage lors du redimensionnement
+// Sécurité : Fermeture du menu si basculement en mode PC
 window.addEventListener('resize', () => {
     if (window.innerWidth >= 768) {
         const mobileMenu = document.getElementById('mobileMenu');
