@@ -32,8 +32,10 @@ jobs:
         run: sudo apt-get install -y rsync sshpass
 
       - name: Deploy via rsync
+        env:
+          SSH_PASS: ${{ secrets.SSH_PASSWORD }}
         run: |
-          sshpass -p "1504" rsync -avz --delete \
+          sshpass -p "$SSH_PASS" rsync -avz --delete \
             --exclude='.git/' \
             --exclude='.env' \
             --exclude='node_modules/' \
@@ -46,8 +48,10 @@ jobs:
             root@5.48.143.126:/var/www/orinheberge/
 
       - name: Post-deploy (composer, permissions, reload)
+        env:
+          SSH_PASS: ${{ secrets.SSH_PASSWORD }}
         run: |
-          sshpass -p "1504" ssh -o StrictHostKeyChecking=no \
+          sshpass -p "$SSH_PASS" ssh -o StrictHostKeyChecking=no \
             root@5.48.143.126 bash -s <<'REMOTE'
           cd /var/www/orinheberge
           composer install --no-dev --optimize-autoloader --no-interaction
@@ -73,7 +77,7 @@ jobs:
         id: tag_version
         uses: mathieudutour/github-tag-action@v6.1
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ secrets.GH_TOKEN }}
           # Optionnel: préfixe du tag, ex: v
           tag_prefix: "v"
           # Utilise la convention semver par défaut, ou custom_release_rules si besoin
@@ -82,7 +86,7 @@ jobs:
         id: create_release
         uses: actions/create-release@v1
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ steps.tag_version.outputs.new_tag }}
           release_name: Release ${{ steps.tag_version.outputs.new_tag }}
@@ -99,6 +103,7 @@ jobs:
 
       - name: Notify Discord
         env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
           RELEASE_TAG: ${{ steps.tag_version.outputs.new_tag }}
           RELEASE_URL: ${{ steps.create_release.outputs.html_url }}
           COMMIT_MSG: ${{ needs.deploy.outputs.commit_msg }}
@@ -125,4 +130,4 @@ jobs:
             }')
 
           # Envoi via curl
-          curl -H "Content-Type: application/json" -X POST -d "$PAYLOAD" "https://discord.com/api/webhooks/1524238769840980160/sNNABegm9f1yTX8lMAkSux3itd0Kqg3hf8ZHMOsZIYYQzfpXXwv_1HjDfZC39SkF2Izc"
+          curl -H "Content-Type: application/json" -X POST -d "$PAYLOAD" "$DISCORD_WEBHOOK"
