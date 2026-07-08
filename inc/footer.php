@@ -35,7 +35,7 @@
                         <i class="fab fa-discord"></i>
                     </a>
                     <a href="https://x.com/orinheberge" target="_blank" class="w-9 h-9 rounded-lg bg-black/10 border border-white/10 flex items-center justify-center text-white hover:bg-white/10 transition" title="X (Twitter)">
-                        <i class="fa-brands fa-x-twitter"></i>
+                        <i class="fab fa-x-twitter"></i>
                     </a>
                     <a href="https://www.tiktok.com/@orinheberge5" target="_blank" class="w-9 h-9 rounded-lg bg-black/10 border border-white/10 flex items-center justify-center text-white hover:bg-white/10 transition" title="TikTok">
                         <i class="fab fa-tiktok"></i>
