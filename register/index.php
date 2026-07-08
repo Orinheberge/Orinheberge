@@ -106,9 +106,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link rel="manifest" href="/manifest.json">
     
-        <meta name="keywords" content="inscription OrinHeberge, créer compte, signup, register, hébergement gratuit, inscription VPS, ouverture compte client">
+    <meta name="keywords" content="inscription OrinHeberge, créer compte, signup, register, hébergement gratuit, inscription VPS, ouverture compte client">
     <meta name="author" content="OrinHeberge">
-    <meta name="robots" content="noindex, nofollow">
     <link rel="canonical" href="https://heberge.orinstone.deepstone.fr/register/">
 
     <!-- Open Graph / Facebook -->

@@ -41,8 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <!-- Balises de base -->
     <meta name="description" content="Connectez-vous à votre espace client OrinHeberge. Gérez vos serveurs VPS, Minecraft, PHP et Node.js en toute sécurité.">
     <meta name="keywords" content="connexion OrinHeberge, login, espace client, espace membre, connexion VPS, gestion serveur, compte hébergement">
-    <meta name="author" content="OrinHeberge">
-    <meta name="robots" content="noindex, nofollow">
+    <meta name="author" content="OrinHeberge"
     <link rel="canonical" href="https://heberge.orinstone.deepstone.fr/login/">
 
     <!-- Open Graph / Facebook -->
