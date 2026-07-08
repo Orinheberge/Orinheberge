@@ -34,8 +34,11 @@
                     <a href="/discord/" target="_blank" class="w-9 h-9 rounded-lg bg-[#5865F2]/10 border border-[#5865F2]/20 flex items-center justify-center text-[#5865F2] hover:bg-[#5865F2]/20 transition" title="Discord">
                         <i class="fab fa-discord"></i>
                     </a>
-                    <a href="https://twitter.com/orinheberge" target="_blank" class="w-9 h-9 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400 hover:bg-sky-500/20 transition" title="Twitter">
-                        <i class="fab fa-twitter"></i>
+                    <a href="https://x.com/orinheberge" target="_blank" class="w-9 h-9 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400 hover:bg-sky-500/20 transition" title="Twitter">
+                        <i class="fab fa-x"></i>
+                    </a>
+                    <a href="https://www.tiktok.com/@orinheberge5" target="_blank" class="w-9 h-9 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400 hover:bg-sky-500/20 transition" title="Twitter">
+                        <i class="fab fa-tiktok"></i>
                     </a>
                     <a href="https://github.com/orinheberge" target="_blank" class="w-9 h-9 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:bg-white/10 transition" title="GitHub">
                         <i class="fab fa-github"></i>

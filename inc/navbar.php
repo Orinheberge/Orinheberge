@@ -50,7 +50,7 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
 <script src="https://cdn.tailwindcss.com"></script>
 
 <style>
-/* ============================================
+    /* ============================================
    NAVBAR ORINHEBERGE - STYLES CORRIGÉS
    ============================================ */
 
@@ -411,4 +411,4 @@ a:focus-visible {
     </div>
 </nav>
 
-<script src="https://heberge.orinstone.deepstone.fr/inc/navbar.js"></script>
+<script src="https://heberge.orinstone.deepstone.fr/inc/nav"></script>
