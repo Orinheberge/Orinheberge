@@ -147,7 +147,13 @@ function transferServerToNode(string $panel_url, array $headers, int $server_id,
 /**
  * 🔵 Vérifie si un produit doit être forcé sur Node 2
  */
+/**
+ * 🔵 Vérifie si un produit doit être forcé sur Node 2
+ */
 function shouldForceNodeTransfer(string $slug): bool {
+    // Normaliser : remplacer les tirets par des underscores
+    $normalized_slug = str_replace('-', '_', strtolower($slug));
+    
     $forced_slugs = [
         'terraria_free', 'minecraft_free', 'hytale_free', 'fivem_free',
         'terraria_basic', 'minecraft_basic', 'fivem_basic',
@@ -157,7 +163,7 @@ function shouldForceNodeTransfer(string $slug): bool {
         'terrania_medium', 'terraria_premium', 'terraria_mythic',
     ];
     
-    return in_array(strtolower($slug), $forced_slugs);
+    return in_array($normalized_slug, $forced_slugs);
 }
 
 /**

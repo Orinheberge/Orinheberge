@@ -1,22 +1,27 @@
 <?php
 session_start();
+
+// ✅ AJOUT : Charger la connexion BDD AVANT navbar.php
+require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/db.php';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/lang.php';
+
 if (!isset($_SESSION['user_id'])) { header('Location: /login/'); exit(); }
 
 $order_id   = $_SESSION['success_order_id']       ?? '—';
 $email      = $_SESSION['success_email']           ?? '—';
 $offer      = $_SESSION['success_offer']           ?? '—';
 $panel_pass = $_SESSION['success_panel_password']  ?? null;
-$orders     = $_SESSION['success_orders']          ?? []; // multi-serveurs (bundle payant), vide sinon
-$invoice_id = $_SESSION['success_invoice_id']      ?? null; // 🔵 AJOUT : ID de la facture
+$orders     = $_SESSION['success_orders']          ?? [];
+$invoice_id = $_SESSION['success_invoice_id']      ?? null;
 
 unset(
     $_SESSION['success_order_id'], $_SESSION['success_email'], $_SESSION['success_server_id'],
     $_SESSION['success_offer'], $_SESSION['success_panel_password'], $_SESSION['success_orders'],
-    $_SESSION['success_invoice_id'] // 🔵 AJOUT : nettoyage
+    $_SESSION['success_invoice_id']
 );
 $is_logged_in = true;
 ?>
+
 <!DOCTYPE html>
 <html lang="<?php echo $lang; ?>">
 <head>
