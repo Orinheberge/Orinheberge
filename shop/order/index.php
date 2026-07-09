@@ -1,5 +1,5 @@
 <?php
-ini_set('display_errors', 1);
+ini_set('display_errors', 1); // Mettre à 0 en production
 error_reporting(E_ALL);
 session_start();
 if (!isset($_SESSION['user_id'])) {
@@ -29,6 +29,117 @@ $stripe_secret_key = $ext_cfg['stripe']['secret_key'] ?? '';
 $stripe_public_key = $ext_cfg['stripe']['public_key'] ?? '';
 $paypalme_username = $ext_cfg['paypal']['username']   ?? 'metal544002009';
 $discord_webhook_url = $ext_cfg['discord']['webhook_url'] ?? '';
+
+// ─── FONCTIONS LOCALES POUR LA GESTION DES NODES ET TRANSFERTS ──────────────────────────────
+
+/**
+ * 🔵 NOUVELLE FONCTION : Transfère un serveur vers un autre node
+ */
+function transferServerToNode(string $panel_url, array $headers, int $server_id, int $target_node_id): bool {
+    // Note: Assurez-vous que votre API Pterodactyl supporte cet endpoint ou adaptez-le
+    $result = pterodactylApi($panel_url, $headers, "servers/{$server_id}/transfer", [
+        'node_id' => $target_node_id,
+    ], 'POST');
+    
+    error_log("[Server Transfer] Server {$server_id} → Node {$target_node_id} | Response: " . json_encode($result));
+    
+    return $result !== null;
+}
+
+/**
+ * 🔵 NOUVELLE FONCTION : Vérifie si un produit doit être forcé sur un node spécifique
+ */
+function shouldForceNodeTransfer(string $slug): bool {
+    $forced_slugs = [
+        'terraria_free', 'minecraft_free', 'hytale_free', 'fivem_free',
+        'terraria_basic', 'minecraft_basic', 'fivem_basic',
+        'hytale_medium', 'hytale_premium', 'hytale_mythic',
+        'minecraft_medium', 'minecraft_premium', 'minecraft_mythic',
+        'fivem_medium', 'fivem_premium', 'fivem_mythic',
+        'terrania_medium', 'terraria_premium', 'terraria_mythic',
+    ];
+    
+    return in_array(strtolower($slug), $forced_slugs);
+}
+
+/**
+ * Crée un serveur sur le panel avec logique de transfert automatique intégrée
+ */
+function createPanelServerWithAutoTransfer(string $panel_url, array $headers, array $product, int $panel_user_id): array {
+    // 1. Création initiale du serveur
+    $server = pterodactylApi($panel_url, $headers, 'servers', [
+        'name'         => $product['name'],
+        'user'         => $panel_user_id,
+        'egg'          => $product['panel_egg_id'],
+        'nest'         => $product['panel_nest_id'],
+        'docker_image' => $product['docker_image'],
+        'startup'      => $product['startup'],
+        'environment'  => $product['env'],
+        'deploy'       => [
+            'locations'    => [$product['location_id'] ?? 1],
+            'dedicated_ip' => false,
+            'port_range'   => [],
+        ],
+        'limits' => [
+            'memory' => $product['ram'],
+            'swap'   => 0,
+            'disk'   => $product['disk'],
+            'io'     => 500,
+            'cpu'    => $product['cpu'],
+        ],
+        'feature_limits' => [
+            'databases'   => $product['databases']   ?? 1,
+            'allocations' => $product['allocations'] ?? 1,
+            'backups'     => $product['backups']     ?? 1,
+        ],
+        'start_on_completion' => false,
+    ]);
+
+    if (!isset($server['attributes']['id'])) {
+        error_log('Panel server creation error: ' . json_encode($server));
+        die('<pre>SERVER ERROR: ' . htmlspecialchars(json_encode($server, JSON_PRETTY_PRINT)) . '</pre>');
+    }
+
+    $server_id = $server['attributes']['id'];
+    $uuid = $server['attributes']['uuid'];
+    $identifier = $server['attributes']['identifier'];
+
+    // 2. Logique de Transfert Automatique vers Node 2
+    if (shouldForceNodeTransfer($product['slug'] ?? '')) {
+        // Récupérer les infos du serveur pour vérifier le node actuel
+        $server_details = pterodactylApi($panel_url, $headers, "servers/{$server_id}");
+        
+        if ($server_details && isset($server_details['attributes']['node'])) {
+            $current_node_id = $server_details['attributes']['node'];
+            
+            // Si le serveur est sur le node 1, le transférer vers le node 2
+            if ($current_node_id == 1) {
+                error_log("[Auto-Transfer] Server {$server_id} ({$product['slug']}) créé sur Node 1 → Transfert vers Node 2");
+                
+                // Attendre 2 secondes que le serveur soit complètement initialisé
+                sleep(2);
+                
+                $transferred = transferServerToNode($panel_url, $headers, $server_id, 2);
+                
+                if ($transferred) {
+                    error_log("[Auto-Transfer] ✅ Serveur {$server_id} transféré avec succès vers Node 2");
+                } else {
+                    error_log("[Auto-Transfer] ❌ Échec du transfert du serveur {$server_id} vers Node 2");
+                }
+            } elseif ($current_node_id == 2) {
+                error_log("[Auto-Transfer] ✅ Serveur {$server_id} déjà sur Node 2, aucun transfert nécessaire");
+            } else {
+                error_log("[Auto-Transfer] ⚠️ Serveur {$server_id} sur Node {$current_node_id} (non géré par la règle auto)");
+            }
+        }
+    }
+
+    return [
+        'id'         => $server_id,
+        'uuid'       => $uuid,
+        'identifier' => $identifier,
+    ];
+}
 
 // ─── Annulation de commande ──────────────────────────────────
 if (isset($_GET['cancel']) && ($_GET['cancel'] === '1' || $_GET['cancel'] === 'true')) {
@@ -145,7 +256,8 @@ if (!empty($free_bundle_items)) {
                     $free_pass      = $free_panelUser['pass'];
                     if ($free_pass) $_SESSION['panel_password'] = $free_pass;
 
-                    $free_srv      = createPanelServer($panel_url, $headers_admin, $free_product, $free_panelUser['id']);
+                    // ✅ UTILISATION DE LA NOUVELLE FONCTION AVEC TRANSFERT AUTO
+                    $free_srv      = createPanelServerWithAutoTransfer($panel_url, $headers_admin, $free_product, $free_panelUser['id']);
                     $free_order_id = strtoupper(substr(md5(uniqid('', true)), 0, 8));
 
                     $pdo->prepare('
@@ -351,9 +463,11 @@ if (isset($_GET['session_id'])) {
         $item_qty     = max(1, (int)$bundle_entry['quantity']);
 
         $server_offer = $item_product;
-        if ($item_product['id'] === $offer['id'] && $chosen_node) {
-            $server_offer['location_id']   = $chosen_node['location_id'];
-            $server_offer['panel_node_id'] = $chosen_node['panel_node_id'] ?? $server_offer['panel_node_id'];
+        
+        // Appliquer le node choisi par l'utilisateur si disponible, sinon laisser la logique par défaut
+        if ($chosen_node) {
+             $server_offer['location_id']   = $chosen_node['location_id'];
+             $server_offer['panel_node_id'] = $chosen_node['panel_node_id'] ?? $server_offer['panel_node_id'];
         }
 
         $item_share = $bundle_total > 0
@@ -362,7 +476,8 @@ if (isset($_GET['session_id'])) {
         $item_renewal_price = round($final_price * $item_share / $item_qty, 2);
 
         for ($i = 0; $i < $item_qty; $i++) {
-            $srv      = createPanelServer($panel_url, $headers_admin, $server_offer, $panelUser['id']);
+            // ✅ UTILISATION DE LA NOUVELLE FONCTION AVEC TRANSFERT AUTO
+            $srv      = createPanelServerWithAutoTransfer($panel_url, $headers_admin, $server_offer, $panelUser['id']);
             $order_id = strtoupper(substr(md5(uniqid('', true)), 0, 8));
 
             $pdo->prepare("
