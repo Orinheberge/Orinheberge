@@ -201,6 +201,19 @@ function getCardStyle($tier_key) {
     <link rel="icon" type="image/png" href="https://heberge.orinstone.deepstone.fr/favicon.png">
     <link rel="apple-touch-icon" href="https://heberge.orinstone.deepstone.fr/favicon.png">
 
+
+<!-- Google tag (gtag.js) - Google Analytics 4 -->
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-YKZCE0SNDG"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-YKZCE0SNDG');
+</script>
+
+
     <!-- Schema.org JSON-LD (SEO avancé) -->
     <script type="application/ld+json">
     {
