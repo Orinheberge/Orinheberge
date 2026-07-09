@@ -86,17 +86,8 @@ function pterodactylApi(string $panel_url, array $headers, string $endpoint, ?ar
     }
     $res  = curl_exec($ch);
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
     
-    // ✅ CORRECTION PHP 8.5 : curl_close n'est plus nécessaire/utile mais on garde la compatibilité
-    if (version_compare(PHP_VERSION, '8.0.0', '<')) {
-        curl_close($ch);
-    } else {
-        // En PHP 8+, le handle est fermé automatiquement quand il sort du scope
-        // On peut laisser curl_close($ch) sans danger, mais l'warning dit qu'il est déprécié "since 8.5" 
-        // dans certains contextes stricts. La meilleure pratique moderne est de ne rien faire ou utiliser unset.
-        unset($ch); 
-    }
-
     if ($code === 204) return true;
     return $res ? json_decode($res, true) : null;
 }
@@ -137,7 +128,7 @@ function getOrCreatePanelUser(string $panel_url, array $headers, array $user, PD
 }
 
 /**
- * 🔵 NOUVELLE FONCTION : Transfère un serveur vers un autre node
+ * 🔵 FONCTION 1 : Transfère un serveur vers un autre node
  */
 function transferServerToNode(string $panel_url, array $headers, int $server_id, int $target_node_id): bool {
     $result = pterodactylApi($panel_url, $headers, "servers/{$server_id}/transfer", [
@@ -150,7 +141,7 @@ function transferServerToNode(string $panel_url, array $headers, int $server_id,
 }
 
 /**
- * 🔵 NOUVELLE FONCTION : Vérifie si un produit doit être forcé sur un node spécifique
+ * 🔵 FONCTION 2 : Vérifie si un produit doit être forcé sur un node spécifique
  */
 function shouldForceNodeTransfer(string $slug): bool {
     $forced_slugs = [
@@ -166,9 +157,9 @@ function shouldForceNodeTransfer(string $slug): bool {
 }
 
 /**
- * Crée un serveur sur le panel avec logique de transfert automatique intégrée
+ * 🔵 FONCTION 3 : Crée un serveur sur le panel avec logique de transfert automatique
  */
-function createPanelServerWithAutoTransfer(string $panel_url, array $headers, array $product, int $panel_user_id): array {
+ffunction createPanelServerWithAutoTransfer(string $panel_url, array $headers, array $product, int $panel_user_id): array {
     // 1. Création initiale du serveur
     $server = pterodactylApi($panel_url, $headers, 'servers', [
         'name'         => $product['name'],
@@ -206,34 +197,33 @@ function createPanelServerWithAutoTransfer(string $panel_url, array $headers, ar
     $server_id = $server['attributes']['id'];
     $uuid = $server['attributes']['uuid'];
     $identifier = $server['attributes']['identifier'];
+    $slug = strtolower($product['slug'] ?? '');
 
-    // 2. Logique de Transfert Automatique vers Node 2
-    if (shouldForceNodeTransfer($product['slug'] ?? '')) {
-        // Récupérer les infos du serveur pour vérifier le node actuel
-        $server_details = pterodactylApi($panel_url, $headers, "servers/{$server_id}");
+    // 2. Logique de Transfert Automatique
+    // Récupérer les infos du serveur pour vérifier le node actuel
+    $server_details = pterodactylApi($panel_url, $headers, "servers/{$server_id}");
+    
+    if ($server_details && isset($server_details['attributes']['node'])) {
+        $current_node_id = (int)$server_details['attributes']['node'];
+        $must_be_on_node2 = shouldForceNodeTransfer($slug);
+        $target_node = $must_be_on_node2 ? 2 : 1;
         
-        if ($server_details && isset($server_details['attributes']['node'])) {
-            $current_node_id = $server_details['attributes']['node'];
+        // Si le serveur n'est pas sur le bon node, le transférer
+        if ($current_node_id !== $target_node) {
+            error_log("[Auto-Transfer] Server {$server_id} ({$slug}) créé sur Node {$current_node_id} → Transfert vers Node {$target_node}");
             
-            // Si le serveur est sur le node 1, le transférer vers le node 2
-            if ($current_node_id == 1) {
-                error_log("[Auto-Transfer] Server {$server_id} ({$product['slug']}) créé sur Node 1 → Transfert vers Node 2");
-                
-                // Attendre 2 secondes que le serveur soit complètement initialisé
-                sleep(2);
-                
-                $transferred = transferServerToNode($panel_url, $headers, $server_id, 2);
-                
-                if ($transferred) {
-                    error_log("[Auto-Transfer] ✅ Serveur {$server_id} transféré avec succès vers Node 2");
-                } else {
-                    error_log("[Auto-Transfer] ❌ Échec du transfert du serveur {$server_id} vers Node 2");
-                }
-            } elseif ($current_node_id == 2) {
-                error_log("[Auto-Transfer] ✅ Serveur {$server_id} déjà sur Node 2, aucun transfert nécessaire");
+            // Attendre 2 secondes que le serveur soit complètement initialisé
+            sleep(2);
+            
+            $transferred = transferServerToNode($panel_url, $headers, $server_id, $target_node);
+            
+            if ($transferred) {
+                error_log("[Auto-Transfer] ✅ Serveur {$server_id} transféré avec succès vers Node {$target_node}");
             } else {
-                error_log("[Auto-Transfer] ⚠️ Serveur {$server_id} sur Node {$current_node_id} (non géré par la règle auto)");
+                error_log("[Auto-Transfer] ❌ Échec du transfert du serveur {$server_id} vers Node {$target_node}");
             }
+        } else {
+            error_log("[Auto-Transfer] ✅ Serveur {$server_id} ({$slug}) déjà sur le bon Node {$target_node}");
         }
     }
 
@@ -242,4 +232,11 @@ function createPanelServerWithAutoTransfer(string $panel_url, array $headers, ar
         'uuid'       => $uuid,
         'identifier' => $identifier,
     ];
+}
+
+/**
+ * Alias pour compatibilité - utilise createPanelServerWithAutoTransfer
+ */
+function createPanelServer(string $panel_url, array $headers, array $product, int $panel_user_id): array {
+    return createPanelServerWithAutoTransfer($panel_url, $headers, $product, $panel_user_id);
 }

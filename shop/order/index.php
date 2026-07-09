@@ -1,5 +1,5 @@
 <?php
-ini_set('display_errors', 1); // Mettre à 0 en production
+ini_set('display_errors', 1);
 error_reporting(E_ALL);
 session_start();
 if (!isset($_SESSION['user_id'])) {
@@ -29,8 +29,6 @@ $stripe_secret_key = $ext_cfg['stripe']['secret_key'] ?? '';
 $stripe_public_key = $ext_cfg['stripe']['public_key'] ?? '';
 $paypalme_username = $ext_cfg['paypal']['username']   ?? 'metal544002009';
 $discord_webhook_url = $ext_cfg['discord']['webhook_url'] ?? '';
-
-// ─── FONCTIONS LOCALES POUR LA GESTION DES NODES ET TRANSFERTS ──────────────────────────────
 
 // ─── Annulation de commande ──────────────────────────────────
 if (isset($_GET['cancel']) && ($_GET['cancel'] === '1' || $_GET['cancel'] === 'true')) {
@@ -147,8 +145,7 @@ if (!empty($free_bundle_items)) {
                     $free_pass      = $free_panelUser['pass'];
                     if ($free_pass) $_SESSION['panel_password'] = $free_pass;
 
-                    // ✅ UTILISATION DE LA NOUVELLE FONCTION AVEC TRANSFERT AUTO
-                    $free_srv      = createPanelServerWithAutoTransfer($panel_url, $headers_admin, $free_product, $free_panelUser['id']);
+                    $free_srv = createPanelServerWithAutoTransfer($panel_url, $headers_admin, $free_product, $free_panelUser['id']);
                     $free_order_id = strtoupper(substr(md5(uniqid('', true)), 0, 8));
 
                     $pdo->prepare('
@@ -354,11 +351,9 @@ if (isset($_GET['session_id'])) {
         $item_qty     = max(1, (int)$bundle_entry['quantity']);
 
         $server_offer = $item_product;
-        
-        // Appliquer le node choisi par l'utilisateur si disponible, sinon laisser la logique par défaut
-        if ($chosen_node) {
-             $server_offer['location_id']   = $chosen_node['location_id'];
-             $server_offer['panel_node_id'] = $chosen_node['panel_node_id'] ?? $server_offer['panel_node_id'];
+        if ($item_product['id'] === $offer['id'] && $chosen_node) {
+            $server_offer['location_id']   = $chosen_node['location_id'];
+            $server_offer['panel_node_id'] = $chosen_node['panel_node_id'] ?? $server_offer['panel_node_id'];
         }
 
         $item_share = $bundle_total > 0
@@ -367,8 +362,7 @@ if (isset($_GET['session_id'])) {
         $item_renewal_price = round($final_price * $item_share / $item_qty, 2);
 
         for ($i = 0; $i < $item_qty; $i++) {
-            // ✅ UTILISATION DE LA NOUVELLE FONCTION AVEC TRANSFERT AUTO
-            $srv      = createPanelServerWithAutoTransfer($panel_url, $headers_admin, $server_offer, $panelUser['id']);
+            $srv = createPanelServerWithAutoTransfer($panel_url, $headers_admin, $server_offer, $panelUser['id']);
             $order_id = strtoupper(substr(md5(uniqid('', true)), 0, 8));
 
             $pdo->prepare("
