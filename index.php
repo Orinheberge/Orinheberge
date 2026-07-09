@@ -213,6 +213,14 @@ function getCardStyle($tier_key) {
   gtag('config', 'G-YKZCE0SNDG');
 </script>
 
+<!-- Google Tag Manager -->
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-W5ZSVXHK');</script>
+<!-- End Google Tag Manager -->
+
 
     <!-- Schema.org JSON-LD (SEO avancé) -->
     <script type="application/ld+json">
@@ -259,7 +267,6 @@ function getCardStyle($tier_key) {
     </script>
 </head>
 <body class="text-gray-200 font-sans min-h-screen flex flex-col antialiased">
-
 <?php $active_nav = 'home'; include __DIR__ . '/inc/navbar.php'; ?>
 
 <main class="flex-grow">
