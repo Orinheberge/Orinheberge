@@ -136,10 +136,10 @@ function createInvoice(PDO $pdo, array $data): array|false {
  * @param PDO    $pdo
  * @param string $invoice_id     Identifiant de facture (ex: INV-2026-00001)
  * @param string $payment_method Méthode de paiement ('stripe' | 'paypal')
- * @param string $payment_ref    Référence de paiement
+ * @param string|null $payment_ref Référence de paiement
  * @return bool
  */
-function markInvoiceAsPaid(PDO $pdo, string $invoice_id, string $payment_method, string $payment_ref = null): bool {
+function markInvoiceAsPaid(PDO $pdo, string $invoice_id, string $payment_method, ?string $payment_ref = null): bool {
     try {
         $stmt = $pdo->prepare("
             UPDATE invoices 
@@ -163,7 +163,7 @@ function markInvoiceAsPaid(PDO $pdo, string $invoice_id, string $payment_method,
 /**
  * Récupère toutes les factures d'un utilisateur
  */
-function getUserInvoices(PDO $pdo, int $user_id, string $status = null): array {
+function getUserInvoices(PDO $pdo, int $user_id, ?string $status = null): array {
     $sql = "SELECT * FROM invoices WHERE user_id = ?";
     $params = [$user_id];
     

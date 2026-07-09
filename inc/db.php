@@ -1,8 +1,6 @@
 <?php
 /**
  * inc/db.php — Connexion PDO centralisée + chargement config/settings
- * Include une seule fois : require_once $_SERVER['DOCUMENT_ROOT'].'/inc/db.php';
- * Fournit : $pdo, $cfg[], $panel_url, $api_key_admin, $api_key_client, $headers_admin, $headers_client
  */
 
 if (isset($pdo)) return; // déjà chargé
@@ -20,7 +18,7 @@ foreach ($pdo->query('SELECT `key`,`value` FROM settings') as $r) $cfg[$r['key']
 // Charger aussi depuis extension_settings (pterodactyl)
 $ext_row = $pdo->query("SELECT es.key, es.value FROM extension_settings es JOIN extensions e ON e.id=es.extension_id WHERE e.slug='pterodactyl'")->fetchAll();
 foreach ($ext_row as $r) {
-    if (!empty($r['value'])) $cfg[$r['key']] = $r['value']; // extension_settings a priorité
+    if (!empty($r['value'])) $cfg[$r['key']] = $r['value'];
 }
 
 $panel_url      = $cfg['panel_url']      ?? '';
@@ -39,10 +37,7 @@ $headers_client = [
 ];
 
 /**
- * Récupère un produit depuis la BDD (avec egg + node joints)
- * @param PDO $pdo
- * @param string $slug
- * @return array|null
+ * Récupère un produit depuis la BDD
  */
 function getProductBySlug(PDO $pdo, string $slug): ?array {
     $stmt = $pdo->prepare('
@@ -60,15 +55,12 @@ function getProductBySlug(PDO $pdo, string $slug): ?array {
     $product = $stmt->fetch();
     if (!$product) return null;
 
-    // Fusionner env_vars de l'egg + env_override du produit
     $env = json_decode($product['egg_env_vars'] ?? '{}', true) ?: [];
     if (!empty($product['env_override'])) {
         $override = json_decode($product['env_override'], true) ?: [];
         $env = array_merge($env, $override);
     }
     $product['env'] = $env;
-
-    // Startup : utiliser l'egg_startup
     $product['startup'] = $product['egg_startup'];
 
     return $product;
@@ -94,7 +86,17 @@ function pterodactylApi(string $panel_url, array $headers, string $endpoint, ?ar
     }
     $res  = curl_exec($ch);
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
+    
+    // ✅ CORRECTION PHP 8.5 : curl_close n'est plus nécessaire/utile mais on garde la compatibilité
+    if (version_compare(PHP_VERSION, '8.0.0', '<')) {
+        curl_close($ch);
+    } else {
+        // En PHP 8+, le handle est fermé automatiquement quand il sort du scope
+        // On peut laisser curl_close($ch) sans danger, mais l'warning dit qu'il est déprécié "since 8.5" 
+        // dans certains contextes stricts. La meilleure pratique moderne est de ne rien faire ou utiliser unset.
+        unset($ch); 
+    }
+
     if ($code === 204) return true;
     return $res ? json_decode($res, true) : null;
 }
@@ -142,7 +144,6 @@ function transferServerToNode(string $panel_url, array $headers, int $server_id,
         'node_id' => $target_node_id,
     ], 'POST');
     
-    // Log pour debug
     error_log("[Server Transfer] Server {$server_id} → Node {$target_node_id} | Response: " . json_encode($result));
     
     return $result !== null;
@@ -165,9 +166,10 @@ function shouldForceNodeTransfer(string $slug): bool {
 }
 
 /**
- * Crée un serveur sur le panel depuis un produit BDD
+ * Crée un serveur sur le panel avec logique de transfert automatique intégrée
  */
-function createPanelServer(string $panel_url, array $headers, array $product, int $panel_user_id): array {
+function createPanelServerWithAutoTransfer(string $panel_url, array $headers, array $product, int $panel_user_id): array {
+    // 1. Création initiale du serveur
     $server = pterodactylApi($panel_url, $headers, 'servers', [
         'name'         => $product['name'],
         'user'         => $panel_user_id,
@@ -205,8 +207,7 @@ function createPanelServer(string $panel_url, array $headers, array $product, in
     $uuid = $server['attributes']['uuid'];
     $identifier = $server['attributes']['identifier'];
 
-    // 🔵 LOGIQUE DE TRANSFERT AUTOMATIQUE
-    // Si le produit est dans la liste des produits à forcer sur node 2
+    // 2. Logique de Transfert Automatique vers Node 2
     if (shouldForceNodeTransfer($product['slug'] ?? '')) {
         // Récupérer les infos du serveur pour vérifier le node actuel
         $server_details = pterodactylApi($panel_url, $headers, "servers/{$server_id}");
@@ -214,7 +215,7 @@ function createPanelServer(string $panel_url, array $headers, array $product, in
         if ($server_details && isset($server_details['attributes']['node'])) {
             $current_node_id = $server_details['attributes']['node'];
             
-            // 🔵 Si le serveur est sur le node 1, le transférer vers le node 2
+            // Si le serveur est sur le node 1, le transférer vers le node 2
             if ($current_node_id == 1) {
                 error_log("[Auto-Transfer] Server {$server_id} ({$product['slug']}) créé sur Node 1 → Transfert vers Node 2");
                 
@@ -229,10 +230,9 @@ function createPanelServer(string $panel_url, array $headers, array $product, in
                     error_log("[Auto-Transfer] ❌ Échec du transfert du serveur {$server_id} vers Node 2");
                 }
             } elseif ($current_node_id == 2) {
-                // Déjà sur le node 2, on ne fait rien
                 error_log("[Auto-Transfer] ✅ Serveur {$server_id} déjà sur Node 2, aucun transfert nécessaire");
             } else {
-                error_log("[Auto-Transfer] ⚠️ Serveur {$server_id} sur Node {$current_node_id} (non géré)");
+                error_log("[Auto-Transfer] ⚠️ Serveur {$server_id} sur Node {$current_node_id} (non géré par la règle auto)");
             }
         }
     }
