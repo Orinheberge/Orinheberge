@@ -15,6 +15,18 @@ $_maintenance_count = $pdo->query("
       AND end_date >= NOW()
 ")->fetchColumn();
 
+$_cahier_count = $pdo->query("
+    SELECT COUNT(*) FROM cahier_charges 
+    WHERE statut IN ('draft', 'in_progress', 'review')
+")->fetchColumn();
+
+// 🔵 Compteur de cahiers en retard
+$_cahier_overdue = $pdo->query("
+    SELECT COUNT(*) FROM cahier_charges 
+    WHERE date_limite < CURDATE() 
+      AND statut NOT IN ('completed', 'archived')
+")->fetchColumn();
+
 // 🔵 Compteur de factures en attente
 $_inv_pending_count = $pdo->query("SELECT COUNT(*) FROM invoices WHERE status='pending'")->fetchColumn();
 
