@@ -2,6 +2,8 @@
 /**
  * inc/admin_sidebar.php — Sidebar partagée pour TOUTES les pages admin
  */
+
+$_ideas_todo = $pdo->query("SELECT COUNT(*) FROM ideas WHERE statut='todo'")->fetchColumn();
 $admin_username  = !empty($admin['pseudo']) ? $admin['pseudo'] : ($admin['firstname'] ?? 'Admin');
 $_users_count    = isset($all_users)   ? count($all_users)   : ($pdo->query('SELECT COUNT(*) FROM users')->fetchColumn());
 $_servers_count  = isset($all_servers) ? count($all_servers) : ($pdo->query("SELECT COUNT(*) FROM orders WHERE status='paid'")->fetchColumn());
@@ -194,6 +196,13 @@ $_critical_maintenance = $pdo->query("
 
     <a href="/client/billing/" class="nav-item">
       <i class="fas fa-file-invoice-dollar icon"></i> Facturation
+    </a>
+
+    <a href="/admin/ideas/" class="nav-item <?= $active_nav === 'ideas' ? 'active' : '' ?>">
+      <i class="fas fa-lightbulb icon" style="color:#facc15;"></i> Mes idées
+      <?php if ($_ideas_todo > 0): ?>
+        <span class="ml-auto text-[10px] bg-yellow-500/15 text-yellow-400 border border-yellow-500/20 px-1.5 py-0.5 rounded-full font-bold"><?= $_ideas_todo ?></span>
+      <?php endif; ?>
     </a>
 
     <a href="/admin/cahier-charges/" class="nav-item <?= $active_nav === 'cahier_charges' ? 'active' : '' ?>">
