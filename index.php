@@ -176,6 +176,7 @@ function getCardStyle($tier_key) {
     <!-- Open Graph / Facebook -->
     <meta property="og:locale" content="fr_FR">
     <meta property="og:type" content="website">
+    <meta name="google-site-verification" content="7I4REPHa8OsIdsgZo-tsFss8OluBCaGcbB8mbmibQUI" />
     <meta property="og:title" content="OrinHeberge - Hébergeur VPS, Minecraft, PHP et Node.js">
     <meta property="og:description" content="Hébergement VPS, Minecraft, PHP et Node.js ultra rapide, gratuit et premium. Serveurs rapides, sécurisés et performants.">
     <meta property="og:url" content="https://heberge.orinstone.deepstone.fr/">
