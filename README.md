@@ -85,6 +85,5 @@ php cron/cron_ping.php
 Url :
 ```bash
 https://heberge.orinstone.deepstone.fr
-https://plesk.orinstone.deepstone.fr
 https://php.orinstone.deepstone.fr
 ```
