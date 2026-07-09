@@ -184,6 +184,18 @@ $_critical_maintenance = $pdo->query("
       <i class="fas fa-file-invoice-dollar icon"></i> Facturation
     </a>
 
+    <a href="/admin/cahier-charges/" class="nav-item <?= $active_nav === 'cahier_charges' ? 'active' : '' ?>">
+      <i class="fas fa-file-contract icon" style="color:#818cf8;"></i> Cahier des charges
+      <?php if ($_cahier_overdue > 0): ?>
+        <span class="ml-auto text-[10px] bg-red-500/15 text-red-400 border border-red-500/20 px-1.5 py-0.5 rounded-full font-bold" title="<?= $_cahier_overdue ?> cahier(s) en retard">
+          <i class="fas fa-exclamation-triangle text-[8px] mr-0.5"></i><?= $_cahier_overdue ?>
+        </span>
+      <?php elseif ($_cahier_count > 0): ?>
+        <span class="ml-auto text-[10px] bg-indigo-500/15 text-indigo-400 border border-indigo-500/20 px-1.5 py-0.5 rounded-full font-bold"><?= $_cahier_count ?></span>
+      <?php endif; ?>
+    </a>
+
+
   </nav>
 
   <div class="sidebar-footer">
