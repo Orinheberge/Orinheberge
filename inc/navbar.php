@@ -411,4 +411,5 @@ a:focus-visible {
     </div>
 </nav>
 
-<script src="https://heberge.orinstone.deepstone.fr/inc/nav"></script>
+<!-- Inclusion du script externe -->
+<script src="/inc/navbar.js"></script>

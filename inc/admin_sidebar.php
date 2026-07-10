@@ -282,3 +282,71 @@ $_critical_maintenance = $pdo->query("
     </div>
   </div>
 </aside>
+
+<!-- Bouton toggle mobile (à placer en dehors du sidebar) -->
+<button id="adminSidebarToggle" class="admin-sidebar-toggle md:hidden" aria-label="Toggle admin sidebar">
+    <i class="fas fa-bars"></i>
+</button>
+
+<!-- Styles supplémentaires pour le toggle et le sidebar mobile -->
+<style>
+    /* Bouton toggle mobile */
+    .admin-sidebar-toggle {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        z-index: 50;
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        background: rgba(7, 10, 19, 0.9);
+        backdrop-filter: blur(14px);
+        border: 1px solid rgba(244, 63, 94, 0.2);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .admin-sidebar-toggle:hover {
+        background: rgba(244, 63, 94, 0.2);
+        border-color: rgba(244, 63, 94, 0.4);
+    }
+    
+    /* Sidebar mobile */
+    @media (max-width: 767px) {
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            width: 280px;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+            z-index: 45;
+        }
+        
+        .sidebar.open {
+            transform: translateX(0);
+        }
+        
+        /* Empêcher le scroll du body quand sidebar ouvert */
+        body.admin-sidebar-open {
+            overflow: hidden;
+        }
+    }
+    
+    /* Animation des items */
+    .nav-item {
+        transition: all 0.2s ease;
+    }
+    
+    .nav-item:hover {
+        transform: translateX(4px);
+    }
+</style>
+
+<!-- Inclusion du script -->
+<script src="/inc/admin_sidebar.js"></script>

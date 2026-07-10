@@ -14,9 +14,9 @@ function cs_active(string $path): string {
 $_client_servers_count = 0;
 if (isset($_SESSION['user_id']) && isset($pdo)) {
     try {
-        $_client_servers_count = (int)$pdo->prepare("SELECT COUNT(*) FROM orders WHERE user_id = ? AND status = 'paid'")->execute([$_SESSION['user_id']]) 
-            ? $pdo->query("SELECT COUNT(*) FROM orders WHERE user_id = {$_SESSION['user_id']} AND status = 'paid'")->fetchColumn()
-            : 0;
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM orders WHERE user_id = ? AND status = 'paid'");
+        $stmt->execute([$_SESSION['user_id']]);
+        $_client_servers_count = (int)$stmt->fetchColumn();
     } catch (Exception $e) {
         $_client_servers_count = 0;
     }
@@ -64,10 +64,59 @@ if (isset($pdo)) {
 ?>
 
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-<script src="https://cdn.tailwindcss.com"></script>
 
 <style>
-    /* Animation pour le badge de maintenance */
+    /* ============================================
+       SIDEBAR RESPONSIVE — STYLES
+       ============================================ */
+    
+    /* Bouton burger mobile */
+    #sidebar-toggle {
+        display: none;
+        position: fixed;
+        top: 1rem;
+        left: 1rem;
+        z-index: 60;
+        width: 44px;
+        height: 44px;
+        background: rgba(7, 10, 19, 0.9);
+        backdrop-filter: blur(14px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        color: white;
+        cursor: pointer;
+        transition: all 0.2s;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+    
+    #sidebar-toggle:hover {
+        background: rgba(14, 165, 233, 0.2);
+        border-color: rgba(14, 165, 233, 0.4);
+    }
+    
+    #sidebar-toggle i {
+        font-size: 18px;
+        transition: transform 0.3s;
+    }
+    
+    /* Overlay sombre quand sidebar ouverte */
+    #sidebar-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(4px);
+        z-index: 45;
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+    
+    #sidebar-overlay.active {
+        display: block;
+        opacity: 1;
+    }
+    
+    /* Animation pulse maintenance */
     @keyframes pulse-warning {
         0%, 100% { opacity: 1; }
         50% { opacity: 0.5; }
@@ -76,7 +125,7 @@ if (isset($pdo)) {
         animation: pulse-warning 2s infinite;
     }
     
-    /* Tooltip pour les liens externes */
+    /* Tooltip pour liens externes */
     .external-link-hint {
         opacity: 0;
         transition: opacity 0.2s;
@@ -84,7 +133,63 @@ if (isset($pdo)) {
     .nav-item:hover .external-link-hint {
         opacity: 0.5;
     }
+    
+    /* ============================================
+       RESPONSIVE MOBILE (< 768px)
+       ============================================ */
+    @media (max-width: 767px) {
+        #sidebar-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        #sidebar {
+            position: fixed !important;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            width: 280px;
+            z-index: 50;
+            transform: translateX(-100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 4px 0 20px rgba(0, 0, 0, 0.5);
+        }
+        
+        #sidebar.sidebar-open {
+            transform: translateX(0);
+        }
+        
+        /* Ajustement du contenu principal */
+        body.sidebar-open {
+            overflow: hidden;
+        }
+        
+        /* Padding pour ne pas cacher le contenu sous le burger */
+        .main-content {
+            padding-top: 4rem !important;
+        }
+    }
+    
+    /* ============================================
+       DESKTOP (>= 768px)
+       ============================================ */
+    @media (min-width: 768px) {
+        #sidebar {
+            position: sticky;
+            top: 0;
+            height: 100vh;
+        }
+    }
 </style>
+
+<!-- Bouton burger mobile -->
+<button id="sidebar-toggle" aria-label="Ouvrir le menu">
+    <i class="fas fa-bars" id="sidebar-toggle-icon"></i>
+</button>
+
+<!-- Overlay sombre -->
+<div id="sidebar-overlay"></div>
 
 <aside id="sidebar" class="sidebar">
     <!-- Logo -->
@@ -120,9 +225,7 @@ if (isset($pdo)) {
         </a>
         <?php endif; ?>
 
-        <!-- ═══════════════════════════════════════════════════════════════ -->
         <!-- PRINCIPAL -->
-        <!-- ═══════════════════════════════════════════════════════════════ -->
         <div class="nav-section">Principal</div>
         
         <a href="/client/" class="nav-item <?php echo $current_path === '/client/' || $current_path === '/client' ? 'active' : ''; ?>">
@@ -136,7 +239,6 @@ if (isset($pdo)) {
             <?php endif; ?>
         </a>
 
-        <!-- 🔵 Notifications (si > 0) -->
         <?php if ($_notif_count > 0): ?>
         <a href="/notifications/" class="nav-item <?php echo cs_active('/notifications'); ?>">
             <i class="fas fa-bell icon"></i> Notifications
@@ -146,9 +248,7 @@ if (isset($pdo)) {
 
         <div class="nav-separator"></div>
 
-        <!-- ═══════════════════════════════════════════════════════════════ -->
         <!-- BOUTIQUE -->
-        <!-- ═══════════════════════════════════════════════════════════════ -->
         <div class="nav-section">Boutique</div>
         
         <a href="/offres/" class="nav-item <?php echo cs_active('/offres'); ?>">
@@ -161,9 +261,7 @@ if (isset($pdo)) {
 
         <div class="nav-separator"></div>
 
-        <!-- ═══════════════════════════════════════════════════════════════ -->
         <!-- COMPTE -->
-        <!-- ═══════════════════════════════════════════════════════════════ -->
         <div class="nav-section">Compte</div>
         
         <a href="/profil/" class="nav-item <?php echo cs_active('/profil'); ?>">
@@ -193,9 +291,7 @@ if (isset($pdo)) {
 
         <div class="nav-separator"></div>
 
-        <!-- ═══════════════════════════════════════════════════════════════ -->
-        <!-- OUTILS -->
-        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <!-- OUTILS EXTERNES -->
         <div class="nav-section">Outils externes</div>
         
         <a href="<?php echo htmlspecialchars($panel_url ?? '#'); ?>" target="_blank" class="nav-item group">
@@ -208,7 +304,6 @@ if (isset($pdo)) {
             <i class="fas fa-external-link-alt text-[9px] ml-auto external-link-hint"></i>
         </a>
 
-        <!-- 🔵 NOUVEAU : Discord -->
         <a href="/discord/" target="_blank" class="nav-item group">
             <i class="fab fa-discord icon" style="color:#5865F2;"></i> Discord
             <i class="fas fa-external-link-alt text-[9px] ml-auto external-link-hint"></i>
@@ -216,12 +311,10 @@ if (isset($pdo)) {
 
     </nav>
 
-    <!-- ═══════════════════════════════════════════════════════════════ -->
     <!-- FOOTER -->
-    <!-- ═══════════════════════════════════════════════════════════════ -->
     <div class="sidebar-footer">
         
-        <!-- 🔵 NOUVEAU : Sélecteur de langue -->
+        <!-- Sélecteur de langue -->
         <div class="mb-3 px-1">
             <?php if (file_exists(__DIR__ . '/lang_switcher.php')): ?>
                 <?php include __DIR__ . '/lang_switcher.php'; ?>
@@ -233,7 +326,6 @@ if (isset($pdo)) {
             <?php endif; ?>
         </div>
 
-        <!-- Admin (si applicable) -->
         <?php if (!empty($_SESSION['is_admin'])): ?>
         <a href="/admin/" class="nav-item mb-2" style="color:#fb923c;border-color:rgba(251,146,60,.15);background:rgba(251,146,60,.05);">
             <i class="fas fa-user-tie icon"></i> Administration
@@ -261,7 +353,7 @@ if (isset($pdo)) {
             <i class="fas fa-sign-out-alt icon"></i> Déconnexion
         </a>
 
-        <!-- 🔵 NOUVEAU : Liens légaux -->
+        <!-- Liens légaux -->
         <div class="mt-3 pt-3 border-t border-white/5 flex items-center justify-center gap-3 text-[10px] text-gray-600">
             <a href="/mentions-legales/" class="hover:text-gray-400 transition">Mentions</a>
             <span>·</span>
@@ -271,3 +363,6 @@ if (isset($pdo)) {
         </div>
     </div>
 </aside>
+
+<!-- Script externe pour le burger menu -->
+<script src="/inc/client_sidebar.js" defer></script>
