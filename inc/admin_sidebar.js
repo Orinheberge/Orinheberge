@@ -61,8 +61,12 @@
     // CRÉATION DE L'OVERLAY
     // ============================================
     function createOverlay() {
-        if (document.getElementById(CONFIG.overlayId)) return;
-        
+        const existing = document.getElementById(CONFIG.overlayId);
+        if (existing) {
+            overlay = existing;
+            return;
+        }
+
         overlay = document.createElement('div');
         overlay.id = CONFIG.overlayId;
         overlay.style.cssText = `

@@ -140,6 +140,12 @@
     });
 
     // ============================================
+    // EXPOSITION GLOBALE (requis pour les onclick="" inline du navbar.php)
+    // ============================================
+    window.toggleMobileMenu = toggleMobileMenu;
+    window.toggleMobileDropdown = toggleMobileDropdown;
+
+    // ============================================
     // API PUBLIQUE
     // ============================================
     window.Navbar = {

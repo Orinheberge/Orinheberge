@@ -253,7 +253,6 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         .tab-btn{padding:.5rem 1.25rem;border-radius:9999px;font-size:.78rem;font-weight:700;transition:all .2s;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.025);color:#6b7280;cursor:pointer;white-space:nowrap;letter-spacing:.02em;}
         .tab-btn:hover{background:rgba(255,255,255,.06);color:#d1d5db;}
         .tab-btn.active{background:rgba(56,189,248,.1);border-color:rgba(56,189,248,.3);color:#38bdf8;}
-        #mobileMenu{display:none;}#mobileMenu.active{display:block;}
         #cat-view { display: none; }
         #cat-view .cat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; }
         .hero-glow {position:absolute;border-radius:50%;filter:blur(140px);pointer-events:none;animation:pulse-orb 8s ease-in-out infinite;z-index: 1;}
@@ -263,7 +262,6 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     </style>
     <script>
         if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('/sw.js').catch(()=>{});});}
-        function toggleMenu(){document.getElementById('mobileMenu').classList.toggle('active');}
     </script>
 </head>
 <body class="text-gray-200 font-sans min-h-screen flex flex-col antialiased">

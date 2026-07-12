@@ -13,8 +13,8 @@
         mobileBreakpoint: 768,
         animationDuration: 300,
         sidebarId: 'sidebar',
-        toggleButtonId: 'sidebarToggle',
-        overlayId: 'sidebarOverlay',
+        toggleButtonId: 'sidebar-toggle',
+        overlayId: 'sidebar-overlay',
         storageKey: 'sidebar_state'
     };
 
@@ -61,8 +61,12 @@
     // CRÉATION DE L'OVERLAY
     // ============================================
     function createOverlay() {
-        if (document.getElementById(CONFIG.overlayId)) return;
-        
+        const existing = document.getElementById(CONFIG.overlayId);
+        if (existing) {
+            overlay = existing;
+            return;
+        }
+
         overlay = document.createElement('div');
         overlay.id = CONFIG.overlayId;
         overlay.style.cssText = `
@@ -154,11 +158,11 @@
         if (isOpen) return;
         
         isOpen = true;
-        sidebar.classList.add('open');
+        sidebar.classList.add('sidebar-open');
         document.body.classList.add('sidebar-open');
         
         if (overlay) {
-            overlay.style.opacity = '1';
+            overlay.classList.add('active');
             overlay.style.pointerEvents = 'auto';
         }
         
@@ -176,11 +180,11 @@
         if (!isOpen) return;
         
         isOpen = false;
-        sidebar.classList.remove('open');
+        sidebar.classList.remove('sidebar-open');
         document.body.classList.remove('sidebar-open');
         
         if (overlay) {
-            overlay.style.opacity = '0';
+            overlay.classList.remove('active');
             overlay.style.pointerEvents = 'none';
         }
         

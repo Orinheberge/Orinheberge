@@ -306,14 +306,9 @@ function timeAgo($datetime, $lang) {
 <body class="text-gray-200 min-h-screen">
 
     <?php include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php'; ?>
-    <div id="mobileOverlay" class="mobile-overlay" onclick="toggleMenu()"></div>
-
     <div class="main-content">
         
         <header class="topbar md:hidden flex items-center justify-between px-4 py-3">
-            <button onclick="toggleMenu()" class="text-gray-400 hover:text-white text-xl">
-                <i class="fas fa-bars"></i>
-            </button>
             <span class="font-bold text-white text-sm">OrinHeberge Status</span>
             <div class="w-5"></div>
         </header>

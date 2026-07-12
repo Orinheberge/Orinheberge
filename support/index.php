@@ -156,9 +156,6 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php';
             .topbar,.content{padding:.875rem 1rem;}
         }
     </style>
-    <script>
-        function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('overlay').classList.toggle('open');}
-    </script>
 </head>
 <body>
 <div id="overlay" class="mobile-overlay" onclick="toggleSidebar()"></div>
@@ -168,7 +165,6 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php';
 <div class="main-content">
     <div class="topbar">
         <div class="flex items-center gap-3">
-            <button onclick="toggleSidebar()" class="md:hidden text-gray-400 hover:text-white text-lg w-8"><i class="fas fa-bars"></i></button>
             <div>
                 <div class="text-sm font-bold text-white"><?php echo $view==='new'?'Nouveau ticket':($view==='detail'&&$current_ticket?htmlspecialchars($current_ticket['subject']):'Mes tickets'); ?></div>
                 <div class="text-xs text-gray-500"><?php echo $counts['all']; ?> ticket(s) au total</div>
