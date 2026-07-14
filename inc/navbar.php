@@ -59,6 +59,8 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
 
 <link href="/inc/navbar.css" rel="stylesheet">
 
+<link href="https://<?php echo $_SERVER['HTTP_HOST']; ?>/inc/navbar.css?v=<?php echo filemtime($_SERVER['DOCUMENT_ROOT'] . '/inc/navbar.css'); ?>" rel="stylesheet">
+
 <nav class="sticky top-0 z-50 border-b border-white/5" style="background: rgba(7, 10, 19, 0.8); backdrop-filter: blur(14px);">
     
     <?php if ($maintenance_banner): 
@@ -299,4 +301,5 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
     </div>
 </nav>
 
-<script src="/inc/navbar.js"></script>
+
+<script src="https://<?php echo $_SERVER['HTTP_HOST']; ?>/inc/navbar.js?v=<?php echo filemtime($_SERVER['DOCUMENT_ROOT'] . '/inc/navbar.js'); ?>"></script>
