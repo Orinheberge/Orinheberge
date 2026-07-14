@@ -171,7 +171,9 @@ function selectPlan(el,pid,price,name){
 <div class="main-content">
 <div class="topbar">
     <div class="flex items-center gap-3">
-        <button onclick="toggleSidebar()" class="md:hidden text-gray-400 hover:text-white text-lg w-8"><i class="fas fa-bars"></i></button>
+        <button id="sidebar-toggle" class="md:hidden text-gray-400 hover:text-white text-lg w-8" aria-label="Ouvrir le menu">
+    <i class="fas fa-bars" id="sidebar-toggle-icon"></i>
+</button>
         <div>
             <div class="text-sm font-bold text-white">Upgrader mon serveur</div>
             <div class="text-xs text-gray-500"><?php echo htmlspecialchars($server['service_name'] ?? ''); ?></div>

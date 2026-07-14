@@ -195,9 +195,9 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
             <?php include __DIR__ . '/lang_switcher.php'; ?>
         </div>
 
-        <button onclick="toggleMobileMenu()" class="md:hidden text-2xl text-gray-400 hover:text-white transition shrink-0 ml-auto cursor-pointer" aria-label="Menu">
-            <i class="fas fa-bars" id="menuIcon"></i>
-        </button>
+       <button onclick="toggleMobileMenu()" class="md:hidden text-2xl text-gray-400 hover:text-white transition shrink-0 ml-auto cursor-pointer" aria-label="Menu">
+    <i class="fas fa-bars" id="menuIcon"></i>
+</button>
     </div>
 
     <div id="mobileMenu" class="md:hidden opacity-0" style="max-height: 0px; overflow: hidden;">

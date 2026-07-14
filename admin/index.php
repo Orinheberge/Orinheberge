@@ -639,7 +639,9 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_sidebar.php';
     <!-- Topbar -->
     <div class="topbar">
         <div class="flex items-center gap-3">
-            <button onclick="toggleSidebar()" class="md:hidden text-gray-400 hover:text-white text-lg w-8"><i class="fas fa-bars"></i></button>
+            <<button id="adminSidebarToggle" class="md:hidden text-gray-400 hover:text-white text-lg w-8" aria-label="Ouvrir le menu admin">
+    <i class="fas fa-bars"></i>
+</button>
             <div>
                 <div class="text-sm font-bold text-white">
                     <?php $titles = ['clients'=>'Clients','servers'=>'Serveurs','server'=>'Détail serveur','invoices'=>'Factures','email'=>'Emails','settings'=>'Paramètres','dashboard'=>'Vue d\'ensemble']; echo $titles[$view] ?? 'Vue d\'ensemble'; ?>

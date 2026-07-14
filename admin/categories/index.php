@@ -99,6 +99,11 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_layout.php';
 <div class="main-content">
   <div class="topbar">
     <div>
+    <div class="flex items-center gap-3">
+      <button id="adminSidebarToggle" class="md:hidden text-gray-400 hover:text-white text-lg w-8" aria-label="Ouvrir le menu admin">
+    <i class="fas fa-bars"></i>
+</button>
+      <div>
       <div class="text-sm font-bold text-white flex items-center gap-2"><i class="fas fa-tags text-green-400 text-xs"></i> Gestion des Catégories</div>
       <div class="text-xs text-gray-500"><?= count($categories) ?> catégorie(s) configurée(s)</div>
     </div>

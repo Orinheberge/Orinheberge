@@ -166,7 +166,11 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_layout.php';
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 <div class="main-content">
-  <div class="topbar">
+   <div class="flex items-center gap-3">
+      <button id="adminSidebarToggle" class="md:hidden text-gray-400 hover:text-white text-lg w-8" aria-label="Ouvrir le menu admin">
+    <i class="fas fa-bars"></i>
+</button>
+      <div>
     <div>
       <div class="text-sm font-bold text-white flex items-center gap-2"><i class="fas fa-bullhorn text-rose-400 text-xs"></i> Gestion des Annonces</div>
       <div class="text-xs text-gray-500"><?= count($announcements) ?> annonce(s) envoyée(s)</div>

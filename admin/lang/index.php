@@ -109,6 +109,11 @@ if ($page > $total_pages) {
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 <div class="main-content">
   <div class="topbar">
+      <div class="flex items-center gap-3">
+      <button id="adminSidebarToggle" class="md:hidden text-gray-400 hover:text-white text-lg w-8" aria-label="Ouvrir le menu admin">
+    <i class="fas fa-bars"></i>
+</button>
+      <div>
     <div>
       <div class="text-sm font-bold text-white flex items-center gap-2"><i class="fas fa-language text-sky-400 text-xs"></i> Langues</div>
       <div class="text-xs text-gray-500">Gestion des traductions de la boutique</div>

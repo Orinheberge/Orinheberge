@@ -131,7 +131,9 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_layout.php';
 <div class="main-content">
   <div class="topbar">
     <div class="flex items-center gap-3">
-      <button onclick="document.getElementById('sidebar').classList.toggle('open')" class="md:hidden text-gray-400 text-lg"><i class="fas fa-bars"></i></button>
+     <button id="adminSidebarToggle" class="md:hidden text-gray-400 hover:text-white text-lg w-8" aria-label="Ouvrir le menu admin">
+    <i class="fas fa-bars"></i>
+</button>
       <div>
         <div class="text-sm font-bold text-white flex items-center gap-2"><i class="fas fa-puzzle-piece text-purple-400 text-xs"></i> Extensions</div>
         <div class="text-xs text-gray-500"><?= count(array_filter($extensions, fn($e) => $e['is_enabled'])) ?>/<?= count($extensions) ?> active(s)</div>

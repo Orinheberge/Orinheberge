@@ -232,7 +232,9 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_sidebar.php';
 <div class="main-content">
     <div class="sticky top-0 z-30 flex items-center justify-between border-b border-white/[.06] bg-[#111318] px-7 py-3.5">
         <div class="flex items-center gap-3">
-            <button onclick="toggleSidebar()" class="w-8 text-lg text-gray-400 hover:text-white md:hidden"><i class="fas fa-bars"></i></button>
+           <button id="adminSidebarToggle" class="md:hidden text-gray-400 hover:text-white text-lg w-8" aria-label="Ouvrir le menu admin">
+    <i class="fas fa-bars"></i>
+</button>
             <div>
                 <div class="text-sm font-bold text-white">Créer un serveur pour un client</div>
                 <div class="text-xs text-gray-500">Provisionnement manuel admin</div>
