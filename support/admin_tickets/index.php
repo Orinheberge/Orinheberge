@@ -165,9 +165,6 @@ function tcolor(string $t): string {
             .topbar,.content{padding:.875rem 1rem;}
         }
     </style>
-    <script>
-        function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('overlay').classList.toggle('open');}
-    </script>
 </head>
 <body>
 <div id="overlay" class="mobile-overlay" onclick="toggleSidebar()"></div>
