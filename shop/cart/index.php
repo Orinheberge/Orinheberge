@@ -471,4 +471,7 @@ $total = $prices['final_price'] + $shipping;
 
 <?php include $_SERVER['DOCUMENT_ROOT'] . '/inc/footer.php'; ?>
 </body>
+
+<script src="https://<?php echo $_SERVER['HTTP_HOST']; ?>/inc/navbar.js?v=<?php echo filemtime($_SERVER['DOCUMENT_ROOT'] . '/inc/navbar.js'); ?>"></script>
+
 </html>

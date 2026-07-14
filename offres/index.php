@@ -151,8 +151,7 @@ body{background:#0b0f19;scroll-behavior:smooth;}
 .cat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1.5rem;}
 </style>
 <script>
-const catLabels = <?php echo json_encode(array_map(fn($c)=>t($c['name_key']),$dynamic_categories),JSON_HEX_TAG|JSON_HEX_AMP); ?>;
-function toggleMenu(){document.getElementById('mobileMenu').classList.toggle('active');}
+const catLabels = <?php echo json_encode(array_map(fn($c)=>t($c['name_key']),$dynamic_categories),JSON_HEX_TAG|JSON_HEX_AMP); ?>
 function filterCategory(id){
     document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
     document.getElementById('tab-'+id)?.classList.add('active');
