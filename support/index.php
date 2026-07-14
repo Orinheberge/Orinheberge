@@ -164,7 +164,11 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php';
 <!-- ══ MAIN ══ -->
 <div class="main-content">
     <div class="topbar">
-        <div class="flex items-center gap-3">
+           <div class="flex items-center gap-3">
+    <button id="sidebar-toggle" class="md:hidden text-gray-400 hover:text-white text-lg w-8" aria-label="Ouvrir le menu">
+    <i class="fas fa-bars" id="sidebar-toggle-icon"></i>
+    </button>
+
             <div>
                 <div class="text-sm font-bold text-white"><?php echo $view==='new'?'Nouveau ticket':($view==='detail'&&$current_ticket?htmlspecialchars($current_ticket['subject']):'Mes tickets'); ?></div>
                 <div class="text-xs text-gray-500"><?php echo $counts['all']; ?> ticket(s) au total</div>

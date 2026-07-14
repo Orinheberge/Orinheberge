@@ -249,4 +249,4 @@ if (isset($pdo)) {
 </aside>
 
 <!-- Script externe pour le burger menu -->
-<script src="/inc/client_sidebar.js" defer></script>
+<script src="/inc/clients_sidebar.js" defer></script>

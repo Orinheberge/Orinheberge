@@ -273,7 +273,7 @@ $active_nav = '';
 </div>
 
 <!-- Navigation -->
-<?php include __DIR__ . '/inc/navbar.php'; ?>
+<?php include __DIR__ . $_SERVER['DOCUMENT_ROOT'] . '/inc/navbar.php'; ?>
 
 <!-- Contenu principal -->
 <main class="flex-grow flex items-center justify-center px-4 py-16 relative z-10">
@@ -348,7 +348,7 @@ $active_nav = '';
 </main>
 
 <!-- Footer -->
-<?php include __DIR__ . '/inc/footer.php'; ?>
+<?php include __DIR__ . $_SERVER['DOCUMENT_ROOT'] . '/inc/footer.php'; ?>
 
 </body>
 </html>

@@ -201,10 +201,11 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php';
 
     <!-- Topbar -->
     <div class="topbar">
-        <div class="flex items-center gap-3">
-            <button id="sidebar-toggle" class="md:hidden text-gray-400 hover:text-white text-lg w-8" aria-label="Ouvrir le menu">
+          <div class="flex items-center gap-3">
+    <button id="sidebar-toggle" class="md:hidden text-gray-400 hover:text-white text-lg w-8" aria-label="Ouvrir le menu">
     <i class="fas fa-bars" id="sidebar-toggle-icon"></i>
-</button>
+    </button>
+ </div>
             <div>
                 <div class="text-sm font-bold text-white">Mes serveurs</div>
                 <div class="text-xs text-gray-500"><?php echo $total; ?> machine<?php echo $total !== 1 ? 's' : ''; ?> déployée<?php echo $total !== 1 ? 's' : ''; ?></div>

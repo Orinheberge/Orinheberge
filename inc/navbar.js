@@ -7,6 +7,13 @@
     'use strict';
 
     // ============================================
+    // EXPOSITION GLOBALE IMMÉDIATE
+    // (Évite l'erreur "toggleMobileMenu is not defined" au chargement)
+    // ============================================
+    window.toggleMobileMenu = toggleMobileMenu;
+    window.toggleMobileDropdown = toggleMobileDropdown;
+
+    // ============================================
     // INITIALISATION
     // ============================================
     document.addEventListener('DOMContentLoaded', function() {
@@ -145,12 +152,6 @@
             closeMobileMenu();
         }
     });
-
-    // ============================================
-    // EXPOSITION GLOBALE (requis pour les onclick="" inline du navbar.php)
-    // ============================================
-    window.toggleMobileMenu = toggleMobileMenu;
-    window.toggleMobileDropdown = toggleMobileDropdown;
 
     // ============================================
     // API PUBLIQUE

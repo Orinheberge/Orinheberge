@@ -94,7 +94,8 @@ function toggleSidebar(){document.getElementById('sidebar').classList.toggle('op
     <div class="flex items-center gap-3">
     <button id="sidebar-toggle" class="md:hidden text-gray-400 hover:text-white text-lg w-8" aria-label="Ouvrir le menu">
     <i class="fas fa-bars" id="sidebar-toggle-icon"></i>
-</button>
+    </button>
+ </div>
       <div>
         <div class="text-sm font-bold text-white">Tableau de bord</div>
         <div class="text-xs text-gray-500">Bienvenue, <?php echo htmlspecialchars($_SESSION['username'] ?? ''); ?></div>
