@@ -9,6 +9,14 @@
  */
 $active_nav = $active_nav ?? '';
 
+// 🔵 DEBUG NGINX / PHP-FPM : Écrit dans /var/log/nginx/error.log
+error_log(sprintf(
+    "[OrinHeberge Nginx Debug] Chargement de navbar.php | IP: %s | User: %s | Page: %s",
+    $_SERVER['REMOTE_ADDR'] ?? 'Inconnue',
+    isset($_SESSION['user_id']) ? 'ID-' . $_SESSION['user_id'] : 'Visiteur',
+    $_SERVER['REQUEST_URI'] ?? '/'
+));
+
 // 🔵 AJOUT : Récupérer les maintenances actives pour afficher un bandeau
 $maintenance_banner = null;
 if (isset($pdo)) {
@@ -195,8 +203,8 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
             <?php include __DIR__ . '/lang_switcher.php'; ?>
         </div>
 
-            <button onclick="toggleMobileMenu()" class="md:hidden text-2xl text-gray-400 hover:text-white transition shrink-0 ml-auto cursor-pointer" aria-label="Menu">
-            <i class="fas fa-bars" id="menuIcon"></i>
+            <button id="mobileMenuBtn" class="md:hidden text-2xl text-gray-400 hover:text-white transition shrink-0 ml-auto cursor-pointer" aria-label="Menu">
+                <i class="fas fa-bars" id="menuIcon"></i>
             </button>
     </div>
 
@@ -291,5 +299,4 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
     </div>
 </nav>
 
-<!-- Inclusion du script externe -->
-<script src="/inc/navbar.js" defer></script>
+<script src="/inc/navbar.js"></script>
