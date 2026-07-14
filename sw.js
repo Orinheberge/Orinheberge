@@ -1,4 +1,4 @@
-// Incrémentez ce numéro de version à chaque modification majeure de vos fichiers statiques
+/*// Incrémentez ce numéro de version à chaque modification majeure de vos fichiers statiques
 const CACHE_NAME = 'orinstone-cache-v1.1'; 
 
 const ASSETS_TO_CACHE = [
@@ -67,4 +67,4 @@ self.addEventListener('fetch', (event) => {
       });
     })
   );
-});
+});*/
