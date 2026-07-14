@@ -18,10 +18,17 @@
             menu.style.opacity = '0';
             menu.style.overflow = 'hidden';
             
-            // Ferme le menu au clic sur un lien (sauf les boutons dropdown)
+            // Ferme le menu au clic sur un lien (sauf les boutons de dropdown)
             menu.querySelectorAll('a').forEach(function(link) {
-                link.addEventListener('click', function() {
+                link.addEventListener('click', function(e) {
                     if (window.innerWidth < 768) {
+                        const onclickAttr = link.getAttribute('onclick') || '';
+                        const hrefAttr = link.getAttribute('href') || '';
+                        
+                        // Si le lien est un déclencheur de dropdown ou un lien factice, on ne ferme pas le menu
+                        if (onclickAttr.includes('toggleMobileDropdown') || hrefAttr === '#' || hrefAttr.startsWith('javascript:')) {
+                            return;
+                        }
                         closeMobileMenu();
                     }
                 });
@@ -121,9 +128,9 @@
     // ============================================
     document.addEventListener('click', function(e) {
         const menu = document.getElementById('mobileMenu');
-        const burger = document.querySelector('[onclick="toggleMobileMenu()"]');
+        const burger = e.target.closest('[onclick*="toggleMobileMenu"]') || e.target.closest('#menuIcon');
         
-        if (menu && burger && !menu.contains(e.target) && !burger.contains(e.target)) {
+        if (menu && !menu.contains(e.target) && (!burger || !burger.contains(e.target))) {
             if (menu.style.opacity === '1') {
                 closeMobileMenu();
             }

@@ -139,11 +139,13 @@
             }
         });
 
-        // Effet hover sur les items
+        // Effet hover sur les items (limité au desktop pour éviter les bugs tactiles sur mobile)
         const navItems = sidebar.querySelectorAll('.nav-item');
         navItems.forEach(item => {
             item.addEventListener('mouseenter', () => {
-                item.style.transform = 'translateX(4px)';
+                if (!isMobile) {
+                    item.style.transform = 'translateX(4px)';
+                }
             });
             item.addEventListener('mouseleave', () => {
                 item.style.transform = 'translateX(0)';
@@ -163,6 +165,7 @@
         
         if (overlay) {
             overlay.classList.add('active');
+            overlay.style.opacity = '1';
             overlay.style.pointerEvents = 'auto';
         }
         
@@ -185,6 +188,7 @@
         
         if (overlay) {
             overlay.classList.remove('active');
+            overlay.style.opacity = '0';
             overlay.style.pointerEvents = 'none';
         }
         

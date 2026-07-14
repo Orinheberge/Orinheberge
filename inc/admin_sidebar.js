@@ -139,11 +139,11 @@
             }
         });
 
-        // Effet hover sur les items
+        // Effet hover sur les items (uniquement actif hors mode mobile pour éviter le hover persistant au tactile)
         const navItems = sidebar.querySelectorAll('.nav-item');
         navItems.forEach(item => {
             item.addEventListener('mouseenter', () => {
-                if (isMobile) {
+                if (!isMobile) {
                     item.style.transform = 'translateX(4px)';
                 }
             });
