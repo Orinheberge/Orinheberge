@@ -292,4 +292,4 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
 </nav>
 
 <!-- Inclusion du script externe -->
-<script src="/inc/navbar.js"></script>
+<script src="/inc/navbar.js" defer></script>
