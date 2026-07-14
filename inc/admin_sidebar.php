@@ -52,16 +52,9 @@ $_critical_maintenance = $pdo->query("
 
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
+<link href="/inc/admin_sidebar.css" rel="stylesheet">
 
-<style>
-    @keyframes pulse-critical {
-        0%, 100% { opacity: 1; transform: scale(1); }
-        50% { opacity: 0.6; transform: scale(1.1); }
-    }
-    .critical-pulse {
-        animation: pulse-critical 1.5s infinite;
-    }
-</style>
+
 
 <aside id="sidebar" class="sidebar">
   
