@@ -81,7 +81,7 @@ $panel_nodes_raw = [];
 if ($panel_url && $api_key_admin) {
     $ch = curl_init($panel_url . '/api/application/nodes');
     curl_setopt_array($ch,[CURLOPT_HTTPHEADER=>$headers_admin,CURLOPT_RETURNTRANSFER=>true,CURLOPT_SSL_VERIFYPEER=>false,CURLOPT_TIMEOUT=>8]);
-    $res = curl_exec($ch); curl_close($ch);
+    $res = curl_exec($ch);
     $panel_nodes_data = json_decode($res, true);
     foreach (($panel_nodes_data['data'] ?? []) as $pn) {
         $a = $pn['attributes'];

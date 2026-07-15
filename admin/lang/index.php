@@ -105,33 +105,36 @@ if ($page > $total_pages) {
     $page = $total_pages;
 }
 ?>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-<div class="main-content">
-  <div class="topbar">
-      <div class="flex items-center gap-3">
-      <button id="adminSidebarToggle" class="md:hidden text-gray-400 hover:text-white text-lg w-8" aria-label="Ouvrir le menu admin">
-    <i class="fas fa-bars"></i>
-</button>
-      <div>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+<div class="main-content p-6">
+  <div class="flex items-center gap-3 mb-6">
+    <button id="adminSidebarToggle" class="md:hidden text-gray-400 hover:text-white text-lg w-8" aria-label="Ouvrir le menu admin">
+      <i class="fas fa-bars"></i>
+    </button>
     <div>
-      <div class="text-sm font-bold text-white flex items-center gap-2"><i class="fas fa-language text-sky-400 text-xs"></i> Langues</div>
-      <div class="text-xs text-gray-500">Gestion des traductions de la boutique</div>
+      <div class="text-sm font-bold text-white flex items-center gap-2">
+        <i class="fas fa-language text-sky-400 text-xs"></i> Langues
+      </div>
+      <div class="text-xs text-gray-500 mt-1">Gestion des traductions de la boutique</div>
     </div>
   </div>
 
   <div class="content space-y-4">
-    <div class="card p-5">
-      <div class="flex items-start justify-between gap-4">
+    <div class="bg-[#161a22] border border-white/10 rounded-2xl p-5">
+      <div class="flex flex-col sm:flex-row items-start justify-between gap-4">
         <div>
           <h2 class="text-lg font-bold text-white">Traductions disponibles</h2>
           <p class="text-sm text-gray-400 mt-1">Cette page permet de consulter, ajouter et modifier les clés de traduction enregistrées pour la boutique.</p>
         </div>
-        <span class="badge badge-blue"><i class="fas fa-check-circle"></i> En ligne</span>
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-sky-500/10 text-sky-400 border border-sky-500/20 whitespace-nowrap">
+          <i class="fas fa-check-circle text-[9px]"></i> En ligne
+        </span>
       </div>
     </div>
 
-    <div class="card p-5">
+    <div class="bg-[#161a22] border border-white/10 rounded-2xl p-5">
       <div class="flex items-center justify-between mb-4">
         <h3 class="text-sm font-semibold text-white">Ajouter ou modifier une traduction</h3>
         <span class="text-xs text-gray-500"><?= $table_exists ? 'Table détectée' : 'Table absente' ?></span>
@@ -153,29 +156,29 @@ if ($page > $total_pages) {
         <input type="hidden" name="save_translation" value="1">
         <div class="grid gap-4 md:grid-cols-3">
           <div>
-            <label class="block text-xs uppercase text-gray-500 mb-1">Clé</label>
-            <input type="text" name="translation_key" value="<?= htmlspecialchars($form_key) ?>" required class="w-full rounded-xl border border-gray-700 bg-gray-900/80 px-3 py-2 text-sm text-white focus:border-sky-500 focus:outline-none">
+            <label class="block text-xs uppercase text-gray-400 font-semibold mb-1.5">Clé</label>
+            <input type="text" name="translation_key" value="<?= htmlspecialchars($form_key) ?>" required class="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-sky-500 focus:outline-none transition-colors">
           </div>
           <div>
-            <label class="block text-xs uppercase text-gray-500 mb-1">Français</label>
-            <textarea name="fr" rows="3" class="w-full rounded-xl border border-gray-700 bg-gray-900/80 px-3 py-2 text-sm text-white focus:border-sky-500 focus:outline-none"><?= htmlspecialchars($form_fr) ?></textarea>
+            <label class="block text-xs uppercase text-gray-400 font-semibold mb-1.5">Français</label>
+            <textarea name="fr" rows="3" class="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-sky-500 focus:outline-none transition-colors"><?= htmlspecialchars($form_fr) ?></textarea>
           </div>
           <div>
-            <label class="block text-xs uppercase text-gray-500 mb-1">English</label>
-            <textarea name="en" rows="3" class="w-full rounded-xl border border-gray-700 bg-gray-900/80 px-3 py-2 text-sm text-white focus:border-sky-500 focus:outline-none"><?= htmlspecialchars($form_en) ?></textarea>
+            <label class="block text-xs uppercase text-gray-400 font-semibold mb-1.5">English</label>
+            <textarea name="en" rows="3" class="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-sky-500 focus:outline-none transition-colors"><?= htmlspecialchars($form_en) ?></textarea>
           </div>
         </div>
 
-        <div class="flex items-center gap-3">
-          <button type="submit" class="rounded-xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-500">Enregistrer</button>
+        <div class="flex items-center gap-4 pt-2">
+          <button type="submit" class="rounded-xl bg-sky-600 px-4 py-2 text-xs font-semibold text-white hover:bg-sky-500 transition-colors">Enregistrer</button>
           <?php if ($form_key !== ''): ?>
-            <a href="/admin/lang/" class="text-sm text-gray-400 hover:text-white">Créer une nouvelle traduction</a>
+            <a href="/admin/lang/" class="text-xs text-gray-400 hover:text-white transition-colors">Créer une nouvelle traduction</a>
           <?php endif; ?>
         </div>
       </form>
     </div>
 
-    <div class="card p-5">
+    <div class="bg-[#161a22] border border-white/10 rounded-2xl p-5">
       <div class="flex items-center justify-between mb-4">
         <h3 class="text-sm font-semibold text-white">Table des traductions</h3>
         <span class="text-xs text-gray-500">Page <?= $page ?> / <?= $total_pages ?></span>
@@ -183,23 +186,25 @@ if ($page > $total_pages) {
 
       <?php if ($table_exists && !empty($translations)): ?>
         <div class="overflow-x-auto">
-          <table class="tbl">
+          <table class="w-full text-left border-collapse">
             <thead>
-              <tr>
-                <th>Clé</th>
-                <th>FR</th>
-                <th>EN</th>
-                <th>Action</th>
+              <tr class="border-b border-white/[0.05] text-xs text-gray-400 uppercase tracking-wider">
+                <th class="py-3 font-semibold">Clé</th>
+                <th class="px-4 py-3 font-semibold">FR</th>
+                <th class="px-4 py-3 font-semibold">EN</th>
+                <th class="py-3 font-semibold text-right">Action</th>
               </tr>
             </thead>
-            <tbody>
-              <?php foreach ($translations as $row): ?>
-                <tr>
-                  <td class="font-mono text-xs text-sky-400"><?= htmlspecialchars($row['translation_key']) ?></td>
-                  <td class="text-sm text-gray-200"><?= htmlspecialchars($row['fr']) ?></td>
-                  <td class="text-sm text-gray-300"><?= htmlspecialchars($row['en']) ?></td>
-                  <td>
-                    <a href="/admin/lang/?edit_key=<?= urlencode($row['translation_key']) ?>" class="text-sm text-sky-400 hover:text-sky-300">Modifier</a>
+            <tbody class="divide-y divide-white/[0.02]">
+              <?php foreach ($translations as$row): ?>
+                <tr class="hover:bg-white/[0.01] transition-colors">
+                  <td class="py-4 font-mono text-xs text-sky-400 break-all"><?= htmlspecialchars($row['translation_key']) ?></td>
+                  <td class="px-4 py-4 text-sm text-gray-200 min-w-[150px]"><?= htmlspecialchars($row['fr']) ?></td>
+                  <td class="px-4 py-4 text-sm text-gray-300 min-w-[150px]"><?= htmlspecialchars($row['en']) ?></td>
+                  <td class="py-4 text-right whitespace-nowrap">
+                    <a href="/admin/lang/?edit_key=<?= urlencode($row['translation_key']) ?>" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-sky-400 hover:text-white bg-sky-500/5 hover:bg-sky-500/20 border border-sky-500/10 rounded-lg transition-colors">
+                      <i class="fas fa-edit text-[10px]"></i> Modifier
+                    </a>
                   </td>
                 </tr>
               <?php endforeach; ?>
@@ -208,21 +213,21 @@ if ($page > $total_pages) {
         </div>
 
         <?php if ($total_pages > 1): ?>
-          <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
-            <div class="text-sm text-gray-500">
+          <div class="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-white/[0.05] pt-4">
+            <div class="text-xs text-gray-500">
               Affichage de <?= min($per_page, $total_translations) ?> entrées sur <?= $total_translations ?>
             </div>
-            <div class="flex flex-wrap items-center gap-2">
+            <div class="flex flex-wrap items-center gap-1.5">
               <?php if ($page > 1): ?>
-                <a href="/admin/lang/?page=<?= max(1, $page - 1) ?>" class="rounded-lg border border-gray-700 px-3 py-1 text-sm text-gray-300 hover:text-white">Précédent</a>
+                <a href="/admin/lang/?page=<?= max(1, $page - 1) ?>" class="rounded-lg border border-white/10 px-2.5 py-1 text-xs text-gray-300 hover:text-white transition-colors">Précédent</a>
               <?php endif; ?>
 
               <?php for ($i = 1; $i <= $total_pages; $i++): ?>
-                <a href="/admin/lang/?page=<?= $i ?>" class="rounded-lg px-3 py-1 text-sm <?= $i === $page ? 'bg-sky-600 text-white' : 'border border-gray-700 text-gray-300 hover:text-white' ?>"><?= $i ?></a>
+                <a href="/admin/lang/?page=<?= $i ?>" class="rounded-lg px-2.5 py-1 text-xs transition-colors <?= $i === $page ? 'bg-sky-600 text-white font-semibold' : 'border border-white/10 text-gray-300 hover:text-white' ?>"><?= $i ?></a>
               <?php endfor; ?>
 
-              <?php if ($page < $total_pages): ?>
-                <a href="/admin/lang/?page=<?= min($total_pages, $page + 1) ?>" class="rounded-lg border border-gray-700 px-3 py-1 text-sm text-gray-300 hover:text-white">Suivant</a>
+              <?php if ($page <$total_pages): ?>
+                <a href="/admin/lang/?page=<?= min($total_pages,$page + 1) ?>" class="rounded-lg border border-white/10 px-2.5 py-1 text-xs text-gray-300 hover:text-white transition-colors">Suivant</a>
               <?php endif; ?>
             </div>
           </div>

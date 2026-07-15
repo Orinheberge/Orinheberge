@@ -164,56 +164,50 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_layout.php';
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 
-<div class="main-content">
-  <div class="topbar">
+<div class="main-content p-6 bg-[#0d1117] min-h-screen text-gray-100">
+  <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 pb-6 border-b border-white/[0.05]">
     <div class="flex items-center gap-3">
       <button id="adminSidebarToggle" class="md:hidden text-gray-400 hover:text-white text-lg w-8" aria-label="Ouvrir le menu admin">
-    <i class="fas fa-bars"></i>
-</button>
+        <i class="fas fa-bars"></i>
+      </button>
       <div>
         <div class="text-sm font-bold text-white flex items-center gap-2">
           <i class="fas fa-wrench text-sky-400 text-xs"></i> Gestion des Maintenances
         </div>
-        <div class="text-xs text-gray-500"><?= $stats['total'] ?> maintenance(s) · <?= $stats['ongoing'] ?> en cours</div>
+        <div class="text-xs text-gray-500 mt-1"><?= $stats['total'] ?> maintenance(s) · <?= $stats['ongoing'] ?> en cours</div>
       </div>
     </div>
-    <button onclick="openAddModal()" class="btn btn-primary">
-      <i class="fas fa-plus text-xs"></i> Planifier une Maintenance
+    <button onclick="openAddModal()" class="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-semibold flex items-center gap-2 transition-colors">
+      <i class="fas fa-plus text-[10px]"></i> Planifier une Maintenance
     </button>
   </div>
 
-  <div class="content">
+  <div class="content space-y-6">
     <?= $flash ?>
 
-    <!-- ═══════════════════════════════════════════════════════════════ -->
-    <!-- STATS RAPIDES -->
-    <!-- ═══════════════════════════════════════════════════════════════ -->
-    <div class="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-6">
-      <div class="card p-4">
+    <div class="grid grid-cols-2 sm:grid-cols-5 gap-4">
+      <div class="bg-[#161a22] border border-white/10 rounded-2xl p-4">
         <div class="text-xs text-gray-500 mb-1">Total</div>
         <div class="text-2xl font-black text-white"><?= $stats['total'] ?></div>
       </div>
-      <div class="card p-4 border-l-2 border-l-sky-500">
+      <div class="bg-[#161a22] border border-white/10 border-l-2 border-l-sky-500 rounded-2xl p-4">
         <div class="text-xs text-gray-500 mb-1">En cours</div>
         <div class="text-2xl font-black text-sky-400"><?= $stats['ongoing'] ?></div>
       </div>
-      <div class="card p-4 border-l-2 border-l-amber-500">
+      <div class="bg-[#161a22] border border-white/10 border-l-2 border-l-amber-500 rounded-2xl p-4">
         <div class="text-xs text-gray-500 mb-1">Planifiées</div>
         <div class="text-2xl font-black text-amber-400"><?= $stats['scheduled'] ?></div>
       </div>
-      <div class="card p-4 border-l-2 border-l-green-500">
+      <div class="bg-[#161a22] border border-white/10 border-l-2 border-l-green-500 rounded-2xl p-4">
         <div class="text-xs text-gray-500 mb-1">Terminées</div>
         <div class="text-2xl font-black text-green-400"><?= $stats['completed'] ?></div>
       </div>
-      <div class="card p-4 border-l-2 border-l-red-500">
+      <div class="bg-[#161a22] border border-white/10 border-l-2 border-l-red-500 rounded-2xl p-4">
         <div class="text-xs text-gray-500 mb-1">Critiques</div>
         <div class="text-2xl font-black text-red-400"><?= $stats['critical'] ?></div>
       </div>
     </div>
 
-    <!-- ═══════════════════════════════════════════════════════════════ -->
-    <!-- MAINTENANCES EN COURS / URGENTES (bandeau) -->
-    <!-- ═══════════════════════════════════════════════════════════════ -->
     <?php
     $active_maintenances = array_filter($maintenances, fn($m) => 
         ($m['status'] === 'in_progress' || $m['status'] === 'scheduled') &&
@@ -222,7 +216,7 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_layout.php';
     );
     ?>
     <?php if (!empty($active_maintenances)): ?>
-    <div class="mb-6 space-y-3">
+    <div class="space-y-3">
       <?php foreach ($active_maintenances as $m): 
         $sev = $severity_config[$m['severity']] ?? $severity_config['info'];
         $sta = $status_config[$m['status']] ?? $status_config['scheduled'];
@@ -232,38 +226,39 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_layout.php';
         $hours = floor($remaining / 3600);
         $mins = floor(($remaining % 3600) / 60);
       ?>
-      <div class="card p-4 border-l-4 border-l-<?= $sev['color'] ?>-500 flex items-center gap-4">
-        <div class="w-10 h-10 rounded-lg bg-<?= $sev['color'] ?>-500/10 border border-<?= $sev['color'] ?>-500/20 flex items-center justify-center shrink-0">
-          <i class="fas <?= $sev['icon'] ?> text-<?= $sev['color'] ?>-400"></i>
-        </div>
-        <div class="flex-1 min-w-0">
-          <div class="flex items-center gap-2 flex-wrap">
-            <span class="font-bold text-white text-sm"><?= htmlspecialchars($m['title']) ?></span>
-            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-<?= $sta['color'] ?>-500/10 text-<?= $sta['color'] ?>-400 border border-<?= $sta['color'] ?>-500/20">
-              <?= $sta['label'] ?>
-            </span>
+      <div class="bg-[#161a22] border border-white/10 border-l-4 border-l-<?= $sev['color'] ?>-500 rounded-2xl p-4 flex items-center justify-between gap-4">
+        <div class="flex items-center gap-4 min-w-0">
+          <div class="w-10 h-10 rounded-lg bg-<?= $sev['color'] ?>-500/10 border border-<?= $sev['color'] ?>-500/20 flex items-center justify-center shrink-0">
+            <i class="fas <?= $sev['icon'] ?> text-<?= $sev['color'] ?>-400"></i>
           </div>
-          <div class="text-xs text-gray-500 mt-0.5">
-            <?= date('d/m/Y H:i', strtotime($m['start_date'])) ?> — <?= date('H:i', strtotime($m['end_date'])) ?>
-            <?php if ($remaining > 0): ?>
-            · <span class="text-<?= $sev['color'] ?>-400 font-semibold">
-              <?= $hours > 0 ? $hours . 'h ' : '' ?><?= $mins ?>min restantes
-            </span>
-            <?php endif; ?>
+          <div class="min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="font-bold text-white text-sm truncate"><?= htmlspecialchars($m['title']) ?></span>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-<?= $sta['color'] ?>-500/10 text-<?= $sta['color'] ?>-400 border border-<?= $sta['color'] ?>-500/20 whitespace-nowrap">
+                <?= $sta['label'] ?>
+              </span>
+            </div>
+            <div class="text-xs text-gray-500 mt-0.5">
+              <?= date('d/m/Y H:i', strtotime($m['start_date'])) ?> — <?= date('H:i', strtotime($m['end_date'])) ?>
+              <?php if ($remaining > 0): ?>
+              · <span class="text-<?= $sev['color'] ?>-400 font-semibold">
+                <?= $hours > 0 ? $hours . 'h ' : '' ?><?= $mins ?>min restantes
+              </span>
+              <?php endif; ?>
+            </div>
           </div>
         </div>
         <div class="flex items-center gap-1.5 shrink-0">
-          <button onclick='openEditModal(<?= htmlspecialchars(json_encode($m), ENT_QUOTES) ?>)' class="btn btn-ghost text-xs"><i class="fas fa-edit"></i></button>
+          <button onclick='openEditModal(<?= htmlspecialchars(json_encode($m), ENT_QUOTES) ?>)' class="p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors text-xs">
+            <i class="fas fa-edit"></i>
+          </button>
         </div>
       </div>
       <?php endforeach; ?>
     </div>
     <?php endif; ?>
 
-    <!-- ═══════════════════════════════════════════════════════════════ -->
-    <!-- LISTE DES MAINTENANCES -->
-    <!-- ═══════════════════════════════════════════════════════════════ -->
-    <div class="card overflow-hidden">
+    <div class="bg-[#161a22] border border-white/10 rounded-2xl overflow-hidden">
       <div class="px-5 py-4 border-b border-white/[0.05] flex items-center justify-between">
         <span class="text-sm font-bold text-white flex items-center gap-2">
           <i class="fas fa-list text-sky-400 text-xs"></i> Historique des maintenances
@@ -276,137 +271,139 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_layout.php';
         </div>
       <?php else: ?>
       <div class="overflow-x-auto">
-      <table class="tbl">
-        <thead>
-          <tr>
-            <th>Titre</th>
-            <th>Type</th>
-            <th>Sévérité</th>
-            <th>Statut</th>
-            <th>Période</th>
-            <th>Portée</th>
-            <th>Visibilité</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <?php foreach ($maintenances as $m): 
-            $typ = $type_config[$m['type']] ?? $type_config['planned'];
-            $sta = $status_config[$m['status']] ?? $status_config['scheduled'];
-            $sev = $severity_config[$m['severity']] ?? $severity_config['info'];
-            $services = json_decode($m['affected_services'] ?? '[]', true) ?: [];
-          ?>
-          <tr>
-            <td>
-              <div class="font-semibold text-white text-sm"><?= htmlspecialchars($m['title']) ?></div>
-              <div class="text-[10px] text-gray-600 font-mono mt-0.5"><?= htmlspecialchars($m['slug']) ?></div>
-            </td>
-            <td>
-              <span class="badge badge-<?= $typ['color'] ?>">
-                <i class="fas <?= $typ['icon'] ?> text-[10px]"></i>
-                <?= $typ['label'] ?>
-              </span>
-            </td>
-            <td>
-              <span class="badge badge-<?= $sev['color'] ?>">
-                <i class="fas <?= $sev['icon'] ?> text-[10px]"></i>
-                <?= $sev['label'] ?>
-              </span>
-            </td>
-            <td>
-              <span class="badge badge-<?= $sta['color'] ?>">
-                <i class="fas <?= $sta['icon'] ?> text-[10px] <?= $m['status'] === 'in_progress' ? 'fa-spin' : '' ?>"></i>
-                <?= $sta['label'] ?>
-              </span>
-            </td>
-            <td>
-              <div class="text-xs text-gray-300">
-                <i class="fas fa-calendar text-gray-600 text-[10px]"></i>
-                <?= date('d/m/Y', strtotime($m['start_date'])) ?>
-              </div>
-              <div class="text-[10px] text-gray-500 font-mono">
-                <?= date('H:i', strtotime($m['start_date'])) ?> → <?= date('H:i', strtotime($m['end_date'])) ?>
-              </div>
-            </td>
-            <td>
-              <?php if ($m['affects_all']): ?>
-                <span class="text-xs text-amber-400"><i class="fas fa-globe"></i> Tous</span>
-              <?php elseif (!empty($services)): ?>
-                <div class="flex flex-wrap gap-1">
-                  <?php foreach (array_slice($services, 0, 3) as $s): ?>
-                    <span class="text-[10px] bg-sky-500/10 text-sky-400 px-1.5 py-0.5 rounded"><?= htmlspecialchars($s) ?></span>
-                  <?php endforeach; ?>
-                  <?php if (count($services) > 3): ?>
-                    <span class="text-[10px] text-gray-500">+<?= count($services) - 3 ?></span>
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="border-b border-white/[0.05] text-[11px] text-gray-400 uppercase tracking-wider">
+              <th class="px-5 py-3.5 font-semibold">Titre</th>
+              <th class="px-4 py-3.5 font-semibold">Type</th>
+              <th class="px-4 py-3.5 font-semibold">Sévérité</th>
+              <th class="px-4 py-3.5 font-semibold">Statut</th>
+              <th class="px-4 py-3.5 font-semibold">Période</th>
+              <th class="px-4 py-3.5 font-semibold">Portée</th>
+              <th class="px-4 py-3.5 font-semibold">Visibilité</th>
+              <th class="px-5 py-3.5 font-semibold text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-white/[0.02]">
+            <?php foreach ($maintenances as $m): 
+              $typ = $type_config[$m['type']] ?? $type_config['planned'];
+              $sta = $status_config[$m['status']] ?? $status_config['scheduled'];
+              $sev = $severity_config[$m['severity']] ?? $severity_config['info'];
+              $services = json_decode($m['affected_services'] ?? '[]', true) ?: [];
+            ?>
+            <tr class="hover:bg-white/[0.01] transition-colors">
+              <td class="px-5 py-4">
+                <div class="font-semibold text-white text-sm"><?= htmlspecialchars($m['title']) ?></div>
+                <div class="text-[10px] text-gray-600 font-mono mt-0.5"><?= htmlspecialchars($m['slug']) ?></div>
+              </td>
+              <td class="px-4 py-4">
+                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-<?= $typ['color'] ?>-500/10 text-<?= $typ['color'] ?>-400 border border-<?= $typ['color'] ?>-500/20 whitespace-nowrap">
+                  <i class="fas <?= $typ['icon'] ?> text-[10px]"></i>
+                  <?= $typ['label'] ?>
+                </span>
+              </td>
+              <td class="px-4 py-4">
+                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-<?= $sev['color'] ?>-500/10 text-<?= $sev['color'] ?>-400 border border-<?= $sev['color'] ?>-500/20 whitespace-nowrap">
+                  <i class="fas <?= $sev['icon'] ?> text-[10px]"></i>
+                  <?= $sev['label'] ?>
+                </span>
+              </td>
+              <td class="px-4 py-4">
+                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-<?= $sta['color'] ?>-500/10 text-<?= $sta['color'] ?>-400 border border-<?= $sta['color'] ?>-500/20 whitespace-nowrap">
+                  <i class="fas <?= $sta['icon'] ?> text-[10px] <?= $m['status'] === 'in_progress' ? 'fa-spin' : '' ?>"></i>
+                  <?= $sta['label'] ?>
+                </span>
+              </td>
+              <td class="px-4 py-4">
+                <div class="text-xs text-gray-300">
+                  <i class="fas fa-calendar text-gray-600 text-[10px] mr-1"></i>
+                  <?= date('d/m/Y', strtotime($m['start_date'])) ?>
+                </div>
+                <div class="text-[10px] text-gray-500 font-mono mt-0.5">
+                  <?= date('H:i', strtotime($m['start_date'])) ?> → <?= date('H:i', strtotime($m['end_date'])) ?>
+                </div>
+              </td>
+              <td class="px-4 py-4">
+                <?php if ($m['affects_all']): ?>
+                  <span class="text-xs text-amber-400 flex items-center gap-1"><i class="fas fa-globe text-[10px]"></i> Tous</span>
+                <?php elseif (!empty($services)): ?>
+                  <div class="flex flex-wrap gap-1 max-w-[150px]">
+                    <?php foreach (array_slice($services, 0, 3) as $s): ?>
+                      <span class="text-[10px] bg-sky-500/10 text-sky-400 px-1.5 py-0.5 rounded border border-sky-500/20"><?= htmlspecialchars($s) ?></span>
+                    <?php endforeach; ?>
+                    <?php if (count($services) > 3): ?>
+                      <span class="text-[10px] text-gray-500 self-center">+<?= count($services) - 3 ?></span>
+                    <?php endif; ?>
+                  </div>
+                <?php else: ?>
+                  <span class="text-xs text-gray-600">—</span>
+                <?php endif; ?>
+              </td>
+              <td class="px-4 py-4">
+                <div class="flex flex-col gap-0.5">
+                  <?php if ($m['is_public']): ?><span class="text-[10px] text-green-400"><i class="fas fa-eye text-[9px] mr-1"></i> Public</span><?php endif; ?>
+                  <?php if ($m['show_banner']): ?><span class="text-[10px] text-sky-400"><i class="fas fa-bullhorn text-[9px] mr-1"></i> Bandeau</span><?php endif; ?>
+                  <?php if ($m['block_access']): ?><span class="text-[10px] text-red-400"><i class="fas fa-lock text-[9px] mr-1"></i> Bloqué</span><?php endif; ?>
+                  <?php if (!$m['is_public'] && !$m['show_banner'] && !$m['block_access']): ?>
+                    <span class="text-[10px] text-gray-600">Masquée</span>
                   <?php endif; ?>
                 </div>
-              <?php else: ?>
-                <span class="text-xs text-gray-600">—</span>
-              <?php endif; ?>
-            </td>
-            <td>
-              <div class="flex flex-col gap-0.5">
-                <?php if ($m['is_public']): ?><span class="text-[10px] text-green-400"><i class="fas fa-eye"></i> Public</span><?php endif; ?>
-                <?php if ($m['show_banner']): ?><span class="text-[10px] text-sky-400"><i class="fas fa-bullhorn"></i> Bandeau</span><?php endif; ?>
-                <?php if ($m['block_access']): ?><span class="text-[10px] text-red-400"><i class="fas fa-lock"></i> Bloqué</span><?php endif; ?>
-                <?php if (!$m['is_public'] && !$m['show_banner'] && !$m['block_access']): ?>
-                  <span class="text-[10px] text-gray-600">Masquée</span>
-                <?php endif; ?>
-              </div>
-            </td>
-            <td>
-              <div class="flex items-center gap-1">
-                <!-- Changer le statut -->
-                <div class="relative group">
-                  <button class="btn btn-ghost text-xs"><i class="fas fa-exchange-alt"></i></button>
-                  <div class="absolute right-0 top-full mt-1 w-40 bg-[#1a1f2a] border border-white/10 rounded-lg shadow-2xl py-1 hidden group-hover:block z-50">
-                    <?php foreach ($status_config as $st_key => $st_cfg): ?>
-                    <form method="POST" class="inline">
-                      <input type="hidden" name="action" value="status">
-                      <input type="hidden" name="id" value="<?= $m['id'] ?>">
-                      <input type="hidden" name="new_status" value="<?= $st_key ?>">
-                      <button class="w-full text-left px-3 py-1.5 text-xs text-gray-300 hover:bg-white/5 hover:text-white flex items-center gap-2">
-                        <i class="fas <?= $st_cfg['icon'] ?> text-<?= $st_cfg['color'] ?>-400 text-[10px]"></i>
-                        <?= $st_cfg['label'] ?>
-                      </button>
-                    </form>
-                    <?php endforeach; ?>
+              </td>
+              <td class="px-5 py-4 text-right whitespace-nowrap">
+                <div class="flex items-center justify-end gap-1.5">
+                  <div class="relative group">
+                    <button class="p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors text-xs" aria-label="Statut">
+                      <i class="fas fa-exchange-alt"></i>
+                    </button>
+                    <div class="absolute right-0 top-full mt-1 w-40 bg-[#1a1f2a] border border-white/10 rounded-xl shadow-2xl py-1.5 hidden group-hover:block z-50">
+                      <?php foreach ($status_config as $st_key => $st_cfg): ?>
+                        <form method="POST" class="inline">
+                          <input type="hidden" name="action" value="status">
+                          <input type="hidden" name="id" value="<?= $m['id'] ?>">
+                          <input type="hidden" name="new_status" value="<?= $st_key ?>">
+                          <button class="w-full text-left px-3 py-1.5 text-xs text-gray-300 hover:bg-white/5 hover:text-white flex items-center gap-2">
+                            <i class="fas <?= $st_cfg['icon'] ?> text-<?= $st_cfg['color'] ?>-400 text-[10px]"></i>
+                            <?= $st_cfg['label'] ?>
+                          </button>
+                        </form>
+                      <?php endforeach; ?>
+                    </div>
                   </div>
-                </div>
-                
-                <button onclick='openEditModal(<?= htmlspecialchars(json_encode($m), ENT_QUOTES) ?>)' class="btn btn-ghost text-xs"><i class="fas fa-edit"></i></button>
-                
-                <form method="POST" class="inline">
-                  <input type="hidden" name="action" value="toggle">
-                  <input type="hidden" name="id" value="<?= $m['id'] ?>">
-                  <button class="btn btn-ghost text-xs" title="<?= $m['is_active'] ? 'Désactiver' : 'Activer' ?>">
-                    <?= $m['is_active'] ? '<i class="fas fa-eye"></i>' : '<i class="fas fa-eye-slash"></i>' ?>
+                  
+                  <button onclick='openEditModal(<?= htmlspecialchars(json_encode($m), ENT_QUOTES) ?>)' class="p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors text-xs" title="Modifier">
+                    <i class="fas fa-edit"></i>
                   </button>
-                </form>
-                
-                <form method="POST" class="inline" onsubmit="return confirm('Supprimer cette maintenance ?')">
-                  <input type="hidden" name="action" value="delete">
-                  <input type="hidden" name="id" value="<?= $m['id'] ?>">
-                  <button class="btn btn-danger text-xs"><i class="fas fa-trash"></i></button>
-                </form>
-              </div>
-            </td>
-          </tr>
-          <?php endforeach; ?>
-        </tbody>
-      </table>
+                  
+                  <form method="POST" class="inline">
+                    <input type="hidden" name="action" value="toggle">
+                    <input type="hidden" name="id" value="<?= $m['id'] ?>">
+                    <button class="p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors text-xs" title="<?= $m['is_active'] ? 'Désactiver' : 'Activer' ?>">
+                      <?= $m['is_active'] ? '<i class="fas fa-eye"></i>' : '<i class="fas fa-eye-slash"></i>' ?>
+                    </button>
+                  </form>
+                  
+                  <form method="POST" class="inline" onsubmit="return confirm('Supprimer cette maintenance ?')">
+                    <input type="hidden" name="action" value="delete">
+                    <input type="hidden" name="id" value="<?= $m['id'] ?>">
+                    <button class="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/5 rounded-lg transition-colors text-xs" title="Supprimer">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
       </div>
       <?php endif; ?>
     </div>
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════════ -->
-<!-- MODAL MAINTENANCE -->
-<!-- ═══════════════════════════════════════════════════════════════ -->
 <div id="modalMaintenance" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" style="backdrop-filter:blur(6px)">
   <div class="bg-[#161a22] border border-white/10 rounded-2xl w-full max-w-3xl p-6 max-h-[90vh] overflow-y-auto">
-    <div class="flex items-center justify-between mb-5">
+    <div class="flex items-center justify-between mb-5 border-b border-white/[0.05] pb-4">
       <h3 id="modalTitle" class="text-base font-bold text-white flex items-center gap-2">
         <i class="fas fa-wrench text-sky-400"></i>
         <span>Planifier une Maintenance</span>
@@ -418,29 +415,26 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_layout.php';
       <input type="hidden" name="action" id="mAction" value="add">
       <input type="hidden" name="id" id="mId" value="">
 
-      <!-- Titre & Slug -->
       <div class="grid grid-cols-2 gap-3">
         <div>
           <label class="block text-xs font-semibold text-gray-400 mb-1.5">Titre <span class="text-red-400">*</span></label>
-          <input name="title" id="mTitle" class="input" required placeholder="Ex: Mise à jour système">
+          <input name="title" id="mTitle" required placeholder="Ex: Mise à jour système" class="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-sky-500 focus:outline-none transition-colors">
         </div>
         <div>
           <label class="block text-xs font-semibold text-gray-400 mb-1.5">Slug (URL) <span class="text-gray-600">(auto)</span></label>
-          <input name="slug" id="mSlug" class="input font-mono" placeholder="Généré automatiquement">
+          <input name="slug" id="mSlug" placeholder="Généré automatiquement" class="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white font-mono focus:border-sky-500 focus:outline-none transition-colors">
         </div>
       </div>
 
-      <!-- Description -->
       <div>
         <label class="block text-xs font-semibold text-gray-400 mb-1.5">Description</label>
-        <textarea name="description" id="mDesc" class="input" rows="2" placeholder="Expliquez l'objet de la maintenance aux utilisateurs..."></textarea>
+        <textarea name="description" id="mDesc" rows="2" placeholder="Expliquez l'objet de la maintenance aux utilisateurs..." class="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-sky-500 focus:outline-none transition-colors"></textarea>
       </div>
 
-      <!-- Type, Statut, Sévérité -->
       <div class="grid grid-cols-3 gap-3">
         <div>
           <label class="block text-xs font-semibold text-gray-400 mb-1.5">Type</label>
-          <select name="type" id="mType" class="input">
+          <select name="type" id="mType" class="w-full rounded-xl border border-white/10 bg-[#161a22] px-3 py-2 text-sm text-white focus:border-sky-500 focus:outline-none transition-colors">
             <option value="planned">📅 Planifiée</option>
             <option value="emergency">⚡ Urgence</option>
             <option value="improvement">📈 Amélioration</option>
@@ -449,7 +443,7 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_layout.php';
         </div>
         <div>
           <label class="block text-xs font-semibold text-gray-400 mb-1.5">Statut</label>
-          <select name="status" id="mStatus" class="input">
+          <select name="status" id="mStatus" class="w-full rounded-xl border border-white/10 bg-[#161a22] px-3 py-2 text-sm text-white focus:border-sky-500 focus:outline-none transition-colors">
             <option value="scheduled">🕐 Planifiée</option>
             <option value="in_progress">⚙️ En cours</option>
             <option value="completed">✅ Terminée</option>
@@ -459,7 +453,7 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_layout.php';
         </div>
         <div>
           <label class="block text-xs font-semibold text-gray-400 mb-1.5">Sévérité</label>
-          <select name="severity" id="mSeverity" class="input">
+          <select name="severity" id="mSeverity" class="w-full rounded-xl border border-white/10 bg-[#161a22] px-3 py-2 text-sm text-white focus:border-sky-500 focus:outline-none transition-colors">
             <option value="info">ℹ️ Information</option>
             <option value="warning">⚠️ Attention</option>
             <option value="critical">☢️ Critique</option>
@@ -467,32 +461,30 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_layout.php';
         </div>
       </div>
 
-      <!-- Dates -->
       <div class="grid grid-cols-2 gap-3">
         <div>
           <label class="block text-xs font-semibold text-gray-400 mb-1.5">Date de début <span class="text-red-400">*</span></label>
-          <input name="start_date" id="mStart" type="datetime-local" class="input" required>
+          <input name="start_date" id="mStart" type="datetime-local" required class="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-sky-500 focus:outline-none transition-colors">
         </div>
         <div>
           <label class="block text-xs font-semibold text-gray-400 mb-1.5">Date de fin <span class="text-red-400">*</span></label>
-          <input name="end_date" id="mEnd" type="datetime-local" class="input" required>
+          <input name="end_date" id="mEnd" type="datetime-local" required class="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-sky-500 focus:outline-none transition-colors">
         </div>
       </div>
 
-      <!-- Portée -->
       <div class="border border-white/5 rounded-xl p-4 bg-white/[0.02]">
         <div class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
           <i class="fas fa-bullseye text-sky-400"></i> Portée de la maintenance
         </div>
         
         <div class="flex items-center gap-2 mb-3">
-          <input type="checkbox" name="affects_all" id="mAffectsAll" value="1" class="w-4 h-4 accent-sky-500">
+          <input type="checkbox" name="affects_all" id="mAffectsAll" value="1" class="w-4 h-4 rounded border-white/10 bg-white/5 text-sky-600 focus:ring-sky-500 focus:ring-offset-0">
           <label for="mAffectsAll" class="text-xs text-gray-300 font-medium">Impacte tous les services</label>
         </div>
 
         <div id="servicesField">
           <label class="block text-xs font-semibold text-gray-400 mb-1.5">Services concernés <span class="text-gray-600">(séparés par des virgules)</span></label>
-          <input name="affected_services" id="mServices" class="input font-mono text-xs" placeholder="panel, billing, api, node-paris">
+          <input name="affected_services" id="mServices" placeholder="panel, billing, api, node-paris" class="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white font-mono focus:border-sky-500 focus:outline-none transition-colors">
           <div class="flex flex-wrap gap-1 mt-2">
             <?php foreach (['panel', 'billing', 'api', 'node-orin', 'node-deepstone', 'plesk', 'phpmyadmin'] as $s): ?>
             <button type="button" onclick="addService('<?= $s ?>')" class="text-[10px] bg-white/5 hover:bg-white/10 border border-white/10 text-gray-400 hover:text-white px-2 py-0.5 rounded transition">
@@ -503,53 +495,51 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_layout.php';
         </div>
       </div>
 
-      <!-- Options d'affichage -->
       <div class="border border-white/5 rounded-xl p-4 bg-white/[0.02]">
         <div class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
           <i class="fas fa-eye text-sky-400"></i> Options d'affichage
         </div>
         
         <div class="grid grid-cols-2 gap-3">
-          <label class="flex items-center gap-2 bg-white/[0.03] border border-white/[0.07] rounded-lg px-3 py-2 cursor-pointer hover:bg-white/[0.06] transition">
-            <input type="checkbox" name="is_public" id="mPublic" value="1" checked class="w-4 h-4 accent-sky-500">
+          <label class="flex items-center gap-3 bg-white/[0.03] border border-white/[0.07] rounded-xl px-3 py-2 cursor-pointer hover:bg-white/[0.06] transition">
+            <input type="checkbox" name="is_public" id="mPublic" value="1" checked class="w-4 h-4 rounded border-white/10 bg-white/5 text-sky-600 focus:ring-sky-500 focus:ring-offset-0">
             <div>
-              <div class="text-xs text-gray-300 font-medium">Visible publiquement</div>
-              <div class="text-[10px] text-gray-600">Affichée sur la page statut</div>
+              <div class="text-xs text-gray-300 font-semibold">Visible publiquement</div>
+              <div class="text-[10px] text-gray-600 mt-0.5">Affichée sur la page statut</div>
             </div>
           </label>
 
-          <label class="flex items-center gap-2 bg-white/[0.03] border border-white/[0.07] rounded-lg px-3 py-2 cursor-pointer hover:bg-white/[0.06] transition">
-            <input type="checkbox" name="is_active" id="mActive" value="1" checked class="w-4 h-4 accent-sky-500">
+          <label class="flex items-center gap-3 bg-white/[0.03] border border-white/[0.07] rounded-xl px-3 py-2 cursor-pointer hover:bg-white/[0.06] transition">
+            <input type="checkbox" name="is_active" id="mActive" value="1" checked class="w-4 h-4 rounded border-white/10 bg-white/5 text-sky-600 focus:ring-sky-500 focus:ring-offset-0">
             <div>
-              <div class="text-xs text-gray-300 font-medium">Active</div>
-              <div class="text-[10px] text-gray-600">Prise en compte par le système</div>
+              <div class="text-xs text-gray-300 font-semibold">Active</div>
+              <div class="text-[10px] text-gray-600 mt-0.5">Prise en compte par le système</div>
             </div>
           </label>
 
-          <label class="flex items-center gap-2 bg-white/[0.03] border border-white/[0.07] rounded-lg px-3 py-2 cursor-pointer hover:bg-white/[0.06] transition">
-            <input type="checkbox" name="show_banner" id="mBanner" value="1" checked class="w-4 h-4 accent-sky-500">
+          <label class="flex items-center gap-3 bg-white/[0.03] border border-white/[0.07] rounded-xl px-3 py-2 cursor-pointer hover:bg-white/[0.06] transition">
+            <input type="checkbox" name="show_banner" id="mBanner" value="1" checked class="w-4 h-4 rounded border-white/10 bg-white/5 text-sky-600 focus:ring-sky-500 focus:ring-offset-0">
             <div>
-              <div class="text-xs text-gray-300 font-medium">Afficher un bandeau</div>
-              <div class="text-[10px] text-gray-600">Bandeau d'alerte en haut du site</div>
+              <div class="text-xs text-gray-300 font-semibold">Afficher un bandeau</div>
+              <div class="text-[10px] text-gray-600 mt-0.5">Bandeau d'alerte en haut du site</div>
             </div>
           </label>
 
-          <label class="flex items-center gap-2 bg-red-500/5 border border-red-500/20 rounded-lg px-3 py-2 cursor-pointer hover:bg-red-500/10 transition">
-            <input type="checkbox" name="block_access" id="mBlock" value="1" class="w-4 h-4 accent-red-500">
+          <label class="flex items-center gap-3 bg-red-500/5 border border-red-500/20 rounded-xl px-3 py-2 cursor-pointer hover:bg-red-500/10 transition">
+            <input type="checkbox" name="block_access" id="mBlock" value="1" class="w-4 h-4 rounded border-red-500/20 bg-red-500/5 text-red-600 focus:ring-red-500 focus:ring-offset-0">
             <div>
-              <div class="text-xs text-red-300 font-medium">⚠️ Bloquer l'accès au site</div>
-              <div class="text-[10px] text-red-500/70">Mode maintenance total</div>
+              <div class="text-xs text-red-300 font-semibold">⚠️ Bloquer l'accès</div>
+              <div class="text-[10px] text-red-500/50 mt-0.5">Mode maintenance total</div>
             </div>
           </label>
         </div>
       </div>
 
-      <!-- Boutons -->
-      <div class="flex gap-3 pt-2">
-        <button type="submit" class="btn btn-primary flex-1">
-          <i class="fas fa-save"></i> Sauvegarder
+      <div class="flex gap-3 pt-4 border-t border-white/[0.05]">
+        <button type="submit" class="flex-1 py-2.5 bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold rounded-xl transition-colors">
+          <i class="fas fa-save mr-1"></i> Sauvegarder
         </button>
-        <button type="button" onclick="document.getElementById('modalMaintenance').classList.add('hidden')" class="btn btn-ghost flex-1">
+        <button type="button" onclick="document.getElementById('modalMaintenance').classList.add('hidden')" class="flex-1 py-2.5 bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white text-xs font-semibold rounded-xl transition-colors">
           Annuler
         </button>
       </div>
