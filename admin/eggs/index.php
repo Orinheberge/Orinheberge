@@ -23,258 +23,239 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
     if ($action === 'add' || $action === 'edit') {
-        $id            = (int)($_POST['id'] ?? 0);
-        $name          = trim($_POST['name'] ?? '');
-        $panel_egg_id  = (int)($_POST['panel_egg_id'] ?? 0);
+        $id            = (int)($_POST['id']            ?? 0);
+        $name          = trim($_POST['name']           ?? '');
+        $panel_egg_id  = (int)($_POST['panel_egg_id']  ?? 0);
         $panel_nest_id = (int)($_POST['panel_nest_id'] ?? 0);
-        $docker_image  = trim($_POST['docker_image'] ?? '');
-        $startup       = trim($_POST['startup'] ?? '');
-        $icon          = trim($_POST['icon'] ?? 'fas fa-server');
-        $env_vars      = trim($_POST['env_vars'] ?? '{}');
+        $docker_image  = trim($_POST['docker_image']   ?? '');
+        $startup       = trim($_POST['startup']        ?? '');
+        $env_vars      = trim($_POST['env_vars']       ?? '{}');
+        $icon          = trim($_POST['icon']           ?? 'fas fa-server');
 
-        // Validation json
-        json_decode($env_vars);
-        if (json_last_error() !== JSON_ERROR_NONE) $env_vars = '{}';
+        // Valider JSON
+        if (!json_decode($env_vars)) $env_vars = '{}';
 
-        if (empty($name)) {
-            $flash = '<div class="alert alert-error">Le nom est requis.</div>';
-        } else {
+        if ($name && $panel_egg_id > 0 && $docker_image) {
             if ($action === 'add') {
-                $st = $pdo->prepare('INSERT INTO eggs (name, panel_egg_id, panel_nest_id, docker_image, startup, icon, env_vars) VALUES (?,?,?,?,?,?,?)');
-                $st->execute([$name, $panel_egg_id, $panel_nest_id, $docker_image, $startup, $icon, $env_vars]);
-                $flash = '<div class="alert alert-success">Egg ajouté !</div>';
+                $pdo->prepare('INSERT INTO eggs (name,panel_egg_id,panel_nest_id,docker_image,startup,env_vars,icon) VALUES (?,?,?,?,?,?,?)')
+                    ->execute([$name,$panel_egg_id,$panel_nest_id,$docker_image,$startup,$env_vars,$icon]);
+                $flash = '<div class="bg-green-500/15 text-green-400 border border-green-500/25 p-3 rounded-xl text-sm mb-4">✅ Egg ajouté.</div>';
             } else {
-                $st = $pdo->prepare('UPDATE eggs SET name=?, panel_egg_id=?, panel_nest_id=?, docker_image=?, startup=?, icon=?, env_vars=? WHERE id=?');
-                $st->execute([$name, $panel_egg_id, $panel_nest_id, $docker_image, $startup, $icon, $env_vars, $id]);
-                $flash = '<div class="alert alert-success">Egg mis à jour !</div>';
+                $pdo->prepare('UPDATE eggs SET name=?,panel_egg_id=?,panel_nest_id=?,docker_image=?,startup=?,env_vars=?,icon=? WHERE id=?')
+                    ->execute([$name,$panel_egg_id,$panel_nest_id,$docker_image,$startup,$env_vars,$icon,$id]);
+                $flash = '<div class="bg-green-500/15 text-green-400 border border-green-500/25 p-3 rounded-xl text-sm mb-4">✅ Egg modifié.</div>';
             }
         }
     }
-    elseif ($action === 'delete') {
+
+    if ($action === 'toggle') {
         $id = (int)($_POST['id'] ?? 0);
-        $st = $pdo->prepare('DELETE FROM eggs WHERE id=?');
-        $st->execute([$id]);
-        $flash = '<div class="alert alert-success">Egg supprimé !</div>';
+        $pdo->prepare('UPDATE eggs SET is_active = 1 - is_active WHERE id=?')->execute([$id]);
     }
-    elseif ($action === 'import') {
-        $import_nest_id = (int)($_POST['import_nest_id'] ?? 0);
-        $import_egg_id  = (int)($_POST['import_egg_id'] ?? 0);
 
-        if (!$import_nest_id || !$import_egg_id) {
-            $flash = '<div class="alert alert-error">IDs incorrects.</div>';
+    if ($action === 'delete') {
+        $id = (int)($_POST['id'] ?? 0);
+        $used = $pdo->prepare('SELECT COUNT(*) FROM products WHERE egg_id=?');
+        $used->execute([$id]);
+        if ($used->fetchColumn() > 0) {
+            $flash = '<div class="bg-red-500/15 text-red-400 border border-red-500/25 p-3 rounded-xl text-sm mb-4">❌ Cet egg est utilisé par des produits.</div>';
         } else {
-            $url_api = rtrim($panel_url,'/') . "/api/application/nests/$import_nest_id/eggs/$import_egg_id?include=variables";
-            $ch = curl_init($url_api);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt_array($ch, [
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_HTTPHEADER     => $headers_admin,
-                CURLOPT_TIMEOUT        => 10
-            ]);
-            $res = curl_exec($ch);
-            
-            // 🟢 CORRECTIF : Suppression ou conditionnement de curl_close() pour PHP 8.5+
-            if (PHP_VERSION_ID < 80000) {
-                curl_close($ch);
-            }
+            $pdo->prepare('DELETE FROM eggs WHERE id=?')->execute([$id]);
+            $flash = '<div class="bg-green-500/15 text-green-400 border border-green-500/25 p-3 rounded-xl text-sm mb-4">✅ Egg supprimé.</div>';
+        }
+    }
 
-            $data = json_decode($res, true);
-            if (isset($data['attributes'])) {
-                $attr = $data['attributes'];
-                $name = $attr['name'] ?? 'Egg Importé';
-                $docker_image = $attr['docker_image'] ?? '';
-                $startup = $attr['startup'] ?? '';
-
-                $vars_arr = [];
-                if (isset($attr['relationships']['variables']['data'])) {
-                    foreach ($attr['relationships']['variables']['data'] as $v) {
-                        if (isset($v['attributes']['env_variable'])) {
-                            $va = $v['attributes'];
-                            $vars_arr[$va['env_variable']] = [
-                                'name' => $va['name'],
-                                'rules' => $va['rules'],
-                                'default' => $va['default_value']
-                            ];
-                        }
-                    }
+    // Import automatique depuis le panel
+    if ($action === 'import_from_panel') {
+        $nest_id = (int)($_POST['nest_id'] ?? 0);
+        if ($nest_id > 0 && $panel_url) {
+            $ch = curl_init($panel_url . '/api/application/nests/' . $nest_id . '/eggs?include=variables');
+            curl_setopt_array($ch,[CURLOPT_HTTPHEADER=>$headers_admin,CURLOPT_RETURNTRANSFER=>true,CURLOPT_SSL_VERIFYPEER=>false,CURLOPT_TIMEOUT=>10]);
+            $res = json_decode(curl_exec($ch), true); curl_close($ch);
+            $imported = 0;
+            foreach (($res['data'] ?? []) as $egg) {
+                $a = $egg['attributes'];
+                $env = [];
+                foreach (($a['relationships']['variables']['data'] ?? []) as $v) {
+                    $env[$v['attributes']['env_variable']] = $v['attributes']['default_value'];
                 }
-                $env_json = json_encode($vars_arr, JSON_UNESCAPED_UNICODE);
-
-                $st = $pdo->prepare('INSERT INTO eggs (name, panel_egg_id, panel_nest_id, docker_image, startup, icon, env_vars) VALUES (?,?,?,?,?,?,?)');
-                $st->execute([$name, $import_egg_id, $import_nest_id, $docker_image, $startup, 'fas fa-download', $env_json]);
-                $flash = '<div class="alert alert-success">Egg "'.$name.'" importé du panel avec succès !</div>';
-            } else {
-                $flash = '<div class="alert alert-error">Impossible d\'importer l\'egg (Erreur API).</div>';
+                try {
+                    $pdo->prepare('INSERT IGNORE INTO eggs (name,panel_egg_id,panel_nest_id,docker_image,startup,env_vars,icon) VALUES (?,?,?,?,?,?,?)')
+                        ->execute([$a['name'],$a['id'],$nest_id,$a['docker_image'],$a['startup'],json_encode($env),'fas fa-server']);
+                    $imported++;
+                } catch(PDOException $e) {}
             }
+            $flash = "<div class='bg-green-500/15 text-green-400 border border-green-500/25 p-3 rounded-xl text-sm mb-4'>✅ $imported egg(s) importé(s) depuis nest #$nest_id.</div>";
         }
     }
 }
 
-$eggs = $pdo->query('SELECT * FROM eggs ORDER BY id DESC')->fetchAll();
+$eggs = $pdo->query('SELECT e.*, (SELECT COUNT(*) FROM products p WHERE p.egg_id=e.id) AS product_count FROM eggs e ORDER BY e.id')->fetchAll();
+
+// Fetch nests from panel
+$panel_nests = [];
+if ($panel_url && $api_key_admin) {
+    $ch = curl_init($panel_url . '/api/application/nests');
+    curl_setopt_array($ch,[CURLOPT_HTTPHEADER=>$headers_admin,CURLOPT_RETURNTRANSFER=>true,CURLOPT_SSL_VERIFYPEER=>false,CURLOPT_TIMEOUT=>8]);
+    $res = curl_exec($ch);
+    foreach (($res['data'] ?? []) as $nest) {
+        $a = $nest['attributes'];
+        $panel_nests[$a['id']] = '#'.$a['id'].' — '.$a['name'];
+    }
+}
+
+$active_nav = 'eggs';
+include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_layout.php';
 ?>
-<!DOCTYPE html>
-<html lang="fr" class="bg-slate-950 text-slate-100">
-<head>
-  <meta charset="UTF-8">
-  <title>Eggs Manager - Admin - OrinHeberge</title>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="min-h-screen flex flex-col">
-
-<?php $active_nav = ''; include $_SERVER['DOCUMENT_ROOT'] . '/inc/navbar.php'; ?>
-
-<main class="flex-1 max-w-7xl w-full mx-auto p-6">
-  <div class="flex items-center justify-between mb-6">
-    <div>
-      <h1 class="text-3xl font-black">Gestion des Eggs</h1>
-      <p class="text-sm text-slate-400">Configurez et importez les configurations de serveurs Pterodactyl</p>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<div class="main-content">
+  <div class="topbar">
+    <div class="flex items-center gap-3">
+    <button id="adminSidebarToggle" class="md:hidden text-gray-400 hover:text-white text-lg w-8" aria-label="Ouvrir le menu admin">
+    <i class="fas fa-bars"></i>
+</button>
+      <div>
+        <div class="text-sm font-bold text-white flex items-center gap-2"><i class="fas fa-egg text-amber-400 text-xs"></i> Gestion des Eggs</div>
+        <div class="text-xs text-gray-500"><?= count($eggs) ?> egg(s) configuré(s)</div>
+      </div>
     </div>
     <div class="flex gap-2">
-      <button onclick="document.getElementById('modalImport').classList.remove('hidden')" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2">
-        <i class="fas fa-download"></i> Importer
+      <?php if (!empty($panel_nests)): ?>
+      <button onclick="document.getElementById('modalImport').classList.remove('hidden')" class="btn btn-ghost">
+        <i class="fas fa-download text-xs"></i> Import depuis Panel
       </button>
-      <button onclick="openAddModal()" class="bg-sky-600 hover:bg-sky-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2">
-        <i class="fas fa-plus"></i> Nouveau
+      <?php endif; ?>
+      <button onclick="openAddModal()" class="btn btn-primary">
+        <i class="fas fa-plus text-xs"></i> Ajouter un Egg
       </button>
     </div>
   </div>
 
-  <?php echo $flash; ?>
+  <div class="content">
+    <?= $flash ?>
 
-  <div class="bg-slate-900 border border-white/5 rounded-2xl overflow-hidden">
-    <table class="w-full text-left text-sm border-collapse">
-      <thead>
-        <tr class="bg-white/[0.02] border-b border-white/5 text-slate-400 uppercase text-[11px] font-bold tracking-wider">
-          <th class="p-4">Egg</th>
-          <th class="p-4">IDs Panel</th>
-          <th class="p-4">Docker</th>
-          <th class="p-4">Startup</th>
-          <th class="p-4 text-right">Actions</th>
-        </tr>
-      </thead>
-      <tbody class="divide-y divide-white/5">
-        <?php if (empty($eggs)): ?>
-        <tr>
-          <td colspan="5" class="p-8 text-center text-slate-500">Aucun Egg pour le moment.</td>
-        </tr>
-        <?php endif; ?>
-        <?php foreach ($eggs as $e): ?>
-        <tr class="hover:bg-white/[0.01] transition-colors">
-          <td class="p-4 flex items-center gap-3">
-            <span class="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400 text-base">
-              <i class="<?php echo htmlspecialchars($e['icon']); ?>"></i>
-            </span>
-            <div>
-              <div class="font-bold text-white"><?php echo htmlspecialchars($e['name']); ?></div>
-              <div class="text-xs text-slate-500">Variables : <?php echo count(json_decode($e['env_vars'] ?? '{}', true)); ?></div>
-            </div>
-          </td>
-          <td class="p-4">
-            <span class="bg-slate-800 text-slate-300 text-xs px-2 py-1 rounded">Nest: <?php echo $e['panel_nest_id']; ?></span>
-            <span class="bg-slate-800 text-slate-300 text-xs px-2 py-1 rounded">Egg: <?php echo $e['panel_egg_id']; ?></span>
-          </td>
-          <td class="p-4 font-mono text-xs text-slate-400 max-w-xs truncate" title="<?php echo htmlspecialchars($e['docker_image']); ?>">
-            <?php echo htmlspecialchars($e['docker_image']); ?>
-          </td>
-          <td class="p-4 font-mono text-xs text-slate-400 max-w-xs truncate" title="<?php echo htmlspecialchars($e['startup']); ?>">
-            <?php echo htmlspecialchars($e['startup']); ?>
-          </td>
-          <td class="p-4 text-right">
-            <div class="inline-flex gap-1">
-              <button onclick='openEditModal(<?php echo json_encode($e, JSON_HEX_APOS|JSON_HEX_QUOT); ?>)' class="bg-white/5 hover:bg-white/10 text-white p-2 rounded-lg text-xs" title="Modifier">
-                <i class="fas fa-edit"></i>
-              </button>
-              <form method="POST" onsubmit="return confirm('Confirmer la suppression de cet Egg ?')" class="inline">
-                <input type="hidden" name="action" value="delete">
-                <input type="hidden" name="id" value="<?php echo $e['id']; ?>">
-                <button type="submit" class="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 p-2 rounded-lg text-xs" title="Supprimer">
-                  <i class="fas fa-trash"></i>
-                </button>
-              </form>
-            </div>
-          </td>
-        </tr>
-        <?php endforeach; ?>
-      </tbody>
-    </table>
+    <div class="card overflow-hidden">
+      <div class="px-5 py-4 border-b border-white/[0.05]">
+        <span class="text-sm font-bold text-white flex items-center gap-2"><i class="fas fa-egg text-amber-400 text-xs"></i> Eggs configurés</span>
+      </div>
+      <?php if (empty($eggs)): ?>
+        <div class="px-5 py-12 text-center text-gray-500 text-sm">Aucun egg. Ajoutez-en un ou importez depuis le panel.</div>
+      <?php else: ?>
+      <table class="tbl">
+        <thead>
+          <tr><th>ID</th><th>Nom</th><th>Egg Panel</th><th>Nest Panel</th><th>Image Docker</th><th>Produits</th><th>Statut</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+          <?php foreach ($eggs as $e): ?>
+          <tr>
+            <td class="text-gray-500 font-mono text-xs">#<?= $e['id'] ?></td>
+            <td>
+              <div class="flex items-center gap-2">
+                <i class="<?= htmlspecialchars($e['icon'] ?? 'fas fa-server') ?> text-sky-400 text-sm w-4 text-center"></i>
+                <span class="font-semibold text-white"><?= htmlspecialchars($e['name']) ?></span>
+              </div>
+            </td>
+            <td><span class="font-mono text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded text-xs">egg:<?= $e['panel_egg_id'] ?></span></td>
+            <td><span class="font-mono text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded text-xs">nest:<?= $e['panel_nest_id'] ?></span></td>
+            <td class="text-gray-400 font-mono text-xs max-w-[180px] truncate"><?= htmlspecialchars($e['docker_image']) ?></td>
+            <td><span class="badge badge-blue"><?= $e['product_count'] ?></span></td>
+            <td><?= $e['is_active'] ? '<span class="badge badge-green">Actif</span>' : '<span class="badge badge-gray">Inactif</span>' ?></td>
+            <td>
+              <div class="flex items-center gap-2">
+                <button onclick='openEditModal(<?= htmlspecialchars(json_encode($e), ENT_QUOTES) ?>)' class="btn btn-ghost text-xs"><i class="fas fa-edit"></i></button>
+                <form method="POST" class="inline">
+                  <input type="hidden" name="action" value="toggle"><input type="hidden" name="id" value="<?= $e['id'] ?>">
+                  <button class="btn btn-ghost text-xs"><?= $e['is_active'] ? '<i class="fas fa-eye-slash"></i>' : '<i class="fas fa-eye"></i>' ?></button>
+                </form>
+                <form method="POST" class="inline" onsubmit="return confirm('Supprimer cet egg ?')">
+                  <input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="<?= $e['id'] ?>">
+                  <button class="btn btn-danger text-xs"><i class="fas fa-trash"></i></button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+      <?php endif; ?>
+    </div>
   </div>
-</main>
+</div>
 
-<div id="modalEgg" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
-  <div class="bg-slate-900 border border-white/10 rounded-2xl max-w-2xl w-full p-6 shadow-2xl overflow-y-auto max-h-[90vh]">
-    <h2 id="modalEggTitle" class="text-xl font-bold mb-4 text-white">Ajouter un Egg</h2>
-    
+<!-- Modal Ajouter/Editer Egg -->
+<div id="modalEgg" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+  <div class="bg-[#161a22] border border-white/10 rounded-2xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+    <div class="flex items-center justify-between mb-5">
+      <h3 id="modalEggTitle" class="text-base font-bold text-white">Ajouter un Egg</h3>
+      <button onclick="document.getElementById('modalEgg').classList.add('hidden')" class="text-gray-500 hover:text-white"><i class="fas fa-times"></i></button>
+    </div>
     <form method="POST" class="space-y-4">
-      <input type="hidden" id="eggAction" name="action" value="add">
-      <input type="hidden" id="eggId" name="id" value="">
-
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <input type="hidden" name="action" id="eggAction" value="add">
+      <input type="hidden" name="id"     id="eggId"     value="">
+      <div class="grid grid-cols-2 gap-3">
         <div>
-          <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Nom d'affichage</label>
-          <input type="text" id="eggName" name="name" required class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-sky-500">
+          <label class="block text-xs font-semibold text-gray-400 mb-1.5">Nom de l'egg</label>
+          <input name="name" id="eggName" class="input" placeholder="ex: Minecraft Paper" required>
         </div>
         <div>
-          <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Icône (FontAwesome class)</label>
-          <input type="text" id="eggIcon" name="icon" placeholder="fas fa-server" class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-sky-500">
-        </div>
-      </div>
-
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label class="block text-xs font-bold uppercase text-slate-400 mb-1">ID Nest (Panel)</label>
-          <input type="number" id="eggNestId" name="panel_nest_id" required class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-sky-500">
-        </div>
-        <div>
-          <label class="block text-xs font-bold uppercase text-slate-400 mb-1">ID Egg (Panel)</label>
-          <input type="number" id="eggPanelId" name="panel_egg_id" required class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-sky-500">
+          <label class="block text-xs font-semibold text-gray-400 mb-1.5">Icône FontAwesome</label>
+          <input name="icon" id="eggIcon" class="input" placeholder="fas fa-cube" value="fas fa-server">
         </div>
       </div>
-
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-semibold text-gray-400 mb-1.5">Egg ID (panel) <span class="text-red-400">*</span></label>
+          <input name="panel_egg_id" id="eggPanelId" type="number" min="1" class="input" placeholder="ex: 2" required>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-400 mb-1.5">Nest ID (panel) <span class="text-red-400">*</span></label>
+          <input name="panel_nest_id" id="eggNestId" type="number" min="1" class="input" placeholder="ex: 1">
+        </div>
+      </div>
       <div>
-        <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Image Docker par défaut</label>
-        <input type="text" id="eggDocker" name="docker_image" required class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-sm font-mono text-white focus:outline-none focus:border-sky-500">
+        <label class="block text-xs font-semibold text-gray-400 mb-1.5">Image Docker</label>
+        <input name="docker_image" id="eggDocker" class="input" placeholder="ghcr.io/pterodactyl/yolks:java_25" required>
       </div>
-
       <div>
-        <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Commande de démarrage (Startup command)</label>
-        <textarea id="eggStartup" name="startup" rows="2" required class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-sm font-mono text-white focus:outline-none focus:border-sky-500"></textarea>
+        <label class="block text-xs font-semibold text-gray-400 mb-1.5">Commande de démarrage</label>
+        <textarea name="startup" id="eggStartup" class="input font-mono text-xs" rows="3" placeholder="java -jar {{SERVER_JARFILE}} nogui"></textarea>
       </div>
-
       <div>
-        <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Variables d'environnement (JSON)</label>
-        <textarea id="eggEnv" name="env_vars" rows="4" class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-sm font-mono text-white focus:outline-none focus:border-sky-500" placeholder='{"PORT":{"name":"Server Port","rules":"required|numeric","default":25565}}'></textarea>
+        <label class="block text-xs font-semibold text-gray-400 mb-1.5">Variables d'environnement <span class="text-gray-600">(JSON)</span></label>
+        <textarea name="env_vars" id="eggEnv" class="input font-mono text-xs" rows="4" placeholder='{"SERVER_JARFILE":"server.jar"}'>{}</textarea>
       </div>
-
-      <div class="flex gap-2 pt-2">
-        <button type="submit" class="bg-sky-600 hover:bg-sky-500 text-white font-bold px-4 py-2 rounded-lg text-sm flex-1">Enregistrer</button>
-        <button type="button" onclick="document.getElementById('modalEgg').classList.add('hidden')" class="bg-white/5 hover:bg-white/10 text-white font-bold px-4 py-2 rounded-lg text-sm flex-1">Annuler</button>
+      <div class="flex gap-3 pt-2">
+        <button type="submit" class="btn btn-primary flex-1">Sauvegarder</button>
+        <button type="button" onclick="document.getElementById('modalEgg').classList.add('hidden')" class="btn btn-ghost flex-1">Annuler</button>
       </div>
     </form>
   </div>
 </div>
 
-<div id="modalImport" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
-  <div class="bg-slate-900 border border-white/10 rounded-2xl max-w-md w-full p-6 shadow-2xl">
-    <h2 class="text-xl font-bold mb-2 text-white">Importer depuis le Panel</h2>
-    <p class="text-xs text-slate-400 mb-4">Indiquez les identifiants d'API du panel pour copier un egg existant.</p>
-    
+<!-- Modal Import depuis Panel -->
+<div id="modalImport" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+  <div class="bg-[#161a22] border border-white/10 rounded-2xl w-full max-w-sm p-6">
+    <div class="flex items-center justify-between mb-5">
+      <h3 class="text-base font-bold text-white">Importer depuis le Panel</h3>
+      <button onclick="document.getElementById('modalImport').classList.add('hidden')" class="text-gray-500 hover:text-white"><i class="fas fa-times"></i></button>
+    </div>
     <form method="POST" class="space-y-4">
-      <input type="hidden" name="action" value="import">
-      
+      <input type="hidden" name="action" value="import_from_panel">
       <div>
-        <label class="block text-xs font-bold uppercase text-slate-400 mb-1">ID Nest (sur le panel)</label>
-        <input type="number" name="import_nest_id" required class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+        <label class="block text-xs font-semibold text-gray-400 mb-1.5">Choisir un Nest</label>
+        <select name="nest_id" class="input">
+          <?php foreach ($panel_nests as $id => $label): ?>
+            <option value="<?= $id ?>"><?= htmlspecialchars($label) ?></option>
+          <?php endforeach; ?>
+        </select>
       </div>
-
-      <div>
-        <label class="block text-xs font-bold uppercase text-slate-400 mb-1">ID Egg (sur le panel)</label>
-        <input type="number" name="import_egg_id" required class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+      <div class="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 text-xs text-amber-300">
+        ⚠ Les eggs déjà importés (même panel_egg_id) seront ignorés.
       </div>
-
-      <div class="flex gap-2 pt-2">
-        <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-4 py-2 rounded-lg text-sm flex-1">Importer</button>
-        <button type="button" onclick="document.getElementById('modalImport').classList.add('hidden')" class="bg-white/5 hover:bg-white/10 text-white font-bold px-4 py-2 rounded-lg text-sm flex-1">Annuler</button>
+      <div class="flex gap-3 pt-2">
+        <button type="submit" class="btn btn-primary flex-1">Importer</button>
+        <button type="button" onclick="document.getElementById('modalImport').classList.add('hidden')" class="btn btn-ghost flex-1">Annuler</button>
       </div>
     </form>
   </div>
@@ -303,6 +284,4 @@ function openEditModal(e) {
     document.getElementById('modalEgg').classList.remove('hidden');
 }
 </script>
-
-</body>
-</html>
+</body></html>
