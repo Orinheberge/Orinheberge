@@ -168,7 +168,7 @@ window.addEventListener('DOMContentLoaded',()=>filterCategory('all'));
 </head>
 <body class="text-gray-200 font-sans min-h-screen flex flex-col justify-between antialiased">
 
-<?php $active_nav = 'offers'; include $_SERVER['DOCUMENT_ROOT'] . '/inc/navbar.php'; ?>
+<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/navbar.php'; ?>
 
 <main class="flex-grow">
   <header class="text-center py-16 px-6 relative overflow-hidden">
