@@ -5,42 +5,50 @@
 
 'use strict';
 
-console.log('[Navbar Console] Script navbar.js chargé !');
+console.log('[Navbar Console Debug] Script navbar.js initialisé.');
 
 // ============================================
-// INITIALISATION DES ÉVÉNEMENTS DOM
+// INITIALISATION UNIQUE DES ÉVÉNEMENTS
 // ============================================
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('[Navbar Console] DOM chargé.');
+    console.log('[Navbar Console Debug] DOM chargé.');
+
     const menu = document.getElementById('mobileMenu');
     const burgerBtn = document.getElementById('mobileMenuBtn');
-    
-    // Attache l'événement au bouton burger s'il existe (id="mobileMenuBtn")
+    const shopDropdownBtn = document.getElementById('mobileShopDropdownBtn');
+
+    // 1. Bouton burger
     if (burgerBtn) {
-        console.log('[Navbar Console] Bouton #mobileMenuBtn trouvé, écouteur attaché.');
-        burgerBtn.addEventListener('click', toggleMobileMenu);
+        burgerBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            toggleMobileMenu();
+        });
+        console.log('[Navbar Console Debug] Écouteur attaché sur le bouton burger.');
     } else {
-        console.warn('[Navbar Console] Bouton #mobileMenuBtn introuvable. Tentative de secours via l\'icône.');
-        const backupIcon = document.getElementById('menuIcon');
-        if (backupIcon) {
-            backupIcon.parentElement.addEventListener('click', toggleMobileMenu);
-        }
+        console.warn('[Navbar Console Debug] #mobileMenuBtn non détecté dans le DOM.');
     }
 
+    // 2. Dropdown Boutique Mobile
+    if (shopDropdownBtn) {
+        shopDropdownBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            toggleMobileDropdown('shopDropdown');
+        });
+        console.log('[Navbar Console Debug] Écouteur attaché sur le dropdown boutique mobile.');
+    }
+
+    // 3. Initialisation de l'état fermé
     if (menu) {
-        // Force l'état initial fermé
         menu.style.maxHeight = '0px';
         menu.style.opacity = '0';
         menu.style.overflow = 'hidden';
-        
-        // Ferme le menu lors du clic sur un lien normal
+
+        // Ferme le menu au clic sur un lien normal
         menu.querySelectorAll('a').forEach(function(link) {
             link.addEventListener('click', function() {
                 if (window.innerWidth < 768) {
-                    const onclickAttr = link.getAttribute('onclick') || '';
                     const hrefAttr = link.getAttribute('href') || '';
-                    
-                    if (onclickAttr.includes('toggleMobileDropdown') || hrefAttr === '#' || hrefAttr.startsWith('javascript:')) {
+                    if (hrefAttr === '#' || hrefAttr.startsWith('javascript:')) {
                         return;
                     }
                     closeMobileMenu();
@@ -51,11 +59,11 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // ============================================
-// FONCTIONS GLOBALES (Accessibles partout)
+// FONCTIONS GLOBALES
 // ============================================
 
 function closeMobileMenu() {
-    console.log('[Navbar Console] Fermeture du menu.');
+    console.log('[Navbar Console Debug] Fermeture du menu.');
     const menu = document.getElementById('mobileMenu');
     const icon = document.getElementById('menuIcon');
     
@@ -67,28 +75,23 @@ function closeMobileMenu() {
         icon.className = 'fas fa-bars';
     }
     
-    // Ferme aussi tous les dropdowns ouverts
-    document.querySelectorAll('[id^="shopDropdown"]').forEach(function(dropdown) {
-        dropdown.style.maxHeight = '0px';
-        const dropIcon = document.getElementById(dropdown.id + 'Icon');
-        if (dropIcon) dropIcon.style.transform = 'rotate(0deg)';
-    });
+    // Fermeture automatique des sous-menus
+    const dropdown = document.getElementById('shopDropdown');
+    const dropdownIcon = document.getElementById('shopDropdownIcon');
+    if (dropdown) dropdown.style.maxHeight = '0px';
+    if (dropdownIcon) dropdownIcon.style.transform = 'rotate(0deg)';
 }
 
 function toggleMobileMenu() {
-    console.log('[Navbar Console] Clic détecté sur le burger.');
     const menu = document.getElementById('mobileMenu');
     const icon = document.getElementById('menuIcon');
     
-    if (!menu || !icon) {
-        console.error('[Navbar Console] Impossible de trouver le menu ou l\'icône dans le DOM !');
-        return;
-    }
+    if (!menu || !icon) return;
 
     const isClosed = menu.style.maxHeight === '0px' || menu.style.maxHeight === '' || menu.style.opacity === '0';
     
     if (isClosed) {
-        console.log('[Navbar Console] Ouverture du menu.');
+        console.log('[Navbar Console Debug] Ouverture du menu.');
         menu.style.opacity = '1';
         menu.style.maxHeight = menu.scrollHeight + 'px';
         icon.className = 'fas fa-times';
@@ -98,7 +101,6 @@ function toggleMobileMenu() {
 }
 
 function toggleMobileDropdown(id) {
-    console.log(`[Navbar Console] Toggle dropdown mobile: ${id}`);
     const dropdown = document.getElementById(id);
     const icon = document.getElementById(id + 'Icon');
     const menu = document.getElementById('mobileMenu');
@@ -111,6 +113,7 @@ function toggleMobileDropdown(id) {
         dropdown.style.maxHeight = dropdown.scrollHeight + 'px';
         if (icon) icon.style.transform = 'rotate(180deg)';
         
+        // Ajuste la hauteur du menu mobile parent pour contenir le dropdown ouvert
         setTimeout(function() {
             menu.style.maxHeight = menu.scrollHeight + 'px';
         }, 310);
@@ -122,9 +125,28 @@ function toggleMobileDropdown(id) {
     }
 }
 
-// ============================================
-// LIENS GLOBAUX SUR WINDOW
-// ============================================
-window.toggleMobileMenu = toggleMobileMenu;
-window.toggleMobileDropdown = toggleMobileDropdown;
-window.closeMobileMenu = closeMobileMenu;
+// Événement clic extérieur
+document.addEventListener('click', function(e) {
+    const menu = document.getElementById('mobileMenu');
+    const burgerBtn = document.getElementById('mobileMenuBtn');
+    
+    if (menu && !menu.contains(e.target) && (!burgerBtn || !burgerBtn.contains(e.target))) {
+        if (menu.style.opacity === '1') {
+            closeMobileMenu();
+        }
+    }
+});
+
+// Événement clavier (Échap)
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeMobileMenu();
+    }
+});
+
+// Événement Redimensionnement fenêtre
+window.addEventListener('resize', function() {
+    if (window.innerWidth >= 768) {
+        closeMobileMenu();
+    }
+});

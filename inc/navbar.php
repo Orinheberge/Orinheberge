@@ -57,14 +57,11 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
 
-<link href="/inc/navbar.css" rel="stylesheet">
-
-<link href="https://<?php echo $_SERVER['HTTP_HOST']; ?>/inc/navbar.css?v=<?php echo filemtime($_SERVER['DOCUMENT_ROOT'] . '/inc/navbar.css'); ?>" rel="stylesheet">
+<link href="/inc/navbar.css?v=<?php echo filemtime($_SERVER['DOCUMENT_ROOT'] . '/inc/navbar.css'); ?>" rel="stylesheet">
 
 <nav class="sticky top-0 z-50 border-b border-white/5" style="background: rgba(7, 10, 19, 0.8); backdrop-filter: blur(14px);">
     
     <?php if ($maintenance_banner): 
-        // Correction Tailwind : Classes écrites en entier pour éviter le problème du compilateur à la volée
         $sev_colors = [
             'info'     => ['bg' => 'bg-sky-500/10',     'border' => 'border-sky-500/20',     'text' => 'text-sky-400',     'icon' => 'fa-info-circle'],
             'warning'  => ['bg' => 'bg-amber-500/10',   'border' => 'border-amber-500/20',   'text' => 'text-amber-400',   'icon' => 'fa-exclamation-triangle'],
@@ -205,9 +202,9 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
             <?php include __DIR__ . '/lang_switcher.php'; ?>
         </div>
 
-            <button id="mobileMenuBtn" class="md:hidden text-2xl text-gray-400 hover:text-white transition shrink-0 ml-auto cursor-pointer" aria-label="Menu">
-                <i class="fas fa-bars" id="menuIcon"></i>
-            </button>
+        <button id="mobileMenuBtn" class="md:hidden text-2xl text-gray-400 hover:text-white transition shrink-0 ml-auto cursor-pointer" aria-label="Menu">
+            <i class="fas fa-bars" id="menuIcon"></i>
+        </button>
     </div>
 
     <div id="mobileMenu" class="md:hidden opacity-0" style="max-height: 0px; overflow: hidden;">
@@ -224,7 +221,7 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
             <?php endif; ?>
 
             <div class="bg-white/[0.02] border border-white/5 rounded-xl">
-                <button type="button" onclick="toggleMobileDropdown('shopDropdown')" class="w-full py-2.5 px-4 flex items-center justify-between text-sm font-medium text-gray-300 hover:bg-white/5 transition cursor-pointer">
+                <button type="button" id="mobileShopDropdownBtn" class="w-full py-2.5 px-4 flex items-center justify-between text-sm font-medium text-gray-300 hover:bg-white/5 transition cursor-pointer">
                     <span class="flex items-center gap-3">
                         <i class="fas fa-tags w-5 text-center"></i> Boutique
                     </span>
@@ -301,5 +298,4 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
     </div>
 </nav>
 
-
-<script src="https://<?php echo $_SERVER['HTTP_HOST']; ?>/inc/navbar.js?v=<?php echo filemtime($_SERVER['DOCUMENT_ROOT'] . '/inc/navbar.js'); ?>"></script>
+<script src="/inc/navbar.js?v=<?php echo filemtime($_SERVER['DOCUMENT_ROOT'] . '/inc/navbar.js'); ?>"></script>
