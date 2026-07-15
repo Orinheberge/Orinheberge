@@ -143,7 +143,6 @@ body{background:#0b0f19;scroll-behavior:smooth;}
 .gradient-text{background:linear-gradient(90deg,#38bdf8,#818cf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
 .card-hover{transition:transform .3s,box-shadow .3s;}
 .card-hover:hover{transform:translateY(-6px);box-shadow:0 20px 40px rgba(0,0,0,.3);}
-#mobileMenu{display:none;}#mobileMenu.active{display:block;}
 .tab-btn{padding:.55rem 1.25rem;border-radius:9999px;font-size:.82rem;font-weight:600;transition:all .2s;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:#9ca3af;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:.4rem;}
 .tab-btn:hover{background:rgba(255,255,255,.08);color:#e5e7eb;}
 .tab-btn.active{background:rgba(56,189,248,.15);border-color:rgba(56,189,248,.4);color:#38bdf8;box-shadow:0 0 15px rgba(56,189,248,.1);}
