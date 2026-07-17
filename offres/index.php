@@ -188,13 +188,14 @@ window.addEventListener('DOMContentLoaded',()=>filterCategory('all'));
     </div>
   </header>
 
-  <section id="cat-view" class="py-16 px-6">
-    <div class="text-center mb-12">
-      <h2 class="text-4xl md:text-5xl font-black uppercase tracking-wider mb-3 gradient-text" id="cat-view-title"></h2>
-      <div class="h-1 w-20 bg-sky-500 mx-auto rounded-full"></div>
-    </div>
-    <div class="max-w-7xl mx-auto cat-grid" id="cat-view-grid"></div>
-  </section>
+    <section id="cat-view" class="py-20 px-6">
+        <div class="text-center mb-12">
+            <h2 class="text-4xl md:text-5xl font-black uppercase tracking-wider mb-3 gradient-text" id="cat-view-title"></h2>
+            <div class="h-1 w-20 bg-sky-500 mx-auto rounded-full"></div>
+        </div>
+        <div class="max-w-7xl mx-auto cat-grid" id="cat-view-grid"></div>
+    </section>
+
 
   <div id="all-sections">
   <?php foreach($sections as $tier_key => $tier):
