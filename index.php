@@ -150,8 +150,10 @@ function getCardStyle($tier_key) {
         return ['label' => 'Offre Basic', 'badge_bg'=>'bg-blue-500/20', 'badge_text'=>'text-blue-400', 'badge_border'=>'border-blue-500/30', 'icon_color'=>'text-blue-400', 'card_border'=>'border-blue-400/20', 'btn'=>'bg-blue-500 hover:bg-blue-400'];
     } elseif ($tier_key === 'medium') {
         return ['label' => 'Offre Medium', 'badge_bg'=>'bg-purple-500/20', 'badge_text'=>'text-purple-400', 'badge_border'=>'border-purple-500/30', 'icon_color'=>'text-purple-400', 'card_border'=>'border-purple-400/20', 'btn'=>'bg-purple-500 hover:bg-purple-400'];
-    } else {
+    } elseif ($tier_key === 'premium') {
         return ['label' => 'Offre Premium', 'badge_bg'=>'bg-yellow-500/20', 'badge_text'=>'text-yellow-400', 'badge_border'=>'border-yellow-500/30', 'icon_color'=>'text-yellow-400', 'card_border'=>'border-yellow-400/20', 'btn'=>'bg-yellow-500 hover:bg-yellow-400'];
+    } else {
+        return ['label' => 'Offre Mythic', 'badge_bg'=>'bg-red-500/20', 'badge_text'=>'text-red-400', 'badge_border'=>'border-red-500/30', 'icon_color'=>'text-red-400', 'card_border'=>'border-red-400/20', 'btn'=>'bg-red-500 hover:bg-red-400'];
     }
 }
 ?>

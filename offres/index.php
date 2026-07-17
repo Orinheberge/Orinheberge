@@ -78,14 +78,7 @@ function tierStyle(string $t): array {
         'basic'   => ['bb'=>'bg-blue-500/20',   'bt'=>'text-blue-400',   'bbd'=>'border-blue-500/30',   'ic'=>'text-blue-400',   'cb'=>'border-blue-400/20',   'btn'=>'bg-blue-500 hover:bg-blue-400'],
         'medium'  => ['bb'=>'bg-purple-500/20', 'bt'=>'text-purple-400', 'bbd'=>'border-purple-500/30', 'ic'=>'text-purple-400', 'cb'=>'border-purple-400/20', 'btn'=>'bg-purple-500 hover:bg-purple-400'],
         'premium' => ['bb'=>'bg-yellow-500/20', 'bt'=>'text-yellow-400', 'bbd'=>'border-yellow-500/30', 'ic'=>'text-yellow-400', 'cb'=>'border-yellow-400/20', 'btn'=>'bg-yellow-500 hover:bg-yellow-400'],
-        'mythic'  => [
-        'bb'  => 'bg-rose-500/20',   
-        'bt'  => 'text-rose-400',   
-        'bbd' => 'border-rose-500/30',   
-        'ic'  => 'text-rose-400',   
-        'cb'  => 'border-rose-400/20',   
-        'btn' => 'bg-rose-500 hover:bg-rose-400 text-white'
-    ],
+        'mythic'  => ['bb'=>'bg-rose-500/20',   'bt'=>'text-rose-400',   'bbd'=>'border-rose-500/30',   'ic'=>'text-rose-400',   'cb'=>'border-rose-400/20',   'btn'=>'bg-rose-500 hover:bg-rose-400'],
     ];
     return $styles[$t] ?? ['bb'=>'bg-gray-500/20','bt'=>'text-gray-400','bbd'=>'border-gray-500/30','ic'=>'text-gray-400','cb'=>'border-white/10','btn'=>'bg-gray-500 hover:bg-gray-400'];
 }
