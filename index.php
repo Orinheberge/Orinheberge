@@ -106,6 +106,8 @@ if ($db_status) {
                 $tier_found = 'basic';
             } elseif (strpos($slug, 'medium') !== false) {
                 $tier_found = 'medium';
+            } elseif (strpos($slug, 'mythic') !== false) {
+                $tier_found = 'mythic';
             }
 
             // Reconstruction des clés de traduction pour les textes descriptifs des offres
