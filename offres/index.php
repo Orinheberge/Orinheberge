@@ -9,8 +9,7 @@ $sections = [
     'basic'   => ['title_key'=>'tier.basic.title',   'subtitle_key'=>'tier.basic.subtitle',   'label_key'=>'tier.basic.label',   'accent'=>'bg-blue-500',   'bg'=>'bg-black/10', 'offers'=>[]],
     'medium'  => ['title_key'=>'tier.medium.title',  'subtitle_key'=>'tier.medium.subtitle',  'label_key'=>'tier.medium.label',  'accent'=>'bg-purple-500', 'bg'=>'bg-white/[0.02] border-y border-white/5', 'offers'=>[]],
     'premium' => ['title_key'=>'tier.premium.title', 'subtitle_key'=>'tier.premium.subtitle', 'label_key'=>'tier.premium.label', 'accent'=>'bg-yellow-500', 'bg'=>'bg-black/20', 'offers'=>[]],
-    'mythic' => ['title_key'=>'tier.mythic.title', 'subtitle_key'=>'tier.mythic.subtitle', 'label_key'=>'tier.mythic.label', 'accent'=>'bg-rose-500', 'bg'=>'bg-black/20', 'offers'=>[]],
-
+    'mythic'  => ['title_key'=>'tier.mythic.title',  'subtitle_key'=>'tier.mythic.subtitle',  'label_key'=>'tier.mythic.label',  'accent'=>'bg-rose-500',   'bg'=>'bg-black/20', 'offers'=>[]],
 ];
 $dynamic_categories = [];
 
@@ -48,7 +47,13 @@ try {
     foreach ($stmt->fetchAll() as $pr) {
         $slug = $pr['slug'];
         $cat  = strtolower($pr['category_slug']);
-        $tier = strpos($slug,'free')!==false ? 'free' : (strpos($slug,'basic')!==false ? 'basic' : (strpos($slug,'medium')!==false ? 'medium' : 'premium'));
+        $tier = match(true) {
+            str_contains($slug, 'free')   => 'free',
+            str_contains($slug, 'basic')  => 'basic',
+            str_contains($slug, 'medium') => 'medium',
+            str_contains($slug, 'mythic') => 'mythic',
+            default => 'premium',
+        };
         $rt   = $pr['ram']  >= 1024 ? number_format($pr['ram']/1024,0).' GB RAM DDR5' : $pr['ram'].' MB RAM';
         $dt   = $pr['disk'] >= 1024 ? number_format($pr['disk']/1024,0).' GB SSD NVMe' : $pr['disk'].' MB SSD';
         $sections[$tier]['offers'][] = [
@@ -264,7 +269,6 @@ window.addEventListener('DOMContentLoaded',()=>filterCategory('all'));
 
 <?php include $_SERVER['DOCUMENT_ROOT'] . '/inc/footer.php'; ?>
 </body>
-<script src="/inc/navbar.js"></script>
 <script src="https://<?php echo $_SERVER['HTTP_HOST']; ?>/inc/navbar.js?v=<?php echo filemtime($_SERVER['DOCUMENT_ROOT'] . '/inc/navbar.js'); ?>"></script>
 
 </html>
