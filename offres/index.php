@@ -147,21 +147,45 @@ body{background:#0b0f19;scroll-behavior:smooth;}
 #cat-view{display:none;}
 .cat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1.5rem;}
 </style>
-<script>
-const catLabels = <?php echo json_encode(array_map(fn($c)=>t($c['name_key']),$dynamic_categories),JSON_HEX_TAG|JSON_HEX_AMP); ?>
-function filterCategory(id){
-    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-    document.getElementById('tab-'+id)?.classList.add('active');
-    const cv=document.getElementById('cat-view'),as=document.getElementById('all-sections');
-    if(id==='all'){cv.style.display='none';as.style.display='block';return;}
-    as.style.display='none';cv.style.display='block';
-    document.getElementById('cat-view-title').textContent=catLabels[id]||id;
-    const grid=document.getElementById('cat-view-grid');grid.innerHTML='';
-    const cards=[...document.querySelectorAll('#all-sections .offer-card[data-category="'+id+'"]')];
-    if(!cards.length){grid.innerHTML='<div class="col-span-full py-16 text-center text-gray-500"><i class="fas fa-box-open text-3xl mb-3 block opacity-30"></i>Aucune offre disponible pour le moment.</div>';return;}
-    cards.forEach(c=>{const cl=c.cloneNode(true);cl.style.display='flex';grid.appendChild(cl);});
+  <script>
+const categoryLabels = <?php echo json_encode(array_map(fn($cat) => t($cat['name_key']), $dynamic_categories), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+
+function filterCategory(catId) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    if(document.getElementById('tab-' + catId)) {
+        document.getElementById('tab-' + catId).classList.add('active');
+    }
+    
+    const catView = document.getElementById('cat-view');
+    const catTitle = document.getElementById('cat-view-title');
+    const catGrid = document.getElementById('cat-view-grid');
+    const allSections = document.getElementById('all-sections');
+    
+    if (catId === 'all') { 
+        catView.style.display = 'none'; 
+        allSections.style.display = 'block'; 
+        return; 
+    }
+    
+    allSections.style.display = 'none'; 
+    catView.style.display = 'block';
+    
+    catTitle.textContent = categoryLabels[catId] || catId.toUpperCase();
+    
+    const cards = Array.from(document.querySelectorAll('#all-sections .offer-card[data-category="' + catId + '"]'));
+    
+    catGrid.innerHTML = '';
+    if (cards.length === 0) {
+        catGrid.innerHTML = '<div class="col-span-full py-12 text-center text-gray-500 text-sm">Aucune offre disponible pour le moment dans cette catégorie.</div>';
+    } else {
+        cards.forEach(card => { 
+            const clone = card.cloneNode(true); 
+            clone.style.display = 'flex'; 
+            catGrid.appendChild(clone); 
+        });
+    }
 }
-window.addEventListener('DOMContentLoaded',()=>filterCategory('all'));
+window.addEventListener('DOMContentLoaded', () => filterCategory('all'));
 </script>
 </head>
 <body class="text-gray-200 font-sans min-h-screen flex flex-col justify-between antialiased">
