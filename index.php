@@ -386,11 +386,12 @@ window.addEventListener('DOMContentLoaded', () => filterCategory('all'));
                 <div class="h-1 w-20 <?php echo $tier_data['accent']; ?> mx-auto rounded-full"></div>
             </div>
             
-            <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             <?php foreach ($tier_data['offers'] as $offer): ?>
             <?php
                 $cat = $offer['category'];
                 $style = getCardStyle($tier_key);
+                $price_num = $offer['free'] ? 0 : $offer['price_value'];
 
                 $cart_route = '/shop/cart/';
                 if ($offer['free']) {
@@ -400,52 +401,47 @@ window.addEventListener('DOMContentLoaded', () => filterCategory('all'));
                 }
                 $link = $is_logged_in ? $cart_route : '/login/';
             ?>
-            <div data-category="<?php echo $cat; ?>" 
-                 class="offer-card glass rounded-3xl border <?php echo $style['card_border']; ?> flex flex-col card-hover overflow-hidden relative">
-                
-                <div class="h-44 w-full bg-cover bg-center relative" style="background-image: url('<?php echo htmlspecialchars($offer['image_url']); ?>');">
-                    <div class="absolute inset-0 bg-gradient-to-t from-[#070a13] to-transparent"></div>
-                    <div class="absolute top-4 left-4 right-4 flex justify-between items-center">
-                        <span class="<?php echo $style['badge_bg'].' '.$style['badge_text'].' '.$style['badge_border']; ?> px-3 py-1 rounded-full text-xs font-bold backdrop-blur-md border uppercase tracking-wide">
+            <div data-category="<?php echo htmlspecialchars($cat); ?>" data-price="<?php echo $price_num; ?>"
+                 class="offer-card glass rounded-2xl border <?php echo $style['card_border']; ?> flex flex-col card-hover overflow-hidden relative">
+
+                <div class="h-36 w-full bg-cover bg-center relative" style="background-image:url('<?php echo htmlspecialchars($offer['image_url']); ?>')">
+                    <div class="absolute inset-0 bg-gradient-to-t from-[#070a13] via-transparent to-transparent"></div>
+                    <div class="absolute top-3 left-3 right-3 flex justify-between items-center">
+                        <span class="<?php echo $style['badge_bg'].' '.$style['badge_text'].' '.$style['badge_border']; ?> px-2.5 py-0.5 rounded-full text-[11px] font-bold border uppercase tracking-wide">
                             <?php echo t($tier_data['label_key']); ?>
                         </span>
-                        <i class="<?php echo htmlspecialchars($offer['icon']).' '.$style['icon_color']; ?> text-2xl drop-shadow"></i>
+                        <i class="<?php echo htmlspecialchars($offer['icon']).' '.$style['icon_color']; ?> text-xl drop-shadow"></i>
                     </div>
                 </div>
-                
-                <div class="p-6 flex flex-col flex-grow">
-                    <h3 class="text-xl font-bold text-white"><?php echo t($offer['name_key']); ?></h3>
-                    <p class="text-gray-400 mt-2 mb-6 text-sm flex-grow">
-                        <?php echo t($offer['desc_key']); ?>
-                    </p>
-                    
-                    <div class="flex items-baseline mb-6">
-                        <span class="text-3xl font-black text-white"><?php echo $offer['price']; ?></span>
+
+                <div class="p-5 flex flex-col flex-grow">
+                    <h3 class="text-base font-bold text-white mb-1"><?php echo t($offer['name_key']); ?></h3>
+                    <p class="text-gray-400 text-xs flex-grow mb-4 leading-relaxed"><?php echo t($offer['desc_key']); ?></p>
+
+                    <div class="flex items-baseline mb-4">
+                        <span class="text-2xl font-black text-white"><?php echo $offer['price']; ?></span>
                         <span class="text-gray-500 text-xs ml-1"><?php echo t($offer['period_key']); ?></span>
                     </div>
-                    
-                    <ul class="space-y-3 text-gray-300 text-sm border-t border-white/5 pt-4">
+
+                    <ul class="space-y-2 text-xs text-gray-300 border-t border-white/5 pt-3 mb-4">
                         <?php foreach ($offer['features'] as $feat): ?>
-                        <li>
-                            <i class="<?php echo $feat['icon'].' '.$style['icon_color']; ?> mr-2 w-4"></i>
-                            <?php echo $feat['text']; ?>
-                        </li>
+                        <li><i class="<?php echo $feat['icon'].' '.$style['icon_color']; ?> mr-2 w-3"></i><?php echo $feat['text']; ?></li>
                         <?php endforeach; ?>
                     </ul>
-                    
+
                     <?php if ($is_logged_in): ?>
-                        <form method="post" action="/shop/cart/" class="mt-6 w-full">
+                        <form method="post" action="/shop/cart/">
                             <input type="hidden" name="action" value="add_item">
                             <input type="hidden" name="slug" value="<?php echo htmlspecialchars($offer['slug']); ?>">
                             <input type="hidden" name="name" value="<?php echo htmlspecialchars(t($offer['name_key'])); ?>">
                             <input type="hidden" name="price" value="<?php echo htmlspecialchars((string)$offer['price_value']); ?>">
                             <input type="hidden" name="period" value="<?php echo htmlspecialchars(t($offer['period_key'])); ?>">
-                            <button type="submit" class="w-full <?php echo $style['btn']; ?> text-slate-950 font-bold py-3 rounded-2xl transition text-sm text-center block">
+                            <button type="submit" class="w-full <?php echo $style['btn']; ?> text-slate-950 font-bold py-2.5 rounded-xl text-sm">
                                 <?php echo $btn_text; ?>
                             </button>
                         </form>
                     <?php else: ?>
-                        <a href="<?php echo $link; ?>" class="mt-6 w-full <?php echo $style['btn']; ?> text-slate-950 font-bold py-3 rounded-2xl transition text-sm text-center block">
+                        <a href="<?php echo $link; ?>" class="w-full <?php echo $style['btn']; ?> text-slate-950 font-bold py-2.5 rounded-xl text-sm text-center block">
                             <?php echo $btn_text; ?>
                         </a>
                     <?php endif; ?>
