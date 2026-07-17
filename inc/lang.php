@@ -133,6 +133,9 @@ $translations = [
     'tier.premium.title'  => ['fr' => 'Offres Premium',    'en' => 'Premium Plans'],
     'tier.premium.subtitle'=> ['fr' => 'Ressources 100% dédiées, support prioritaire et puissance sans limite.', 'en' => '100% dedicated resources, priority support and unlimited power.'],
     'tier.premium.label'  => ['fr' => 'Premium',           'en' => 'Premium'],
+    'tier.mythic.title'    => ['fr' => 'Offres Mythic',    'en' => 'Mythic Plans'],
+    'tier.mythic.subtitle' => ['fr' => 'Ressources illimitées, accès exclusif et performances ultimes.', 'en' => 'Unlimited resources, exclusive access and ultimate performance.'],
+    'tier.mythic.label'    => ['fr' => 'Mythic',           'en' => 'Mythic'],
 
     // Boutons offres
     'btn.deploy'          => ['fr' => 'Déployer maintenant', 'en' => 'Deploy now'],
