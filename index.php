@@ -356,18 +356,24 @@ function filterCategory(catId) {
 }
 window.addEventListener('DOMContentLoaded', () => filterCategory('all'));
 </script>
-<header class="text-center py-16 px-6 relative overflow-hidden">
-        <h1 class="text-5xl md:text-7xl font-black tracking-tight leading-none gradient-text"><?php echo t('offers.title'); ?></h1>
-        
-        <div class="max-w-4xl mx-auto flex flex-wrap justify-center gap-3 px-4 mt-10">
-            <button onclick="filterCategory('all')" id="tab-all" class="tab-btn active"><?php echo t('offers.tab.all'); ?></button>
-            <?php foreach ($dynamic_categories as $slug => $cat_info): ?>
-                <button onclick="filterCategory('<?= htmlspecialchars($slug) ?>')" id="tab-<?= htmlspecialchars($slug) ?>" class="tab-btn">
-                    <?php echo t($cat_info['name_key']); ?>
-                </button>
-            <?php endforeach; ?>
-        </div>
-    </header>
+  <header class="text-center py-16 px-6 relative overflow-hidden">
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-sky-500/10 rounded-full blur-[120px] pointer-events-none"></div>
+    <div class="inline-flex items-center gap-2 bg-sky-500/10 text-sky-400 border border-sky-500/20 px-4 py-1.5 rounded-full text-xs font-semibold mb-5">
+      <i class="fas fa-tags"></i> Nos offres
+    </div>
+    <h1 class="text-5xl md:text-7xl font-black tracking-tight leading-none gradient-text mb-4"><?php echo t('offers.title'); ?></h1>
+    <p class="text-gray-400 max-w-xl mx-auto text-lg"><?php echo t('offers.subtitle'); ?></p>
+    <div class="max-w-5xl mx-auto flex flex-wrap justify-center gap-2.5 px-4 mt-10">
+      <button onclick="filterCategory('all')" id="tab-all" class="tab-btn active">
+        <i class="fas fa-th-large text-xs"></i> <?php echo t('offers.tab.all'); ?>
+      </button>
+      <?php foreach($dynamic_categories as $slug => $ci): ?>
+      <button onclick="filterCategory('<?php echo htmlspecialchars($slug); ?>')" id="tab-<?php echo htmlspecialchars($slug); ?>" class="tab-btn">
+        <i class="<?php echo htmlspecialchars($ci['icon']); ?> text-xs"></i> <?php echo t($ci['name_key']); ?>
+      </button>
+      <?php endforeach; ?>
+    </div>
+  </header>
 
     <section id="cat-view" class="py-20 px-6">
         <div class="text-center mb-12">
