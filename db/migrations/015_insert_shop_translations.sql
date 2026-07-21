@@ -85,3 +85,57 @@ INSERT INTO `lang_boutique` (`translation_key`, `fr`, `en`) VALUES
 ('feat.priority_sup', 'Support Prioritaire', 'Priority Support'),
 ('feat.php8', 'PHP 8.x ultra optimisé', 'Ultra-optimised PHP 8.x'),
 ('feat.cron', 'Tâches Cron avancées', 'Advanced Cron Jobs');
+('cat.vps.name', 'Serveurs VPS', 'VPS Servers'),
+('cat.azuriom.name', 'Hébergement Azuriom', 'Azuriom Hosting'),
+
+-- Offres Free / Gratuit
+('offer.azuriom_free.name', 'Azuriom Gratuit', 'Azuriom Free'),
+('offer.azuriom_free.desc', 'Idéal pour découvrir Azuriom et lancer votre premier site web sans frais.', 'Ideal for exploring Azuriom and launching your first website for free.'),
+
+-- Offres Basic
+('offer.teamspeak_basic.name', 'TeamSpeak Basique', 'TeamSpeak Basic'),
+('offer.azuriom_basic.name', 'Azuriom Basique', 'Azuriom Basic'),
+('offer.azuriom_basic.desc', 'Une solution abordable avec les ressources essentielles pour débuter.', 'An affordable solution with essential resources to get started.'),
+('offer.vps_basic.name', 'VPS Basique', 'VPS Basic'),
+('offer.vps_basic.desc', 'Performances d\'entrée de gamme, parfaites pour les petits projets et tests.', 'Entry-level performance, perfect for small projects and testing.'),
+
+-- Offres Medium
+('offer.teamspeak_medium.name', 'TeamSpeak Moyen', 'TeamSpeak Medium'),
+('offer.azuriom_medium.name', 'Azuriom Moyen', 'Azuriom Medium'),
+('offer.azuriom_medium.desc', 'Plus de puissance et d\'espace pour soutenir la croissance de votre communauté.', 'More power and storage to support your growing community.'),
+('offer.vps_medium.name', 'VPS Moyen', 'VPS Medium'),
+('offer.vps_medium.desc', 'Ressources équilibrées pour héberger des applications et sites web exigeants.', 'Balanced resources to host demanding applications and websites.'),
+
+-- Offres Premium
+('offer.teamspeak_premium.name', 'TeamSpeak Premium', 'TeamSpeak Premium'),
+('offer.azuriom_premium.name', 'Azuriom Premium', 'Azuriom Premium'),
+('offer.azuriom_premium.desc', 'Haute performance et stockage étendu pour un site web fluide et réactif.', 'High performance and expanded storage for a smooth and responsive website.'),
+('offer.vps_premium.name', 'VPS Premium', 'VPS Premium'),
+('offer.vps_premium.desc', 'Puissance élevée et fluidité maximale pour vos projets importants.', 'High power and maximum fluidity for your important projects.'),
+
+-- Offres Mythic
+('offer.teamspeak_mythic.name', 'TeamSpeak Mythique', 'TeamSpeak Mythic'),
+('offer.teamspeak_mythic.desc', 'La puissance ultime pour vos serveurs vocaux sans aucune interruption.', 'Ultimate power for your voice servers with zero downtime.'),
+('offer.mc_mythic.name', 'Minecraft Mythique', 'Minecraft Mythic'),
+('offer.mc_mythic.desc', 'Performances extrêmes dédiées aux grands serveurs Minecraft à fort trafic.', 'Extreme performance dedicated to large, high-traffic Minecraft servers.'),
+('offer.terraria_mythic.name', 'Terraria Mythique', 'Terraria Mythic'),
+('offer.terraria_mythic.desc', 'Profitez d\'un monde Terraria fluide et sans lag, quelle que soit la taille de votre carte.', 'Enjoy a smooth, lag-free Terraria world regardless of your map size.'),
+('offer.hytale_mythic.name', 'Hytale Mythique', 'Hytale Mythic'),
+('offer.hytale_mythic.desc', 'L\'hébergement haut de gamme taillé sur mesure pour vos aventures Hytale.', 'Top-tier hosting tailored specifically for your Hytale adventures.'),
+('offer.fivem_mythic.name', 'FiveM Mythique', 'FiveM Mythic'),
+('offer.fivem_mythic.desc', 'Une infrastructure robuste pour supporter vos serveurs RP FiveM les plus lourds.', 'Robust infrastructure built to handle your heaviest FiveM RP servers.'),
+('offer.node_mythic.name', 'Node.js Mythique', 'Node.js Mythic'),
+('offer.node_mythic.desc', 'Environnement ultra-rapide optimisé pour vos applications Node.js complexes.', 'Ultra-fast environment optimized for your complex Node.js applications.'),
+('offer.py_mythic.name', 'Python Mythique', 'Python Mythic'),
+('offer.py_mythic.desc', 'Ressources maximales pour vos scripts, bots et projets Python exigeants.', 'Maximum resources for your demanding Python scripts, bots, and projects.'),
+('offer.vps_mythic.name', 'VPS Mythique', 'VPS Mythic'),
+('offer.vps_mythic.desc', 'L\'offre VPS ultime combinant processeurs ultra-rapides et mémoire maximale.', 'The ultimate VPS plan combining lightning-fast CPUs and maximum memory.'),
+
+-- Offres Mythic supplémentaires
+('offer.java_mythic.name', 'Java Mythique', 'Java Mythic'),
+('offer.java_mythic.desc', 'Environnement d\'exécution Java haute performance pour vos applications et bots les plus gourmands.', 'High-performance Java runtime environment for your most demanding applications and bots.'),
+('offer.php_mythic.name', 'PHP Mythique', 'PHP Mythic'),
+('offer.php_mythic.desc', 'Hébergement PHP ultra-rapide optimisé pour les scripts complexes et les sites à fort trafic.', 'Ultra-fast PHP hosting optimized for complex scripts and high-traffic websites.'),
+('offer.azuriom_mythic.name', 'Azuriom Mythique', 'Azuriom Mythic'),
+('offer.azuriom_mythic.desc', 'La solution d\'hébergement ultime pour Azuriom, offrant une vitesse maximale et des ressources illimitées.', 'The ultimate Azuriom hosting solution, offering maximum speed and uncompromised resources.')
+

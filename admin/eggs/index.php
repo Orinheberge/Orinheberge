@@ -93,11 +93,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $eggs = $pdo->query('SELECT e.*, (SELECT COUNT(*) FROM products p WHERE p.egg_id=e.id) AS product_count FROM eggs e ORDER BY e.id')->fetchAll();
 
 // Fetch nests from panel
+// FIX: curl_exec() renvoie une chaine JSON brute, il faut la decoder avant
+// de l'utiliser comme tableau, sinon $panel_nests reste toujours vide et
+// le bouton "Import depuis Panel" ne s'affiche jamais.
 $panel_nests = [];
 if ($panel_url && $api_key_admin) {
     $ch = curl_init($panel_url . '/api/application/nests');
     curl_setopt_array($ch,[CURLOPT_HTTPHEADER=>$headers_admin,CURLOPT_RETURNTRANSFER=>true,CURLOPT_SSL_VERIFYPEER=>false,CURLOPT_TIMEOUT=>8]);
-    $res = curl_exec($ch);
+    $res = json_decode(curl_exec($ch), true);
+    curl_close($ch);
     foreach (($res['data'] ?? []) as $nest) {
         $a = $nest['attributes'];
         $panel_nests[$a['id']] = '#'.$a['id'].' — '.$a['name'];

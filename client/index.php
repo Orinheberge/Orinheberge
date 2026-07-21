@@ -33,8 +33,10 @@ $stmt->execute([$_SESSION['user_id']]);
 $services = $stmt->fetchAll();
 
 // Tickets ouverts
-$open_tickets = (int)$pdo->prepare("SELECT COUNT(*) FROM support_tickets WHERE user_id=? AND status != 'Fermé'")->execute([$_SESSION['user_id']]) ?
-    (int)$pdo->query("SELECT COUNT(*) FROM support_tickets WHERE user_id=".(int)$_SESSION['user_id']." AND status!='Fermé'")->fetchColumn() : 0;
+// (fix: l'ancienne requête exécutait le prepare() ET une 2e requête brute en doublon)
+$stmt = $pdo->prepare("SELECT COUNT(*) FROM support_tickets WHERE user_id=? AND status != 'Fermé'");
+$stmt->execute([$_SESSION['user_id']]);
+$open_tickets = (int)$stmt->fetchColumn();
 
 include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php';
 ?>
@@ -92,10 +94,9 @@ function toggleSidebar(){document.getElementById('sidebar').classList.toggle('op
   <!-- Topbar -->
   <div class="topbar">
     <div class="flex items-center gap-3">
-    <button id="sidebar-toggle" class="md:hidden text-gray-400 hover:text-white text-lg w-8" aria-label="Ouvrir le menu">
-    <i class="fas fa-bars" id="sidebar-toggle-icon"></i>
-    </button>
- </div>
+      <button id="sidebar-toggle" class="md:hidden text-gray-400 hover:text-white text-lg w-8" aria-label="Ouvrir le menu" onclick="toggleSidebar()">
+        <i class="fas fa-bars" id="sidebar-toggle-icon"></i>
+      </button>
       <div>
         <div class="text-sm font-bold text-white">Tableau de bord</div>
         <div class="text-xs text-gray-500">Bienvenue, <?php echo htmlspecialchars($_SESSION['username'] ?? ''); ?></div>
@@ -209,7 +210,13 @@ function toggleSidebar(){document.getElementById('sidebar').classList.toggle('op
         <a href="<?php echo htmlspecialchars($phpmyadmin_url); ?>" target="_blank" class="qlink"><div class="qlink-icon bg-sky-500/15"><i class="fas fa-database text-sky-400"></i></div><div><div class="text-xs font-semibold text-white">phpMyAdmin</div><div class="text-[10px] text-gray-500">Base de données</div></div></a>
         <a href="/client/billing/" class="qlink"><div class="qlink-icon bg-emerald-500/15"><i class="fas fa-file-invoice-dollar text-emerald-400"></i></div><div><div class="text-xs font-semibold text-white">Facturation</div><div class="text-[10px] text-gray-500">Factures & reçus</div></div></a>
         <?php if(!empty($_SESSION['is_admin'])): ?>
-        <a href="/admin/" class="qlink" style="border-color:rgba(251,146,60,.2)"><div class="qlink-icon bg-orange-500/15"><i class="fas fa-user-tie"></i></div><div><div class="text-xs font-semibold text-orange-400"><div class="text-xs font-semibold text-white">Administration</div></div><div class="text-[10px] text-gray-500">Panel admin</div></div></a>
+        <a href="/admin/" class="qlink" style="border-color:rgba(251,146,60,.2)">
+          <div class="qlink-icon bg-orange-500/15"><i class="fas fa-user-tie text-orange-400"></i></div>
+          <div>
+            <div class="text-xs font-semibold text-orange-400">Administration</div>
+            <div class="text-[10px] text-gray-500">Panel admin</div>
+          </div>
+        </a>
         <?php endif; ?>
       </div>
 
