@@ -61,113 +61,119 @@ if (isset($pdo)) {
         $_maintenance_active = null;
     }
 }
+
+// Variables d'outils externes sécurisées
+$panel_url = $panel_url ?? '#';
+$phpmyadmin_url = $phpmyadmin_url ?? 'https://php.orinstone.deepstone.fr';
+$open_tickets = $open_tickets ?? 0;
 ?>
 
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-
 <link href="/inc/clients_sidebar.css" rel="stylesheet">
 
-<!-- Bouton burger mobile -->
 <button id="sidebar-toggle" aria-label="Ouvrir le menu">
     <i class="fas fa-bars" id="sidebar-toggle-icon"></i>
 </button>
 
-<!-- Overlay sombre -->
 <div id="sidebar-overlay"></div>
 
 <aside id="sidebar" class="sidebar">
-    <!-- Logo -->
     <div class="sidebar-logo">
         <a href="/" class="flex items-center gap-2.5">
-            <div class="w-8 h-8 rounded-lg bg-sky-500/20 flex items-center justify-center">
+            <div class="w-8 h-8 rounded-lg bg-sky-500/20 flex items-center justify-center shrink-0">
                 <i class="fas fa-server text-sky-400 text-sm"></i>
             </div>
-            <div>
-                <span class="font-black text-white text-base tracking-tight block leading-tight">OrinHeberge</span>
-                <span class="text-[9px] text-sky-400/70 font-semibold">Espace Client</span>
+            <div class="min-w-0">
+                <span class="font-black text-white text-base tracking-tight block leading-tight truncate">OrinHeberge</span>
+                <span class="text-[9px] text-sky-400/70 font-semibold block">Espace Client</span>
             </div>
         </a>
     </div>
 
     <nav class="sidebar-nav">
         
-        <!-- 🔵 Bandeau maintenance (si actif) -->
         <?php if ($_maintenance_active): 
-            $sev_colors = [
-                'info'     => 'sky',
-                'warning'  => 'amber',
-                'critical' => 'red',
+            $sev_classes = [
+                'info'     => ['bg' => 'bg-sky-500/10', 'border' => 'border-sky-500/20', 'text' => 'text-sky-400', 'hover' => 'hover:bg-sky-500/15'],
+                'warning'  => ['bg' => 'bg-amber-500/10', 'border' => 'border-amber-500/20', 'text' => 'text-amber-400', 'hover' => 'hover:bg-amber-500/15'],
+                'critical' => ['bg' => 'bg-red-500/10', 'border' => 'border-red-500/20', 'text' => 'text-red-400', 'hover' => 'hover:bg-red-500/15'],
             ];
-            $sev_color = $sev_colors[$_maintenance_active['severity']] ?? 'amber';
+            $sev_style = $sev_classes[$_maintenance_active['severity']] ?? $sev_classes['warning'];
         ?>
-        <a href="/status/" class="block mb-3 p-3 rounded-xl bg-<?php echo $sev_color; ?>-500/10 border border-<?php echo $sev_color; ?>-500/20 hover:bg-<?php echo $sev_color; ?>-500/15 transition">
+        <a href="/status/" class="block mb-3 p-2.5 rounded-xl border <?php echo $sev_style['bg'] . ' ' . $sev_style['border'] . ' ' . $sev_style['hover']; ?> transition">
             <div class="flex items-center gap-2 text-xs">
-                <i class="fas fa-wrench text-<?php echo $sev_color; ?>-400 maintenance-pulse"></i>
-                <span class="text-<?php echo $sev_color; ?>-400 font-semibold truncate"><?php echo htmlspecialchars($_maintenance_active['title']); ?></span>
+                <i class="fas fa-wrench <?php echo $sev_style['text']; ?> maintenance-pulse shrink-0"></i>
+                <span class="<?php echo $sev_style['text']; ?> font-semibold truncate"><?php echo htmlspecialchars($_maintenance_active['title']); ?></span>
             </div>
-            <div class="text-[10px] text-gray-500 mt-1 ml-5">Maintenance en cours — Plus d'infos</div>
+            <div class="text-[10px] text-gray-400 mt-1 ml-5">Maintenance en cours — En savoir plus</div>
         </a>
         <?php endif; ?>
 
-        <!-- PRINCIPAL -->
         <div class="nav-section">Principal</div>
         
         <a href="/client/" class="nav-item <?php echo $current_path === '/client/' || $current_path === '/client' ? 'active' : ''; ?>">
-            <i class="fas fa-home icon"></i> Tableau de bord
+            <i class="fas fa-home icon"></i> 
+            <span>Tableau de bord</span>
         </a>
         
         <a href="/client/servers/" class="nav-item <?php echo cs_active('/client/servers'); ?>">
-            <i class="fas fa-server icon"></i> Mes serveurs
+            <i class="fas fa-server icon"></i> 
+            <span>Mes serveurs</span>
             <?php if ($_client_servers_count > 0): ?>
-            <span class="ml-auto text-[10px] bg-sky-500/15 text-sky-400 border border-sky-500/20 px-1.5 py-0.5 rounded-full font-bold"><?php echo $_client_servers_count; ?></span>
+            <span class="ml-auto text-[10px] bg-sky-500/15 text-sky-400 border border-sky-500/20 px-2 py-0.5 rounded-full font-bold"><?php echo $_client_servers_count; ?></span>
             <?php endif; ?>
         </a>
 
         <?php if ($_notif_count > 0): ?>
         <a href="/notifications/" class="nav-item <?php echo cs_active('/notifications'); ?>">
-            <i class="fas fa-bell icon"></i> Notifications
-            <span class="ml-auto text-[10px] bg-rose-500/15 text-rose-400 border border-rose-500/20 px-1.5 py-0.5 rounded-full font-bold"><?php echo $_notif_count; ?></span>
+            <i class="fas fa-bell icon"></i> 
+            <span>Notifications</span>
+            <span class="ml-auto text-[10px] bg-rose-500/15 text-rose-400 border border-rose-500/20 px-2 py-0.5 rounded-full font-bold"><?php echo $_notif_count; ?></span>
         </a>
         <?php endif; ?>
 
         <div class="nav-separator"></div>
 
-        <!-- BOUTIQUE -->
         <div class="nav-section">Boutique</div>
         
         <a href="/offres/" class="nav-item <?php echo cs_active('/offres'); ?>">
-            <i class="fas fa-tags icon"></i> Nos offres
+            <i class="fas fa-tags icon"></i> 
+            <span>Nos offres</span>
         </a>
         
         <a href="/shop/cart/" class="nav-item <?php echo cs_active('/shop/cart'); ?>">
-            <i class="fas fa-shopping-cart icon"></i> Mon panier 
+            <i class="fas fa-shopping-cart icon"></i> 
+            <span>Mon panier</span>
         </a>
 
         <div class="nav-separator"></div>
 
-        <!-- COMPTE -->
         <div class="nav-section">Compte</div>
         
         <a href="/profil/" class="nav-item <?php echo cs_active('/profil'); ?>">
-            <i class="fas fa-user icon"></i> Mon profil
+            <i class="fas fa-user icon"></i> 
+            <span>Mon profil</span>
         </a>
         
         <a href="/client/billing/" class="nav-item <?php echo cs_active('/client/billing'); ?>">
-            <i class="fas fa-file-invoice-dollar icon"></i> Facturation
+            <i class="fas fa-file-invoice-dollar icon"></i> 
+            <span>Facturation</span>
             <?php if ($_pending_invoices_count > 0): ?>
-            <span class="ml-auto text-[10px] bg-amber-500/15 text-amber-400 border border-amber-500/20 px-1.5 py-0.5 rounded-full font-bold"><?php echo $_pending_invoices_count; ?></span>
+            <span class="ml-auto text-[10px] bg-amber-500/15 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded-full font-bold"><?php echo $_pending_invoices_count; ?></span>
             <?php endif; ?>
         </a>
         
         <a href="/support/" class="nav-item <?php echo cs_active('/support'); ?>">
-            <i class="fas fa-headset icon"></i> Support
-            <?php if (!empty($open_tickets) && $open_tickets > 0): ?>
-            <span class="ml-auto text-[10px] bg-purple-500/20 text-purple-400 border border-purple-500/20 px-1.5 py-0.5 rounded-full font-bold"><?php echo (int)$open_tickets; ?></span>
+            <i class="fas fa-headset icon"></i> 
+            <span>Support</span>
+            <?php if ((int)$open_tickets > 0): ?>
+            <span class="ml-auto text-[10px] bg-purple-500/20 text-purple-400 border border-purple-500/20 px-2 py-0.5 rounded-full font-bold"><?php echo (int)$open_tickets; ?></span>
             <?php endif; ?>
         </a>
         
         <a href="/status/" class="nav-item <?php echo cs_active('/status'); ?>">
-            <i class="fas fa-signal icon"></i> Statut
+            <i class="fas fa-signal icon"></i> 
+            <span>Statut</span>
             <?php if ($_maintenance_active): ?>
             <span class="ml-auto w-2 h-2 rounded-full bg-amber-400 maintenance-pulse"></span>
             <?php endif; ?>
@@ -175,53 +181,53 @@ if (isset($pdo)) {
 
         <div class="nav-separator"></div>
 
-        <!-- OUTILS EXTERNES -->
         <div class="nav-section">Outils externes</div>
         
-        <a href="<?php echo htmlspecialchars($panel_url ?? '#'); ?>" target="_blank" class="nav-item group">
-            <i class="fas fa-cogs icon"></i> Panel Pterodactyl
-            <i class="fas fa-external-link-alt text-[9px] ml-auto external-link-hint"></i>
+        <a href="<?php echo htmlspecialchars($panel_url); ?>" target="_blank" rel="noopener noreferrer" class="nav-item group">
+            <i class="fas fa-cogs icon"></i> 
+            <span>Panel Pterodactyl</span>
+            <i class="fas fa-external-link-alt text-[9px] ml-auto opacity-50 group-hover:opacity-100 transition"></i>
         </a>
         
-        <a href="<?php echo htmlspecialchars($phpmyadmin_url ?? 'https://php.orinstone.deepstone.fr'); ?>" target="_blank" class="nav-item group">
-            <i class="fas fa-database icon"></i> phpMyAdmin
-            <i class="fas fa-external-link-alt text-[9px] ml-auto external-link-hint"></i>
+        <a href="<?php echo htmlspecialchars($phpmyadmin_url); ?>" target="_blank" rel="noopener noreferrer" class="nav-item group">
+            <i class="fas fa-database icon"></i> 
+            <span>phpMyAdmin</span>
+            <i class="fas fa-external-link-alt text-[9px] ml-auto opacity-50 group-hover:opacity-100 transition"></i>
         </a>
 
-        <a href="/discord/" target="_blank" class="nav-item group">
-            <i class="fab fa-discord icon" style="color:#5865F2;"></i> Discord
-            <i class="fas fa-external-link-alt text-[9px] ml-auto external-link-hint"></i>
+        <a href="/discord/" target="_blank" rel="noopener noreferrer" class="nav-item group">
+            <i class="fab fa-discord icon" style="color:#5865F2;"></i> 
+            <span>Discord</span>
+            <i class="fas fa-external-link-alt text-[9px] ml-auto opacity-50 group-hover:opacity-100 transition"></i>
         </a>
 
     </nav>
 
-    <!-- FOOTER -->
     <div class="sidebar-footer">
         
-        <!-- Sélecteur de langue -->
         <div class="mb-3 px-1">
             <?php if (file_exists(__DIR__ . '/lang_switcher.php')): ?>
                 <?php include __DIR__ . '/lang_switcher.php'; ?>
             <?php else: ?>
                 <div class="flex items-center gap-2 text-xs text-gray-500">
                     <i class="fas fa-globe"></i>
-                    <span>Langue : <?php echo strtoupper($lang ?? 'FR'); ?></span>
+                    <span>Langue : <?php echo strtoupper(htmlspecialchars($lang ?? 'FR')); ?></span>
                 </div>
             <?php endif; ?>
         </div>
 
         <?php if (!empty($_SESSION['is_admin'])): ?>
         <a href="/admin/" class="nav-item mb-2" style="color:#fb923c;border-color:rgba(251,146,60,.15);background:rgba(251,146,60,.05);">
-            <i class="fas fa-user-tie icon"></i> Administration
+            <i class="fas fa-user-tie icon"></i> 
+            <span>Administration</span>
         </a>
         <?php endif; ?>
         
-        <!-- Profil utilisateur -->
-        <a href="/profil/" class="flex items-center gap-2.5 group mb-2 px-1 py-1 rounded-xl hover:bg-white/5 transition">
+        <a href="/profil/" class="flex items-center gap-2.5 group mb-2 px-2 py-1.5 rounded-xl hover:bg-white/5 transition">
             <?php if (!empty($_SESSION['avatar']) && file_exists($_SERVER['DOCUMENT_ROOT'].'/'.$_SESSION['avatar'])): ?>
-                <img src="/<?php echo htmlspecialchars($_SESSION['avatar']); ?>" class="w-8 h-8 rounded-full object-cover border border-white/10">
+                <img src="/<?php echo htmlspecialchars($_SESSION['avatar']); ?>" class="w-8 h-8 rounded-full object-cover border border-white/10 shrink-0" alt="Avatar">
             <?php else: ?>
-                <div class="w-8 h-8 rounded-full bg-sky-500/20 flex items-center justify-center text-sky-400 text-xs font-bold border border-white/10">
+                <div class="w-8 h-8 rounded-full bg-sky-500/20 flex items-center justify-center text-sky-400 text-xs font-bold border border-white/10 shrink-0">
                     <?php echo strtoupper(substr($_SESSION['username'] ?? 'U', 0, 1)); ?>
                 </div>
             <?php endif; ?>
@@ -229,24 +235,22 @@ if (isset($pdo)) {
                 <div class="text-xs font-semibold text-white truncate"><?php echo htmlspecialchars($_SESSION['username'] ?? ''); ?></div>
                 <div class="text-[10px] text-gray-500">Mon profil</div>
             </div>
-            <i class="fas fa-chevron-right text-[9px] text-gray-600 group-hover:text-gray-400 transition"></i>
+            <i class="fas fa-chevron-right text-[9px] text-gray-600 group-hover:text-gray-400 transition shrink-0"></i>
         </a>
         
-        <!-- Déconnexion -->
-        <a href="/logout/" class="nav-item" style="color:#ef4444;">
-            <i class="fas fa-sign-out-alt icon"></i> Déconnexion
+        <a href="/logout/" class="nav-item text-red-500 hover:bg-red-500/10">
+            <i class="fas fa-sign-out-alt icon"></i> 
+            <span>Déconnexion</span>
         </a>
 
-        <!-- Liens légaux -->
-        <div class="mt-3 pt-3 border-t border-white/5 flex items-center justify-center gap-3 text-[10px] text-gray-600">
-            <a href="/mentions-legales/" class="hover:text-gray-400 transition">Mentions</a>
+        <div class="mt-3 pt-3 border-t border-white/5 flex items-center justify-center gap-2 text-[10px] text-gray-500 flex-wrap">
+            <a href="/mentions-legales/" class="hover:text-gray-300 transition">Mentions</a>
             <span>·</span>
-            <a href="/cgu/" class="hover:text-gray-400 transition">CGU</a>
+            <a href="/cgu/" class="hover:text-gray-300 transition">CGU</a>
             <span>·</span>
-            <a href="/politique-confidentialite/" class="hover:text-gray-400 transition">Confidentialité</a>
+            <a href="/politique-confidentialite/" class="hover:text-gray-300 transition">Confidentialité</a>
         </div>
     </div>
 </aside>
 
-<!-- Script externe pour le burger menu -->
 <script src="/inc/clients_sidebar.js" defer></script>

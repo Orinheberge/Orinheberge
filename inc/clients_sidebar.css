@@ -1,115 +1,234 @@
-    /* ============================================
-       SIDEBAR RESPONSIVE — STYLES
-       ============================================ */
-    
-    /* Bouton burger mobile */
+/* ============================================
+   VARIABLES DE LA SIDEBAR
+   ============================================ */
+:root {
+    --sidebar-width: 280px;
+    --sidebar-bg: #070a13;
+    --sidebar-border: rgba(255, 255, 255, 0.08);
+    --sidebar-item-hover: rgba(255, 255, 255, 0.05);
+    --sidebar-active-bg: rgba(14, 165, 233, 0.12);
+    --sidebar-active-color: #38bdf8;
+    --sidebar-text: #94a3b8;
+    --sidebar-text-hover: #f8fafc;
+}
+
+/* ============================================
+   BOUTON BURGER & OVERLAY MOBILE
+   ============================================ */
+#sidebar-toggle {
+    display: none;
+    position: fixed;
+    top: 1rem;
+    left: 1rem;
+    z-index: 60;
+    width: 44px;
+    height: 44px;
+    background: rgba(7, 10, 19, 0.85);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid var(--sidebar-border);
+    border-radius: 12px;
+    color: #ffffff;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+#sidebar-toggle:hover {
+    background: rgba(14, 165, 233, 0.2);
+    border-color: rgba(14, 165, 233, 0.4);
+    transform: scale(1.03);
+}
+
+#sidebar-toggle i {
+    font-size: 18px;
+    transition: transform 0.3s ease;
+}
+
+#sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 45;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+#sidebar-overlay.active {
+    display: block;
+    opacity: 1;
+}
+
+/* ============================================
+   STRUCTURE GLOBALE DE LA SIDEBAR
+   ============================================ */
+.sidebar {
+    width: var(--sidebar-width);
+    background-color: var(--sidebar-bg);
+    border-right: 1px solid var(--sidebar-border);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 1.25rem 1rem;
+    box-sizing: border-box;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+}
+
+.sidebar::-webkit-scrollbar {
+    width: 4px;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+/* ============================================
+   ELEMENTS DE NAVIGATION
+   ============================================ */
+.sidebar-logo {
+    padding-bottom: 1rem;
+    margin-bottom: 0.5rem;
+    border-bottom: 1px solid var(--sidebar-border);
+}
+
+.sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    flex: 1;
+}
+
+.nav-section {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #64748b;
+    margin: 1.25rem 0 0.4rem 0.5rem;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 0.75rem;
+    border-radius: 0.625rem;
+    font-size: 0.825rem;
+    font-weight: 500;
+    color: var(--sidebar-text);
+    text-decoration: none;
+    transition: all 0.15s ease-in-out;
+    border: 1px solid transparent;
+}
+
+.nav-item .icon {
+    width: 18px;
+    text-align: center;
+    font-size: 0.95rem;
+    color: #64748b;
+    transition: color 0.15s ease;
+}
+
+.nav-item:hover {
+    color: var(--sidebar-text-hover);
+    background-color: var(--sidebar-item-hover);
+}
+
+.nav-item:hover .icon {
+    color: #38bdf8;
+}
+
+.nav-item.active {
+    color: var(--sidebar-active-color);
+    background-color: var(--sidebar-active-bg);
+    border-color: rgba(14, 165, 233, 0.2);
+    font-weight: 600;
+}
+
+.nav-item.active .icon {
+    color: var(--sidebar-active-color);
+}
+
+.nav-separator {
+    height: 1px;
+    background-color: var(--sidebar-border);
+    margin: 0.75rem 0;
+}
+
+/* ============================================
+   ANIMATIONS ET EFFETS
+   ============================================ */
+@keyframes pulse-warning {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.95); }
+}
+
+.maintenance-pulse {
+    animation: pulse-warning 2s infinite ease-in-out;
+}
+
+/* Tooltip / Hint pour liens externes */
+.external-link-hint {
+    opacity: 0.3;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.nav-item:hover .external-link-hint {
+    opacity: 0.9;
+    transform: translate(1px, -1px);
+}
+
+/* ============================================
+   RESPONSIVE MOBILE (< 768px)
+   ============================================ */
+@media (max-width: 767px) {
     #sidebar-toggle {
-        display: none;
-        position: fixed;
-        top: 1rem;
-        left: 1rem;
-        z-index: 60;
-        width: 44px;
-        height: 44px;
-        background: rgba(7, 10, 19, 0.9);
-        backdrop-filter: blur(14px);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 12px;
-        color: white;
-        cursor: pointer;
-        transition: all 0.2s;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
     
-    #sidebar-toggle:hover {
-        background: rgba(14, 165, 233, 0.2);
-        border-color: rgba(14, 165, 233, 0.4);
+    #sidebar {
+        position: fixed !important;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: var(--sidebar-width);
+        z-index: 50;
+        transform: translateX(-100%);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 10px 0 30px rgba(0, 0, 0, 0.6);
+        will-change: transform;
     }
     
-    #sidebar-toggle i {
-        font-size: 18px;
-        transition: transform 0.3s;
+    #sidebar.sidebar-open {
+        transform: translateX(0);
     }
     
-    /* Overlay sombre quand sidebar ouverte */
-    #sidebar-overlay {
-        display: none;
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.5);
-        backdrop-filter: blur(4px);
-        z-index: 45;
-        opacity: 0;
-        transition: opacity 0.3s;
+    /* Blocage du scroll arrière-plan quand le menu est ouvert */
+    body.sidebar-open {
+        overflow: hidden !important;
     }
     
-    #sidebar-overlay.active {
-        display: block;
-        opacity: 1;
+    .main-content {
+        padding-top: 4.5rem !important;
     }
-    
-    /* Animation pulse maintenance */
-    @keyframes pulse-warning {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.5; }
+}
+
+/* ============================================
+   DESKTOP (>= 768px)
+   ============================================ */
+@media (min-width: 768px) {
+    #sidebar {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        shrink-0: 0;
     }
-    .maintenance-pulse {
-        animation: pulse-warning 2s infinite;
-    }
-    
-    /* Tooltip pour liens externes */
-    .external-link-hint {
-        opacity: 0;
-        transition: opacity 0.2s;
-    }
-    .nav-item:hover .external-link-hint {
-        opacity: 0.5;
-    }
-    
-    /* ============================================
-       RESPONSIVE MOBILE (< 768px)
-       ============================================ */
-    @media (max-width: 767px) {
-        #sidebar-toggle {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        #sidebar {
-            position: fixed !important;
-            top: 0;
-            left: 0;
-            bottom: 0;
-            width: 280px;
-            z-index: 50;
-            transform: translateX(-100%);
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 4px 0 20px rgba(0, 0, 0, 0.5);
-        }
-        
-        #sidebar.sidebar-open {
-            transform: translateX(0);
-        }
-        
-        /* Ajustement du contenu principal */
-        body.sidebar-open {
-            overflow: hidden;
-        }
-        
-        /* Padding pour ne pas cacher le contenu sous le burger */
-        .main-content {
-            padding-top: 4rem !important;
-        }
-    }
-    
-    /* ============================================
-       DESKTOP (>= 768px)
-       ============================================ */
-    @media (min-width: 768px) {
-        #sidebar {
-            position: sticky;
-            top: 0;
-            height: 100vh;
-        }
-    }
+}
