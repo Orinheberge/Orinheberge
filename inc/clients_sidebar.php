@@ -69,7 +69,7 @@ $open_tickets = $open_tickets ?? 0;
 ?>
 
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-<link href="/inc/clients_sidebar.css" rel="stylesheet">
+<link href="/inc/clients_sidebar.css?v=<?php echo time(); ?>" rel="stylesheet">
 
 <button id="sidebar-toggle" aria-label="Ouvrir le menu">
     <i class="fas fa-bars" id="sidebar-toggle-icon"></i>
@@ -111,12 +111,12 @@ $open_tickets = $open_tickets ?? 0;
 
         <div class="nav-section">Principal</div>
         
-        <a href="/client/" class="nav-item <?php echo $current_path === '/client/' || $current_path === '/client' ? 'active' : ''; ?>">
+        <a href="/client/" class="nav-item nav-dashboard <?php echo $current_path === '/client/' || $current_path === '/client' ? 'active' : ''; ?>">
             <i class="fas fa-home icon"></i> 
             <span>Tableau de bord</span>
         </a>
         
-        <a href="/client/servers/" class="nav-item <?php echo cs_active('/client/servers'); ?>">
+        <a href="/client/servers/" class="nav-item nav-servers <?php echo cs_active('/client/servers'); ?>">
             <i class="fas fa-server icon"></i> 
             <span>Mes serveurs</span>
             <?php if ($_client_servers_count > 0): ?>
@@ -125,7 +125,7 @@ $open_tickets = $open_tickets ?? 0;
         </a>
 
         <?php if ($_notif_count > 0): ?>
-        <a href="/notifications/" class="nav-item <?php echo cs_active('/notifications'); ?>">
+        <a href="/notifications/" class="nav-item nav-notif <?php echo cs_active('/notifications'); ?>">
             <i class="fas fa-bell icon"></i> 
             <span>Notifications</span>
             <span class="ml-auto text-[10px] bg-rose-500/15 text-rose-400 border border-rose-500/20 px-2 py-0.5 rounded-full font-bold"><?php echo $_notif_count; ?></span>
@@ -136,12 +136,12 @@ $open_tickets = $open_tickets ?? 0;
 
         <div class="nav-section">Boutique</div>
         
-        <a href="/offres/" class="nav-item <?php echo cs_active('/offres'); ?>">
+        <a href="/offres/" class="nav-item nav-offers <?php echo cs_active('/offres'); ?>">
             <i class="fas fa-tags icon"></i> 
             <span>Nos offres</span>
         </a>
         
-        <a href="/shop/cart/" class="nav-item <?php echo cs_active('/shop/cart'); ?>">
+        <a href="/shop/cart/" class="nav-item nav-cart <?php echo cs_active('/shop/cart'); ?>">
             <i class="fas fa-shopping-cart icon"></i> 
             <span>Mon panier</span>
         </a>
@@ -150,12 +150,12 @@ $open_tickets = $open_tickets ?? 0;
 
         <div class="nav-section">Compte</div>
         
-        <a href="/profil/" class="nav-item <?php echo cs_active('/profil'); ?>">
+        <a href="/profil/" class="nav-item nav-profile <?php echo cs_active('/profil'); ?>">
             <i class="fas fa-user icon"></i> 
             <span>Mon profil</span>
         </a>
         
-        <a href="/client/billing/" class="nav-item <?php echo cs_active('/client/billing'); ?>">
+        <a href="/client/billing/" class="nav-item nav-billing <?php echo cs_active('/client/billing'); ?>">
             <i class="fas fa-file-invoice-dollar icon"></i> 
             <span>Facturation</span>
             <?php if ($_pending_invoices_count > 0): ?>
@@ -163,7 +163,7 @@ $open_tickets = $open_tickets ?? 0;
             <?php endif; ?>
         </a>
         
-        <a href="/support/" class="nav-item <?php echo cs_active('/support'); ?>">
+        <a href="/support/" class="nav-item nav-support <?php echo cs_active('/support'); ?>">
             <i class="fas fa-headset icon"></i> 
             <span>Support</span>
             <?php if ((int)$open_tickets > 0): ?>
@@ -171,7 +171,7 @@ $open_tickets = $open_tickets ?? 0;
             <?php endif; ?>
         </a>
         
-        <a href="/status/" class="nav-item <?php echo cs_active('/status'); ?>">
+        <a href="/status/" class="nav-item nav-status <?php echo cs_active('/status'); ?>">
             <i class="fas fa-signal icon"></i> 
             <span>Statut</span>
             <?php if ($_maintenance_active): ?>
@@ -183,19 +183,19 @@ $open_tickets = $open_tickets ?? 0;
 
         <div class="nav-section">Outils externes</div>
         
-        <a href="<?php echo htmlspecialchars($panel_url); ?>" target="_blank" rel="noopener noreferrer" class="nav-item group">
+        <a href="<?php echo htmlspecialchars($panel_url); ?>" target="_blank" rel="noopener noreferrer" class="nav-item nav-external group">
             <i class="fas fa-cogs icon"></i> 
             <span>Panel Pterodactyl</span>
             <i class="fas fa-external-link-alt text-[9px] ml-auto opacity-50 group-hover:opacity-100 transition"></i>
         </a>
         
-        <a href="<?php echo htmlspecialchars($phpmyadmin_url); ?>" target="_blank" rel="noopener noreferrer" class="nav-item group">
+        <a href="<?php echo htmlspecialchars($phpmyadmin_url); ?>" target="_blank" rel="noopener noreferrer" class="nav-item nav-external group">
             <i class="fas fa-database icon"></i> 
             <span>phpMyAdmin</span>
             <i class="fas fa-external-link-alt text-[9px] ml-auto opacity-50 group-hover:opacity-100 transition"></i>
         </a>
 
-        <a href="/discord/" target="_blank" rel="noopener noreferrer" class="nav-item group">
+        <a href="/discord/" target="_blank" rel="noopener noreferrer" class="nav-item nav-discord group">
             <i class="fab fa-discord icon" style="color:#5865F2;"></i> 
             <span>Discord</span>
             <i class="fas fa-external-link-alt text-[9px] ml-auto opacity-50 group-hover:opacity-100 transition"></i>
@@ -217,7 +217,7 @@ $open_tickets = $open_tickets ?? 0;
         </div>
 
         <?php if (!empty($_SESSION['is_admin'])): ?>
-        <a href="/admin/" class="nav-item mb-2" style="color:#fb923c;border-color:rgba(251,146,60,.15);background:rgba(251,146,60,.05);">
+        <a href="/admin/" class="nav-item nav-admin mb-2">
             <i class="fas fa-user-tie icon"></i> 
             <span>Administration</span>
         </a>
@@ -238,7 +238,7 @@ $open_tickets = $open_tickets ?? 0;
             <i class="fas fa-chevron-right text-[9px] text-gray-600 group-hover:text-gray-400 transition shrink-0"></i>
         </a>
         
-        <a href="/logout/" class="nav-item text-red-500 hover:bg-red-500/10">
+        <a href="/logout/" class="nav-item nav-logout">
             <i class="fas fa-sign-out-alt icon"></i> 
             <span>Déconnexion</span>
         </a>
