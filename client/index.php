@@ -37,8 +37,6 @@ $services = $stmt->fetchAll();
 $stmt = $pdo->prepare("SELECT COUNT(*) FROM support_tickets WHERE user_id=? AND status != 'Fermé'");
 $stmt->execute([$_SESSION['user_id']]);
 $open_tickets = (int)$stmt->fetchColumn();
-
-include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php';
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo $lang; ?>">
@@ -89,6 +87,8 @@ function toggleSidebar(){document.getElementById('sidebar').classList.toggle('op
 </head>
 <body>
 <div id="overlay" class="mobile-overlay" onclick="toggleSidebar()"></div>
+
+<?php include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php'; ?>
 
 <div class="main-content">
   <!-- Topbar -->
