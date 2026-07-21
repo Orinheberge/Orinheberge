@@ -66,7 +66,6 @@ if (isset($_GET['action'], $_GET['uuid'])) {
     $s->execute([$_SESSION['user_id'], $uuid]);
     $sv = $s->fetch();
     if ($sv) {
-        // Bloquer toutes les actions si le serveur est suspendu ou supprimé
         if (in_array($sv['status'], ['suspended', 'deleted'])) {
             $_SESSION['api_error'] = '🔒 Serveur suspendu — renouvelez pour le réactiver.';
             header('Location: /client/servers/'); exit();
@@ -123,7 +122,6 @@ foreach ($servers as $srv) {
     $server_data[] = $entry;
 }
 $total = count($servers);
-include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php';
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo $lang ?? 'fr'; ?>">
@@ -185,27 +183,30 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php';
         }
     </style>
     <script>
-        function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('overlay').classList.toggle('open');}
-        function confirmDelete(name){return confirm('Supprimer le serveur "'+name+'" ?\nCette action est irréversible.');}
+        function toggleSidebar(){
+            const sb = document.getElementById('sidebar');
+            const ov = document.getElementById('overlay');
+            if(sb) sb.classList.toggle('open');
+            if(ov) ov.classList.toggle('open');
+        }
+        function confirmDelete(name){
+            return confirm('Supprimer le serveur "'+name+'" ?\nCette action est irréversible.');
+        }
     </script>
 </head>
 <body>
 
 <div id="overlay" class="mobile-overlay" onclick="toggleSidebar()"></div>
 
-<!-- ══ SIDEBAR ══ 
+<?php include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php'; ?>
 
-
-<!-- ══ MAIN ══ -->
 <div class="main-content">
 
-    <!-- Topbar -->
     <div class="topbar">
-          <div class="flex items-center gap-3">
-    <button id="sidebar-toggle" class="md:hidden text-gray-400 hover:text-white text-lg w-8" aria-label="Ouvrir le menu">
-    <i class="fas fa-bars" id="sidebar-toggle-icon"></i>
-    </button>
- </div>
+        <div class="flex items-center gap-3">
+            <button id="sidebar-toggle" class="md:hidden text-gray-400 hover:text-white text-lg w-8" aria-label="Ouvrir le menu" onclick="toggleSidebar()">
+                <i class="fas fa-bars" id="sidebar-toggle-icon"></i>
+            </button>
             <div>
                 <div class="text-sm font-bold text-white">Mes serveurs</div>
                 <div class="text-xs text-gray-500"><?php echo $total; ?> machine<?php echo $total !== 1 ? 's' : ''; ?> déployée<?php echo $total !== 1 ? 's' : ''; ?></div>
@@ -225,11 +226,9 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php';
         </div>
     </div>
 
-    <!-- Content -->
     <div class="content">
         <?php echo $api_message; ?>
 
-        <!-- Stats rapides -->
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <div class="stat-card">
                 <div class="flex items-center justify-between mb-2">
@@ -265,8 +264,7 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php';
             </div>
         </div>
 
-        <!-- Table serveurs -->
-        <div class="card">
+        <div class="card overflow-hidden">
             <div class="flex items-center justify-between px-5 py-4 border-b border-white/[0.05]">
                 <h2 class="text-sm font-bold text-white flex items-center gap-2">
                     <i class="fas fa-server text-sky-400 text-xs"></i> Mes serveurs
@@ -287,7 +285,6 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php';
             </div>
             <?php else: ?>
 
-            <!-- En-têtes table (masqués sur mobile) -->
             <div class="res-cols grid border-b border-white/[0.05] px-5 py-2.5 text-[10px] font-bold text-gray-600 uppercase tracking-wider" style="grid-template-columns:2fr 1fr 1fr 1fr 1fr auto;">
                 <span>Serveur</span><span>Statut</span><span>CPU</span><span>RAM</span><span>Disque</span><span>Actions</span>
             </div>
@@ -302,19 +299,16 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php';
             foreach ($server_data as $entry):
                 $server     = $entry['server'];
                 $status     = $entry['status'];
-                $db_status  = $server['status'] ?? 'paid'; // statut BDD (paid/suspended/deleted)
+                $db_status  = $server['status'] ?? 'paid';
                 $id         = $server['uuid'] ?? '';
                 $short_id   = $server['id_server_panel'] ?? substr($id, 0, 8);
                 $is_suspended = in_array($db_status, ['suspended', 'deleted']);
                 $sm         = $status_map[$status] ?? ['text' => 'Inconnu', 'badge' => 'badge-gray', 'dot' => 'bg-gray-400'];
-                // Overrider le badge si suspendu en BDD
+                
                 if ($db_status === 'suspended') $sm = ['text' => 'Suspendu', 'badge' => 'badge-gray', 'dot' => 'bg-gray-500'];
                 if ($db_status === 'deleted')   $sm = ['text' => 'Supprimé', 'badge' => 'badge-red',  'dot' => 'bg-red-500'];
                 $name       = htmlspecialchars($server['service_name'] ?? 'Serveur');
-                // Date suppression si suspendu
-                $delete_after = $server['delete_after'] ?? null;
 
-                // Icône selon type
                 $sname_low  = strtolower($server['service_name'] ?? '');
                 $icon_class = 'fas fa-server text-sky-400';
                 $icon_bg    = 'bg-sky-500/15';
@@ -324,7 +318,6 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php';
                 elseif (str_contains($sname_low, 'python'))                                     { $icon_class = 'fab fa-python text-yellow-400'; $icon_bg = 'bg-yellow-500/15'; }
             ?>
             <div class="service-row flex-wrap gap-y-3">
-                <!-- Icône + nom -->
                 <div class="flex items-center gap-3 min-w-0" style="flex:2">
                     <div class="service-icon <?php echo $icon_bg; ?>">
                         <i class="<?php echo $icon_class; ?> text-sm"></i>
@@ -337,18 +330,15 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php';
                         <?php endif; ?>
                     </div>
                 </div>
-                <!-- Statut -->
                 <div class="flex items-center" style="flex:1">
                     <span class="badge <?php echo $sm['badge']; ?>">
                         <span class="w-1.5 h-1.5 rounded-full <?php echo $sm['dot']; ?><?php echo in_array($status, ['running','starting']) ? ' animate-pulse' : ''; ?>"></span>
                         <?php echo $sm['text']; ?>
                     </span>
                 </div>
-                <!-- Ressources -->
                 <div class="res-cols flex items-center text-xs font-mono text-gray-400" style="flex:1"><?php echo $entry['cpu']; ?>%</div>
                 <div class="res-cols flex items-center text-xs font-mono text-gray-400" style="flex:1"><?php echo $entry['ram_mb']; ?> MB</div>
                 <div class="res-cols flex items-center text-xs font-mono text-gray-400" style="flex:1"><?php echo $entry['disk_gb']; ?> GB</div>
-                <!-- Actions -->
                 <?php if (!empty($id)): ?>
                 <div class="flex items-center gap-2 flex-wrap shrink-0">
                     <a href="?action=start&uuid=<?php echo urlencode($id); ?>" class="btn-sm btn-green" title="Démarrer"><i class="fas fa-play text-[10px]"></i></a>
@@ -367,8 +357,5 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php';
             <?php endif; ?>
         </div>
 
-    </div><!-- /content -->
-</div><!-- /main-content -->
-
-</body>
+    </div></div></body>
 </html>

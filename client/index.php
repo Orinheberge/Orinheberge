@@ -33,7 +33,6 @@ $stmt->execute([$_SESSION['user_id']]);
 $services = $stmt->fetchAll();
 
 // Tickets ouverts
-// (fix: l'ancienne requête exécutait le prepare() ET une 2e requête brute en doublon)
 $stmt = $pdo->prepare("SELECT COUNT(*) FROM support_tickets WHERE user_id=? AND status != 'Fermé'");
 $stmt->execute([$_SESSION['user_id']]);
 $open_tickets = (int)$stmt->fetchColumn();
@@ -82,16 +81,17 @@ body{background:#0d0f14;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFo
 @media(max-width:768px){.sidebar{transform:translateX(-100%);transition:transform .25s;}.sidebar.open{transform:translateX(0);}.mobile-overlay.open{display:block;}.main-content{margin-left:0;}.topbar,.content{padding:.75rem 1rem;}}
 </style>
 <script>
-function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('overlay').classList.toggle('open');}
+function toggleSidebar(){
+  document.getElementById('sidebar')?.classList.toggle('open');
+  document.getElementById('overlay')?.classList.toggle('open');
+}
 </script>
 </head>
 <body>
 <div id="overlay" class="mobile-overlay" onclick="toggleSidebar()"></div>
-
 <?php include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php'; ?>
 
 <div class="main-content">
-  <!-- Topbar -->
   <div class="topbar">
     <div class="flex items-center gap-3">
       <button id="sidebar-toggle" class="md:hidden text-gray-400 hover:text-white text-lg w-8" aria-label="Ouvrir le menu" onclick="toggleSidebar()">
@@ -118,12 +118,11 @@ function toggleSidebar(){document.getElementById('sidebar').classList.toggle('op
 
   <div class="content">
     <?php
-    $paid  = array_filter($services, fn($s)=>($s['status']??'')==='paid');
-    $free  = array_filter($services, fn($s)=>($s['renewal_price']??0)==0);
-    $susp  = array_filter($services, fn($s)=>($s['status']??'')==='suspended');
+    $paid = array_filter($services, fn($s)=>($s['status']??'')==='paid');
+    $free = array_filter($services, fn($s)=>($s['renewal_price']??0)==0);
+    $susp = array_filter($services, fn($s)=>($s['status']??'')==='suspended');
     ?>
 
-    <!-- Stats -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
       <div class="stat-card">
         <div class="flex items-center justify-between mb-3"><span class="text-xs text-gray-500 font-medium">Services</span><div class="w-7 h-7 rounded-lg bg-sky-500/15 flex items-center justify-center"><i class="fas fa-server text-sky-400 text-xs"></i></div></div>
@@ -147,10 +146,8 @@ function toggleSidebar(){document.getElementById('sidebar').classList.toggle('op
       </a>
     </div>
 
-    <!-- Content grid -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-      <!-- Liste services -->
       <div class="lg:col-span-2 card">
         <div class="flex items-center justify-between px-5 py-4 border-b border-white/[0.05]">
           <h2 class="text-sm font-bold text-white flex items-center gap-2"><i class="fas fa-server text-sky-400 text-xs"></i> Mes services</h2>
@@ -200,7 +197,6 @@ function toggleSidebar(){document.getElementById('sidebar').classList.toggle('op
         <?php endif; ?>
       </div>
 
-      <!-- Accès rapide -->
       <div class="space-y-2.5">
         <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider px-1 mb-3">Accès rapide</h3>
         <a href="/offres/" class="qlink"><div class="qlink-icon bg-sky-500/15"><i class="fas fa-tags text-sky-400"></i></div><div><div class="text-xs font-semibold text-white">Nos offres</div><div class="text-[10px] text-gray-500">Plans & tarifs</div></div></a>
@@ -221,7 +217,7 @@ function toggleSidebar(){document.getElementById('sidebar').classList.toggle('op
       </div>
 
     </div>
-  </div><!-- /content -->
-</div><!-- /main-content -->
+  </div>
+</div>
 </body>
 </html>

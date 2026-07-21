@@ -98,32 +98,30 @@ $statuts = [
 $active_nav = 'ideas';
 include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_layout.php';
 ?>
-<script src="https://cdn.tailwindcss.com"></script>
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 
 <div class="main-content">
-  <div class="topbar">
-      <div class="flex items-center gap-3">
+  <div class="topbar flex items-center justify-between p-4 border-b border-white/10">
+    <div class="flex items-center gap-3">
       <button id="adminSidebarToggle" class="md:hidden text-gray-400 hover:text-white text-lg w-8" aria-label="Ouvrir le menu admin">
-    <i class="fas fa-bars"></i>
-</button>
-    <div>
-      <div class="text-sm font-bold text-white flex items-center gap-2">
-        <i class="fas fa-lightbulb text-yellow-400 text-xs"></i> Mes idées
-      </div>
-      <div class="text-xs text-gray-500">
-        <?= $countTodo ?> à faire · <?= $countInProgress ?> en cours · <?= $countDone ?> terminées
+        <i class="fas fa-bars"></i>
+      </button>
+      <div>
+        <div class="text-sm font-bold text-white flex items-center gap-2">
+          <i class="fas fa-lightbulb text-yellow-400 text-xs"></i> Mes idées
+        </div>
+        <div class="text-xs text-gray-500">
+          <?= $countTodo ?> à faire · <?= $countInProgress ?> en cours · <?= $countDone ?> terminées
+        </div>
       </div>
     </div>
     <button onclick="openAddModal()" class="btn btn-primary">
-      <i class="fas fa-plus text-xs"></i> Nouvelle idée
+      <i class="fas fa-plus text-xs mr-1"></i> Nouvelle idée
     </button>
   </div>
 
-  <div class="content">
+  <div class="content p-4">
     <?= $flash ?>
 
-    <!-- Filtres -->
     <div class="flex gap-2 mb-4">
       <a href="?filter=all" class="px-3 py-1.5 rounded-lg text-xs font-semibold <?= $filter==='all' ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30' : 'bg-white/5 text-gray-400 hover:bg-white/10' ?>">
         Toutes <span class="opacity-60">(<?= count($ideas) ?>)</span>
@@ -139,7 +137,6 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_layout.php';
       </a>
     </div>
 
-    <!-- Liste des idées -->
     <div class="space-y-2">
       <?php if (empty($ideas)): ?>
         <div class="card px-5 py-12 text-center text-gray-500 text-sm">
@@ -153,14 +150,12 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_layout.php';
         ?>
         <div class="card p-4 flex items-start gap-3 group hover:border-white/10 transition <?= $isDone ? 'opacity-60' : '' ?>">
           
-          <!-- Case à cocher -->
           <button onclick="toggleIdea(<?= $idea['id'] ?>, '<?= $isDone ? 'todo' : 'done' ?>')" 
                   class="mt-0.5 w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition
                   <?= $isDone ? 'bg-green-500 border-green-500 text-white' : 'border-gray-600 hover:border-indigo-400' ?>">
             <?php if ($isDone): ?><i class="fas fa-check text-[10px]"></i><?php endif; ?>
           </button>
 
-          <!-- Contenu -->
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2 flex-wrap">
               <div class="font-semibold text-white text-sm <?= $isDone ? 'line-through text-gray-500' : '' ?>">
@@ -183,7 +178,6 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_layout.php';
             </div>
           </div>
 
-          <!-- Actions -->
           <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
             <button onclick='openEditModal(<?= json_encode($idea) ?>)' class="btn btn-ghost text-xs" title="Modifier">
               <i class="fas fa-edit"></i>
@@ -201,7 +195,6 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_layout.php';
   </div>
 </div>
 
-<!-- Modal Ajouter/Modifier -->
 <div id="modalIdea" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" style="backdrop-filter:blur(6px)">
   <div class="bg-[#161a22] border border-white/10 rounded-2xl w-full max-w-xl p-6">
     <div class="flex items-center justify-between mb-5">
@@ -292,4 +285,3 @@ function toggleIdea(id, newStatut) {
         .then(() => window.location.reload());
 }
 </script>
-</body></html>
