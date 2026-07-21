@@ -5,9 +5,6 @@
     --sidebar-width: 280px;
     --sidebar-bg: #070a13;
     --sidebar-border: rgba(255, 255, 255, 0.08);
-    --sidebar-item-hover: rgba(255, 255, 255, 0.05);
-    --sidebar-active-bg: rgba(14, 165, 233, 0.12);
-    --sidebar-active-color: #38bdf8;
     --sidebar-text: #94a3b8;
     --sidebar-text-hover: #f8fafc;
 }
@@ -89,7 +86,7 @@
 }
 
 /* ============================================
-   ELEMENTS DE NAVIGATION
+   ELEMENTS DE NAVIGATION GENERAUX
    ============================================ */
 .sidebar-logo {
     padding-bottom: 1rem;
@@ -123,7 +120,7 @@
     font-weight: 500;
     color: var(--sidebar-text);
     text-decoration: none;
-    transition: all 0.15s ease-in-out;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     border: 1px solid transparent;
 }
 
@@ -132,33 +129,104 @@
     text-align: center;
     font-size: 0.95rem;
     color: #64748b;
-    transition: color 0.15s ease;
-}
-
-.nav-item:hover {
-    color: var(--sidebar-text-hover);
-    background-color: var(--sidebar-item-hover);
-}
-
-.nav-item:hover .icon {
-    color: #38bdf8;
-}
-
-.nav-item.active {
-    color: var(--sidebar-active-color);
-    background-color: var(--sidebar-active-bg);
-    border-color: rgba(14, 165, 233, 0.2);
-    font-weight: 600;
-}
-
-.nav-item.active .icon {
-    color: var(--sidebar-active-color);
+    transition: color 0.2s ease, transform 0.2s ease;
 }
 
 .nav-separator {
     height: 1px;
     background-color: var(--sidebar-border);
     margin: 0.75rem 0;
+}
+
+/* ============================================
+   COULEURS SPECIFIQUES AU HOVER / ACTIVE
+   ============================================ */
+
+/* Style générique au survol */
+.nav-item:hover {
+    color: var(--sidebar-text-hover);
+    transform: translateX(3px);
+}
+
+.nav-item:hover .icon {
+    transform: scale(1.1);
+}
+
+/* 🔵 1. Navigation Principale (Tableau de bord, Serveurs, Offres, Profil) — Cyan / Sky */
+.nav-item:hover {
+    background-color: rgba(14, 165, 233, 0.08);
+    border-color: rgba(14, 165, 233, 0.2);
+}
+.nav-item:hover .icon {
+    color: #38bdf8;
+}
+
+.nav-item.active {
+    color: #38bdf8;
+    background-color: rgba(14, 165, 233, 0.12);
+    border-color: rgba(14, 165, 233, 0.3);
+    font-weight: 600;
+}
+.nav-item.active .icon {
+    color: #38bdf8;
+}
+
+/* 🟢 2. Boutique / Panier — Émeraude / Vert */
+.nav-item[href*="/shop/cart"]:hover {
+    background-color: rgba(16, 185, 129, 0.08);
+    border-color: rgba(16, 185, 129, 0.2);
+}
+.nav-item[href*="/shop/cart"]:hover .icon {
+    color: #34d399;
+}
+
+/* 🟡 3. Facturation — Ambre / Jaune */
+.nav-item[href*="/billing"]:hover {
+    background-color: rgba(245, 158, 11, 0.08);
+    border-color: rgba(245, 158, 11, 0.2);
+}
+.nav-item[href*="/billing"]:hover .icon {
+    color: #fbbf24;
+}
+
+/* 🟣 4. Support — Violet */
+.nav-item[href*="/support"]:hover {
+    background-color: rgba(168, 85, 247, 0.08);
+    border-color: rgba(168, 85, 247, 0.2);
+}
+.nav-item[href*="/support"]:hover .icon {
+    color: #c084fc;
+}
+
+/* 🔴 5. Notifications — Rose / Rouge */
+.nav-item[href*="/notifications"]:hover {
+    background-color: rgba(244, 63, 94, 0.08);
+    border-color: rgba(244, 63, 94, 0.2);
+}
+.nav-item[href*="/notifications"]:hover .icon {
+    color: #fb7185;
+}
+
+/* 🔵 6. Discord — Indigo / Blurple */
+.nav-item[href*="/discord"]:hover {
+    background-color: rgba(88, 101, 242, 0.1);
+    border-color: rgba(88, 101, 242, 0.25);
+}
+
+/* 🟧 7. Administration — Orange */
+.nav-item[href*="/admin/"]:hover {
+    background-color: rgba(251, 146, 60, 0.12) !important;
+    border-color: rgba(251, 146, 60, 0.3) !important;
+}
+
+/* 🚨 8. Déconnexion — Rouge Danger */
+.nav-item[href*="/logout"]:hover {
+    background-color: rgba(239, 68, 68, 0.1) !important;
+    border-color: rgba(239, 68, 68, 0.2) !important;
+    color: #f87171 !important;
+}
+.nav-item[href*="/logout"]:hover .icon {
+    color: #f87171 !important;
 }
 
 /* ============================================
@@ -173,7 +241,6 @@
     animation: pulse-warning 2s infinite ease-in-out;
 }
 
-/* Tooltip / Hint pour liens externes */
 .external-link-hint {
     opacity: 0.3;
     transition: opacity 0.2s ease, transform 0.2s ease;
@@ -181,7 +248,7 @@
 
 .nav-item:hover .external-link-hint {
     opacity: 0.9;
-    transform: translate(1px, -1px);
+    transform: translate(2px, -2px);
 }
 
 /* ============================================
@@ -211,7 +278,6 @@
         transform: translateX(0);
     }
     
-    /* Blocage du scroll arrière-plan quand le menu est ouvert */
     body.sidebar-open {
         overflow: hidden !important;
     }
