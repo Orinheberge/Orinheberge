@@ -2,10 +2,9 @@
 session_start();
 require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/lang.php';
 
-// --- CONFIGURATION SÉCURITÉ (À déplacer idéalement dans un fichier config.php hors racine web) ---
-define('ENCRYPTION_KEY', 'UneVraieCleSecreteDe32CaracteresIci!!'); // DOIT faire 32 caractères exactement
+// --- CONFIGURATION SÉCURITÉ ---
+define('ENCRYPTION_KEY', 'UneVraieCleSecreteDe32CaracteresIci!!'); 
 
-// Sécurité : Redirection si non connecté
 if (!isset($_SESSION['user_id'])) { 
     header('Location: /login/'); 
     exit(); 
@@ -22,7 +21,6 @@ try {
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
     ]);
 
-    // Récupération utilisateur
     $stmt = $pdo->prepare('SELECT id, firstname, lastname, pseudo, email, avatar FROM users WHERE id = ? LIMIT 1');
     $stmt->execute([$_SESSION['user_id']]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -33,22 +31,18 @@ try {
         exit(); 
     }
     
-    // Récupération carte bancaire
     $card_info = null;
     try {
         $stmt_card = $pdo->prepare('SELECT card_number, card_holder, card_expiry, card_type FROM user_cards WHERE user_id = ? LIMIT 1');
         $stmt_card->execute([$_SESSION['user_id']]);
         $card_info = $stmt_card->fetch(PDO::FETCH_ASSOC);
-    } catch (Exception $e) {
-        // Table peut-être pas encore créée
-    }
+    } catch (Exception $e) { /* Ignore */ }
 
 } catch (Exception $e) {
     $message = t('profil.db_error') . " : " . $e->getMessage();
     $message_type = 'error';
 }
 
-// Fonction utilitaire pour le chiffrement/déchiffrement
 function encrypt_data($data) {
     return openssl_encrypt($data, 'AES-256-CBC', ENCRYPTION_KEY, 0, substr(hash('sha256', ENCRYPTION_KEY), 0, 16));
 }
@@ -57,7 +51,6 @@ function decrypt_data($data) {
     return openssl_decrypt($data, 'AES-256-CBC', ENCRYPTION_KEY, 0, substr(hash('sha256', ENCRYPTION_KEY), 0, 16));
 }
 
-// Traitement du formulaire
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $firstname = trim($_POST['firstname'] ?? '');
     $lastname  = trim($_POST['lastname']  ?? '');
@@ -70,7 +63,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         if ($firstname === '' || $lastname === '' || $email === '') throw new Exception('Le prénom, le nom et l\'adresse email sont obligatoires.');
 
-        // Gestion Avatar
         if (isset($_FILES['avatar']) && $_FILES['avatar']['error'] === UPLOAD_ERR_OK) {
             $file_tmp = $_FILES['avatar']['tmp_name'];
             $file_ext = strtolower(pathinfo($_FILES['avatar']['name'], PATHINFO_EXTENSION));
@@ -89,7 +81,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        // Mise à jour infos de base
         $password_sql = '';
         $params = [$firstname, $lastname, $pseudo, $email, $new_avatar_path];
         if ($password !== '') {
@@ -101,13 +92,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $params[] = $user['id'];
         $pdo->prepare("UPDATE users SET firstname=?,lastname=?,pseudo=?,email=?,avatar=? {$password_sql} WHERE id=?")->execute($params);
 
-        // Gestion Carte Bancaire
         if (isset($_POST['save_card']) && $_POST['save_card'] == '1') {
             $card_number = preg_replace('/\s+/', '', trim($_POST['card_number'] ?? ''));
             $card_holder = trim($_POST['card_holder'] ?? '');
             $card_expiry = trim($_POST['card_expiry'] ?? '');
             
-            // On n'enregistre que si les champs sont remplis
             if (!empty($card_number) && !empty($card_holder) && !empty($card_expiry)) {
                  $card_type = '';
                 if (preg_match('/^4/', $card_number)) $card_type = 'visa';
@@ -129,7 +118,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        // Refresh session & data
         $user['firstname'] = $firstname; 
         $user['lastname'] = $lastname;
         $user['pseudo'] = $pseudo; 
@@ -140,7 +128,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $message = t('profil.success');
         $message_type = 'success';
         
-        // Re-fetch card info
         $stmt_card_refresh = $pdo->prepare('SELECT * FROM user_cards WHERE user_id = ?');
         $stmt_card_refresh->execute([$_SESSION['user_id']]);
         $card_info = $stmt_card_refresh->fetch(PDO::FETCH_ASSOC);
@@ -153,7 +140,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $avatar_url = !empty($user['avatar']) ? '/' . $user['avatar'] : 'https://www.gravatar.com/avatar/' . md5(strtolower(trim($user['email']))) . '?d=mp&s=150';
 
-// Affichage masqué CB (Utilise maintenant la même clé via la fonction)
 $display_card_number = '';
 if (!empty($card_info['card_number'])) {
     $decrypted_number = decrypt_data($card_info['card_number']);
@@ -165,7 +151,7 @@ if (!empty($card_info['card_number'])) {
 }
 ?>
 <!DOCTYPE html>
-<html lang="<?php echo $lang; ?>">
+<html lang="<?php echo $lang; ?>" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -174,7 +160,16 @@ if (!empty($card_info['card_number'])) {
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        body { background-color: #0f172a; background-image: radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), radial-gradient(at 50% 0%, hsla(225,39%,30%,1) 0, transparent 50%), radial-gradient(at 100% 0%, hsla(339,49%,30%,1) 0, transparent 50%); }
+        /* Scrollbar personnalisée pour un look plus propre */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        
+        body { 
+            background-color: #0f172a; 
+            background-image: radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), radial-gradient(at 50% 0%, hsla(225,39%,30%,1) 0, transparent 50%), radial-gradient(at 100% 0%, hsla(339,49%,30%,1) 0, transparent 50%); 
+        }
         .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); }
         .sidebar-link { transition: all 0.2s ease; border-left: 3px solid transparent; }
         .sidebar-link:hover, .sidebar-link.active { background: rgba(56, 189, 248, 0.1); border-left-color: #38bdf8; color: #38bdf8; }
@@ -182,50 +177,53 @@ if (!empty($card_info['card_number'])) {
         .input-field:focus { border-color: #38bdf8; box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2); outline: none; }
     </style>
 </head>
-<body class="min-h-screen text-gray-300 font-sans flex overflow-hidden">
+<!-- Suppression de overflow-hidden pour permettre le scroll -->
+<body class="min-h-screen text-gray-300 font-sans flex flex-col">
 
-    <!-- SIDEBAR -->
-    <aside class="w-64 glass-panel hidden md:flex flex-col h-screen fixed left-0 top-0 z-40 border-r border-white/5">
-        <div class="p-6 flex items-center gap-3 border-b border-white/5">
-            <a href="/" class="flex items-center gap-3 group">
-                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center text-white font-bold shadow-lg group-hover:shadow-sky-500/50 transition">O</div>
-                <span class="font-bold text-lg tracking-wide text-white group-hover:text-sky-400 transition">OrinStone</span>
-            </a>
-        </div>
-
-        <nav class="flex-1 py-6 space-y-1">
-            <a href="/client/" class="sidebar-link active flex items-center px-6 py-3 text-sm font-medium">
-                <i class="fas fa-user-circle w-6"></i> <?php echo t('profil.heading'); ?>
-            </a>
-            <a href="/client/servers/" class="sidebar-link flex items-center px-6 py-3 text-sm font-medium hover:text-white">
-                <i class="fas fa-server w-6"></i> Mes Serveurs
-            </a>
-            <a href="/billing/" class="sidebar-link flex items-center px-6 py-3 text-sm font-medium hover:text-white">
-                <i class="fas fa-file-invoice-dollar w-6"></i> Facturation
-            </a>
-            <a href="/support/" class="sidebar-link flex items-center px-6 py-3 text-sm font-medium hover:text-white">
-                <i class="fas fa-ticket-alt w-6"></i> Support
-            </a>
-        </nav>
-
-        <div class="p-4 border-t border-white/5">
-            <a href="/logout/" class="flex items-center gap-3 px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded-lg transition">
-                <i class="fas fa-sign-out-alt"></i> Déconnexion
-            </a>
-        </div>
-    </aside>
-
-    <!-- MAIN CONTENT -->
-    <div class="flex-1 md:ml-64 flex flex-col min-h-screen relative">
+    <!-- WRAPPER PRINCIPAL POUR LE LAYOUT -->
+    <div class="flex flex-1 w-full">
         
-        <!-- Mobile Header -->
-        <header class="md:hidden glass-panel p-4 flex justify-between items-center sticky top-0 z-30">
-            <span class="font-bold text-white">OrinStone</span>
-            <button class="text-gray-400"><i class="fas fa-bars text-xl"></i></button>
-        </header>
+        <!-- SIDEBAR (Sticky pour suivre le scroll) -->
+        <aside class="w-64 glass-panel hidden md:flex flex-col fixed h-screen top-0 left-0 z-40 border-r border-white/5 overflow-y-auto">
+            <div class="p-6 flex items-center gap-3 border-b border-white/5 shrink-0">
+                <a href="/" class="flex items-center gap-3 group">
+                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center text-white font-bold shadow-lg group-hover:shadow-sky-500/50 transition">O</div>
+                    <span class="font-bold text-lg tracking-wide text-white group-hover:text-sky-400 transition">OrinStone</span>
+                </a>
+            </div>
 
-        <main class="flex-grow p-6 lg:p-10 overflow-y-auto">
-            <div class="max-w-4xl mx-auto">
+            <nav class="flex-1 py-6 space-y-1 px-3">
+                <a href="/client/" class="sidebar-link active flex items-center px-3 py-3 text-sm font-medium rounded-r-lg">
+                    <i class="fas fa-user-circle w-6"></i> <?php echo t('profil.heading'); ?>
+                </a>
+                <a href="/client/servers/" class="sidebar-link flex items-center px-3 py-3 text-sm font-medium hover:text-white rounded-r-lg">
+                    <i class="fas fa-server w-6"></i> Mes Serveurs
+                </a>
+                <a href="/billing/" class="sidebar-link flex items-center px-3 py-3 text-sm font-medium hover:text-white rounded-r-lg">
+                    <i class="fas fa-file-invoice-dollar w-6"></i> Facturation
+                </a>
+                <a href="/support/" class="sidebar-link flex items-center px-3 py-3 text-sm font-medium hover:text-white rounded-r-lg">
+                    <i class="fas fa-ticket-alt w-6"></i> Support
+                </a>
+            </nav>
+
+            <div class="p-4 border-t border-white/5 shrink-0">
+                <a href="/logout/" class="flex items-center gap-3 px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded-lg transition">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </div>
+        </aside>
+
+        <!-- CONTENU PRINCIPAL -->
+        <div class="flex-1 md:ml-64 flex flex-col min-h-screen relative w-full">
+            
+            <!-- Mobile Header -->
+            <header class="md:hidden glass-panel p-4 flex justify-between items-center sticky top-0 z-30 backdrop-blur-md bg-[#0f172a]/80">
+                <span class="font-bold text-white">OrinStone</span>
+                <button class="text-gray-400"><i class="fas fa-bars text-xl"></i></button>
+            </header>
+
+            <main class="flex-grow p-6 lg:p-10 w-full max-w-7xl mx-auto">
                 
                 <!-- Header Page -->
                 <div class="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -233,7 +231,7 @@ if (!empty($card_info['card_number'])) {
                         <h1 class="text-3xl font-bold text-white mb-1"><?php echo t('profil.heading'); ?></h1>
                         <p class="text-gray-400 text-sm">Gérez vos informations personnelles et méthodes de paiement.</p>
                     </div>
-                    <div class="flex items-center gap-3 glass-panel px-4 py-2 rounded-full cursor-default">
+                    <div class="flex items-center gap-3 glass-panel px-4 py-2 rounded-full cursor-default self-start sm:self-auto">
                         <img src="<?php echo htmlspecialchars($avatar_url, ENT_QUOTES, 'UTF-8'); ?>" class="w-8 h-8 rounded-full border border-white/20">
                         <span class="text-sm font-semibold text-white"><?php echo htmlspecialchars($user['pseudo'] ?: $user['firstname']); ?></span>
                     </div>
@@ -246,7 +244,7 @@ if (!empty($card_info['card_number'])) {
                 </div>
                 <?php endif; ?>
 
-                <form method="post" enctype="multipart/form-data" class="space-y-8">
+                <form method="post" enctype="multipart/form-data" class="space-y-8 pb-10">
                     
                     <!-- Section Identité -->
                     <div class="glass-panel rounded-2xl p-6 lg:p-8">
@@ -323,7 +321,6 @@ if (!empty($card_info['card_number'])) {
                             <div>
                                 <label class="block text-xs font-bold uppercase text-gray-500 mb-2">Numéro de carte</label>
                                 <div class="relative">
-                                    <!-- Icône dynamique selon le type détecté précédemment ou par défaut Visa -->
                                     <i class="fab fa-cc-visa absolute left-3 top-3.5 text-gray-500 text-lg"></i>
                                     <input type="text" name="card_number" placeholder="0000 0000 0000 0000" maxlength="19" class="input-field w-full rounded-lg pl-10 pr-4 py-3 text-white font-mono tracking-wider">
                                 </div>
@@ -362,11 +359,12 @@ if (!empty($card_info['card_number'])) {
                     </div>
 
                 </form>
-            </div>
-        </main>
+            </main>
+            
+            <!-- Footer inclus ici pour qu'il soit poussé vers le bas par flex-grow -->
+            <?php require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/footer.php'; ?>
+        </div>
     </div>
-<?php
-require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/footer.php';
-?>
+
 </body>
 </html>
