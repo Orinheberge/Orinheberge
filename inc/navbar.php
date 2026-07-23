@@ -110,13 +110,6 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
             <a href="/" class="<?php echo $active_nav === 'home' ? 'bg-sky-600/30 text-sky-400 border-sky-500/50 font-bold' : 'bg-sky-600/5 text-sky-400/70 hover:text-sky-300 border-sky-500/10 hover:bg-sky-600/20'; ?> px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium shadow-md border whitespace-nowrap">
                 <i class="fas fa-home"></i> <?php echo t('nav.home'); ?>
             </a>
-
-            <?php if (isset($_SESSION['user_id'])): ?>
-            <a href="/client/servers/" class="<?php echo $active_nav === 'servers' ? 'bg-slate-600/40 text-slate-300 border-slate-500/60 font-bold' : 'bg-slate-600/10 text-slate-400 hover:text-slate-200 border-slate-500/15 hover:bg-slate-600/30'; ?> px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium shadow-md border whitespace-nowrap">
-                <i class="fas fa-server"></i> <?php echo t('nav.servers'); ?>
-            </a>
-            <?php endif; ?>
-
             <div class="relative group">
                 <button class="text-gray-300 hover:text-sky-400 font-bold flex items-center gap-2.5 transition bg-white/5 hover:bg-white/10 px-4 py-2 rounded-full border border-white/5 focus:outline-none text-xs whitespace-nowrap cursor-pointer">
                     <i class="fas fa-tags"></i> Boutique
@@ -144,7 +137,7 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
 
             <?php if (isset($_SESSION['user_id'])): ?>
                 <?php if ($notif_count > 0): ?>
-                <a href="/notifications/" class="relative bg-rose-600/10 hover:bg-rose-600/20 border border-rose-500/20 text-rose-400 px-3 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium whitespace-nowrap">
+                <a href="inc/notifications/" class="relative bg-rose-600/10 hover:bg-rose-600/20 border border-rose-500/20 text-rose-400 px-3 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium whitespace-nowrap">
                     <i class="fas fa-bell"></i>
                     <span class="notif-badge absolute -top-1 -right-1 w-4 h-4 bg-rose-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center border border-rose-900">
                         <?= $notif_count ?>
@@ -169,6 +162,12 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
                         </a>
                         <a href="/client/servers/" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white">
                             <i class="fas fa-server w-4"></i> Mes serveurs
+                        </a>
+                        <a href="/client/" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white">
+                            <i class="fas fa-home w-4"></i> Mon Espace
+                        </a>
+                        <a href="/client/notification" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white">
+                            <i class="fas fa-bell w-4"></i> Mes notifications
                         </a>
                         <a href="/client/billing/" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white">
                             <i class="fas fa-file-invoice-dollar w-4"></i> Facturation
