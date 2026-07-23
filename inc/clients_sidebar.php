@@ -116,6 +116,7 @@ $open_tickets = $open_tickets ?? 0;
             <span>Tableau de bord</span>
         </a>
         
+        
         <a href="/client/servers/" class="nav-item nav-servers <?php echo cs_active('/client/servers'); ?>">
             <i class="fas fa-server icon"></i> 
             <span>Mes serveurs</span>
@@ -125,7 +126,7 @@ $open_tickets = $open_tickets ?? 0;
         </a>
 
         <?php if ($_notif_count > 0): ?>
-        <a href="/notifications/" class="nav-item nav-notif <?php echo cs_active('/notifications'); ?>">
+        <a href="/client/notifications/" class="nav-item nav-notif <?php echo cs_active('/client/notifications'); ?>">
             <i class="fas fa-bell icon"></i> 
             <span>Notifications</span>
             <span class="ml-auto text-[10px] bg-rose-500/15 text-rose-400 border border-rose-500/20 px-2 py-0.5 rounded-full font-bold"><?php echo $_notif_count; ?></span>
