@@ -2,6 +2,9 @@
 session_start();
 require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/lang.php';
 
+// --- CONFIGURATION SÉCURITÉ (À déplacer idéalement dans un fichier config.php hors racine web) ---
+define('ENCRYPTION_KEY', 'UneVraieCleSecreteDe32CaracteresIci!!'); // DOIT faire 32 caractères exactement
+
 // Sécurité : Redirection si non connecté
 if (!isset($_SESSION['user_id'])) { 
     header('Location: /login/'); 
@@ -11,7 +14,7 @@ if (!isset($_SESSION['user_id'])) {
 $is_logged_in = true;
 $message = '';
 $message_type = 'info';
-$active_page = 'profile'; // Pour surligner l'onglet actif dans la sidebar
+$active_page = 'profile';
 
 try {
     $pdo = new PDO('mysql:host=localhost;dbname=s43_orinheberge;charset=utf8mb4', 'root', '1504', [
@@ -30,19 +33,28 @@ try {
         exit(); 
     }
     
-    // Récupération carte bancaire (si table existe)
+    // Récupération carte bancaire
     $card_info = null;
     try {
         $stmt_card = $pdo->prepare('SELECT card_number, card_holder, card_expiry, card_type FROM user_cards WHERE user_id = ? LIMIT 1');
         $stmt_card->execute([$_SESSION['user_id']]);
         $card_info = $stmt_card->fetch(PDO::FETCH_ASSOC);
     } catch (Exception $e) {
-        // Ignorer silencieusement si la table n'existe pas encore
+        // Table peut-être pas encore créée
     }
 
 } catch (Exception $e) {
     $message = t('profil.db_error') . " : " . $e->getMessage();
     $message_type = 'error';
+}
+
+// Fonction utilitaire pour le chiffrement/déchiffrement
+function encrypt_data($data) {
+    return openssl_encrypt($data, 'AES-256-CBC', ENCRYPTION_KEY, 0, substr(hash('sha256', ENCRYPTION_KEY), 0, 16));
+}
+
+function decrypt_data($data) {
+    return openssl_decrypt($data, 'AES-256-CBC', ENCRYPTION_KEY, 0, substr(hash('sha256', ENCRYPTION_KEY), 0, 16));
 }
 
 // Traitement du formulaire
@@ -91,25 +103,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Gestion Carte Bancaire
         if (isset($_POST['save_card']) && $_POST['save_card'] == '1') {
-            $card_number = preg_replace('/\s+/', '', trim($_POST['card_number'] ?? '')); // Enlever espaces
+            $card_number = preg_replace('/\s+/', '', trim($_POST['card_number'] ?? ''));
             $card_holder = trim($_POST['card_holder'] ?? '');
             $card_expiry = trim($_POST['card_expiry'] ?? '');
             
+            // On n'enregistre que si les champs sont remplis
             if (!empty($card_number) && !empty($card_holder) && !empty($card_expiry)) {
                  $card_type = '';
                 if (preg_match('/^4/', $card_number)) $card_type = 'visa';
                 elseif (preg_match('/^5[1-5]/', $card_number)) $card_type = 'mastercard';
                 elseif (preg_match('/^3[47]/', $card_number)) $card_type = 'amex';
 
-                // Clé de chiffrement (À METTRE DANS UN FICHIER CONFIG SÉCURISÉ)
-                $encryption_key = 'CHANGE_ME_TO_A_REAL_32_CHAR_KEY!!'; 
-                
-                if(strlen($encryption_key) < 32) {
-                     // Fallback pour démo, mais dangereux en prod
-                     $encryption_key = str_pad($encryption_key, 32, 'X');
-                }
-
-                $encrypted_number = openssl_encrypt($card_number, 'AES-256-CBC', $encryption_key, 0, substr(hash('sha256', $encryption_key), 0, 16));
+                $encrypted_number = encrypt_data($card_number);
                 
                 $stmt_check = $pdo->prepare('SELECT id FROM user_cards WHERE user_id = ?');
                 $stmt_check->execute([$_SESSION['user_id']]);
@@ -124,7 +129,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        // Refresh session data
+        // Refresh session & data
         $user['firstname'] = $firstname; 
         $user['lastname'] = $lastname;
         $user['pseudo'] = $pseudo; 
@@ -135,12 +140,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $message = t('profil.success');
         $message_type = 'success';
         
-        // Re-fetch card info for display update
-        if(isset($encryption_key)) {
-             $stmt_card_refresh = $pdo->prepare('SELECT * FROM user_cards WHERE user_id = ?');
-             $stmt_card_refresh->execute([$_SESSION['user_id']]);
-             $card_info = $stmt_card_refresh->fetch(PDO::FETCH_ASSOC);
-        }
+        // Re-fetch card info
+        $stmt_card_refresh = $pdo->prepare('SELECT * FROM user_cards WHERE user_id = ?');
+        $stmt_card_refresh->execute([$_SESSION['user_id']]);
+        $card_info = $stmt_card_refresh->fetch(PDO::FETCH_ASSOC);
 
     } catch (Exception $e) {
         $message = $e->getMessage();
@@ -150,15 +153,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $avatar_url = !empty($user['avatar']) ? '/' . $user['avatar'] : 'https://www.gravatar.com/avatar/' . md5(strtolower(trim($user['email']))) . '?d=mp&s=150';
 
-// Affichage masqué CB
+// Affichage masqué CB (Utilise maintenant la même clé via la fonction)
 $display_card_number = '';
 if (!empty($card_info['card_number'])) {
-    $encryption_key_display = '5644DJSJSWjdjsswx*ssjdj54***-5sdjdj!!';
-    if(strlen($encryption_key_display) < 32) $encryption_key_display = str_pad($encryption_key_display, 32, 'X');
-    
-    $decrypted_number = openssl_decrypt($card_info['card_number'], 'AES-256-CBC', $encryption_key_display, 0, substr(hash('sha256', $encryption_key_display), 0, 16));
+    $decrypted_number = decrypt_data($card_info['card_number']);
     if ($decrypted_number) {
-        $display_card_number = strtoupper($card_info['card_type'] ?: 'CARD') . ' •••• ' . substr($decrypted_number, -4);
+        $type_label = strtoupper($card_info['card_type'] ?: 'CARD');
+        $last4 = substr($decrypted_number, -4);
+        $display_card_number = "$type_label •••• $last4";
     }
 }
 ?>
@@ -185,8 +187,10 @@ if (!empty($card_info['card_number'])) {
     <!-- SIDEBAR -->
     <aside class="w-64 glass-panel hidden md:flex flex-col h-screen fixed left-0 top-0 z-40 border-r border-white/5">
         <div class="p-6 flex items-center gap-3 border-b border-white/5">
-            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center text-white font-bold">O</div>
-            <span class="font-bold text-lg tracking-wide text-white">OrinStone</span>
+            <a href="/" class="flex items-center gap-3 group">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center text-white font-bold shadow-lg group-hover:shadow-sky-500/50 transition">O</div>
+                <span class="font-bold text-lg tracking-wide text-white group-hover:text-sky-400 transition">OrinStone</span>
+            </a>
         </div>
 
         <nav class="flex-1 py-6 space-y-1">
@@ -229,7 +233,7 @@ if (!empty($card_info['card_number'])) {
                         <h1 class="text-3xl font-bold text-white mb-1"><?php echo t('profil.heading'); ?></h1>
                         <p class="text-gray-400 text-sm">Gérez vos informations personnelles et méthodes de paiement.</p>
                     </div>
-                    <div class="flex items-center gap-3 glass-panel px-4 py-2 rounded-full">
+                    <div class="flex items-center gap-3 glass-panel px-4 py-2 rounded-full cursor-default">
                         <img src="<?php echo htmlspecialchars($avatar_url, ENT_QUOTES, 'UTF-8'); ?>" class="w-8 h-8 rounded-full border border-white/20">
                         <span class="text-sm font-semibold text-white"><?php echo htmlspecialchars($user['pseudo'] ?: $user['firstname']); ?></span>
                     </div>
@@ -319,8 +323,9 @@ if (!empty($card_info['card_number'])) {
                             <div>
                                 <label class="block text-xs font-bold uppercase text-gray-500 mb-2">Numéro de carte</label>
                                 <div class="relative">
-                                    <input type="text" name="card_number" placeholder="0000 0000 0000 0000" maxlength="19" class="input-field w-full rounded-lg pl-10 pr-4 py-3 text-white font-mono tracking-wider">
+                                    <!-- Icône dynamique selon le type détecté précédemment ou par défaut Visa -->
                                     <i class="fab fa-cc-visa absolute left-3 top-3.5 text-gray-500 text-lg"></i>
+                                    <input type="text" name="card_number" placeholder="0000 0000 0000 0000" maxlength="19" class="input-field w-full rounded-lg pl-10 pr-4 py-3 text-white font-mono tracking-wider">
                                 </div>
                             </div>
                             
@@ -360,6 +365,8 @@ if (!empty($card_info['card_number'])) {
             </div>
         </main>
     </div>
-
+<?php
+require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/footer.php';
+?>
 </body>
 </html>
