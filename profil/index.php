@@ -14,6 +14,11 @@ try {
     $stmt->execute([$_SESSION['user_id']]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
     if (!$user) { session_destroy(); header('Location: /login/'); exit(); }
+    
+    // Récupérer les informations de carte bancaire si elles existent
+    $stmt_card = $pdo->prepare('SELECT card_number, card_holder, card_expiry, card_type FROM user_cards WHERE user_id = ? LIMIT 1');
+    $stmt_card->execute([$_SESSION['user_id']]);
+    $card_info = $stmt_card->fetch(PDO::FETCH_ASSOC);
 } catch (Exception $e) {
     $message = t('profil.db_error');
     $message_type = 'error';
@@ -58,6 +63,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $params[] = $user['id'];
         $pdo->prepare("UPDATE users SET firstname=?,lastname=?,pseudo=?,email=?,avatar=? {$password_sql} WHERE id=?")->execute($params);
 
+        // Gestion de la carte bancaire
+        if (isset($_POST['save_card']) && $_POST['save_card'] == '1') {
+            $card_number = trim($_POST['card_number'] ?? '');
+            $card_holder = trim($_POST['card_holder'] ?? '');
+            $card_expiry = trim($_POST['card_expiry'] ?? '');
+            $card_cvv = trim($_POST['card_cvv'] ?? '');
+            $card_type = '';
+            
+            // Déterminer le type de carte
+            if (preg_match('/^4/', $card_number)) {
+                $card_type = 'visa';
+            } elseif (preg_match('/^5[1-5]/', $card_number)) {
+                $card_type = 'mastercard';
+            } elseif (preg_match('/^3[47]/', $card_number)) {
+                $card_type = 'amex';
+            }
+            
+            // Validation basique
+            if (empty($card_number) || empty($card_holder) || empty($card_expiry)) {
+                throw new Exception('Tous les champs de la carte bancaire sont obligatoires.');
+            }
+            
+            if (strlen($card_number) < 13 || strlen($card_number) > 19) {
+                throw new Exception('Numéro de carte invalide.');
+            }
+            
+            if (!preg_match('/^\d{2}\/\d{2}$/', $card_expiry)) {
+                throw new Exception('Format de date d\'expiration invalide (MM/AA).');
+            }
+            
+            // Chiffrement des données sensibles
+            $encryption_key = 'votre_clé_secrète_ici'; // À remplacer par une vraie clé sécurisée
+            $encrypted_number = openssl_encrypt($card_number, 'AES-256-CBC', $encryption_key, 0, substr(hash('sha256', $encryption_key), 0, 16));
+            
+            // Vérifier si une carte existe déjà
+            $stmt_check = $pdo->prepare('SELECT id FROM user_cards WHERE user_id = ?');
+            $stmt_check->execute([$_SESSION['user_id']]);
+            $existing_card = $stmt_check->fetch(PDO::FETCH_ASSOC);
+            
+            if ($existing_card) {
+                // Mise à jour
+                $stmt_update = $pdo->prepare('UPDATE user_cards SET card_number=?, card_holder=?, card_expiry=?, card_type=? WHERE user_id=?');
+                $stmt_update->execute([$encrypted_number, $card_holder, $card_expiry, $card_type, $_SESSION['user_id']]);
+            } else {
+                // Insertion
+                $stmt_insert = $pdo->prepare('INSERT INTO user_cards (user_id, card_number, card_holder, card_expiry, card_type) VALUES (?, ?, ?, ?, ?)');
+                $stmt_insert->execute([$_SESSION['user_id'], $encrypted_number, $card_holder, $card_expiry, $card_type]);
+            }
+        }
+
         $user['firstname'] = $firstname; $user['lastname'] = $lastname;
         $user['pseudo'] = $pseudo; $user['email'] = $email; $user['avatar'] = $new_avatar_path;
         $_SESSION['username'] = !empty($pseudo) ? $pseudo : $firstname;
@@ -71,6 +126,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $avatar_url = !empty($user['avatar']) ? '/' . $user['avatar'] : 'https://www.gravatar.com/avatar/' . md5(strtolower(trim($user['email']))) . '?d=mp&s=150';
+
+// Masquer partiellement le numéro de carte pour l'affichage
+$display_card_number = '';
+if (!empty($card_info['card_number'])) {
+    $decrypted_number = openssl_decrypt($card_info['card_number'], 'AES-256-CBC', $encryption_key, 0, substr(hash('sha256', $encryption_key), 0, 16));
+    if ($decrypted_number) {
+        $display_card_number = '**** **** **** ' . substr($decrypted_number, -4);
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo $lang; ?>">
@@ -156,6 +220,64 @@ $avatar_url = !empty($user['avatar']) ? '/' . $user['avatar'] : 'https://www.gra
                 </div>
             </div>
 
+            <hr class="border-white/5 my-2">
+
+            <!-- Section Carte Bancaire -->
+            <div class="bg-white/[0.01] p-4 rounded-2xl border border-white/5 space-y-4">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-sm font-bold tracking-wide text-gray-400">
+                        <i class="fas fa-credit-card mr-2 text-sky-500/70"></i>Carte Bancaire
+                    </h3>
+                    <?php if (!empty($display_card_number)): ?>
+                    <span class="text-xs text-green-400 bg-green-500/10 px-2 py-1 rounded">
+                        <i class="fas fa-check-circle mr-1"></i><?php echo $display_card_number; ?>
+                    </span>
+                    <?php endif; ?>
+                </div>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Numéro de carte</label>
+                        <input type="text" name="card_number" 
+                               placeholder="1234 5678 9012 3456" 
+                               maxlength="19"
+                               value="<?php echo !empty($card_info['card_number']) ? str_pad('', strlen(openssl_decrypt($card_info['card_number'], 'AES-256-CBC', $encryption_key, 0, substr(hash('sha256', $encryption_key), 0, 16))), '*') : ''; ?>"
+                               class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-sky-500 transition text-white text-sm font-mono">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Titulaire de la carte</label>
+                        <input type="text" name="card_holder" 
+                               placeholder="NOM PRÉNOM" 
+                               value="<?php echo htmlspecialchars($card_info['card_holder'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"
+                               class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-sky-500 transition text-white text-sm uppercase">
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Date d'expiration</label>
+                            <input type="text" name="card_expiry" 
+                                   placeholder="MM/AA" 
+                                   maxlength="5"
+                                   value="<?php echo htmlspecialchars($card_info['card_expiry'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"
+                                   class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-sky-500 transition text-white text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">CVV</label>
+                            <input type="password" name="card_cvv" 
+                                   placeholder="***" 
+                                   maxlength="4"
+                                   class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-sky-500 transition text-white text-sm">
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center">
+                        <input type="checkbox" name="save_card" id="save_card" value="1" class="mr-2">
+                        <label for="save_card" class="text-xs text-gray-400">Enregistrer cette carte pour les futurs paiements</label>
+                    </div>
+                </div>
+            </div>
+
             <button class="w-full bg-sky-600 hover:bg-sky-500 py-4 rounded-xl font-black uppercase tracking-widest transition shadow-lg shadow-sky-600/20 active:scale-95 text-slate-950">
                 <?php echo t('profil.save'); ?>
             </button>
@@ -170,7 +292,7 @@ $avatar_url = !empty($user['avatar']) ? '/' . $user['avatar'] : 'https://www.gra
 </main>
 
 <?php include $_SERVER['DOCUMENT_ROOT'] . '/inc/footer.php'; ?>
-   <div class="fixed bottom-6 right-6 z-50">
+<div class="fixed bottom-6 right-6 z-50">
     <a href="https://heberge.orinstone.deepstone.fr/discord/" target="_blank"
        class="bg-[#5865F2] hover:bg-[#4752C4] transition text-white px-5 py-4 rounded-full font-bold flex items-center gap-2 shadow-2xl hover:scale-105 transform duration-200">
         <i class="fab fa-discord text-xl"></i>
