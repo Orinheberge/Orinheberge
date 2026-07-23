@@ -290,11 +290,39 @@
 /* ============================================
    DESKTOP (>= 768px)
    ============================================ */
+/* ============================================
+   DESKTOP (>= 768px)
+   Correction : Passage en Fixed pour sortir du flux
+   ============================================ */
 @media (min-width: 768px) {
-    #sidebar {
-        position: sticky;
+    .sidebar {
+        /* On passe en FIXED pour que la sidebar ne prenne plus de place 
+           dans le flux du document (plus de vide généré) */
+        position: fixed !important;
         top: 0;
+        left: 0;
         height: 100vh;
-        shrink-0: 0;
+        width: var(--sidebar-width);
+        z-index: 50; /* Derrière le bouton toggle si nécessaire, mais devant le contenu */
+        
+        /* Réinitialisation des propriétés sticky/flex qui causaient le souci */
+        transform: none !important; 
+        box-shadow: 4px 0 24px rgba(0, 0, 0, 0.2); /* Ombre pour détacher du fond */
+    }
+
+    /* 
+       IMPORTANT : 
+       Comme la sidebar est maintenant "flottante" (fixed), elle ne pousse plus le contenu.
+       Si vous voulez que votre contenu principal ne passe PAS sous la sidebar,
+       ajoutez une marge gauche à votre conteneur principal via cette classe.
+       
+       Exemple d'utilisation dans vos pages PHP :
+       <main class="main-content-wrapper"> ... </main>
+    */
+    body:not(.sidebar-collapsed) .main-content, 
+    body:not(.sidebar-collapsed) main,
+    body:not(.sidebar-collapsed) #content {
+        margin-left: var(--sidebar-width);
+        transition: margin-left 0.3s ease;
     }
 }
