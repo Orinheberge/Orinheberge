@@ -137,7 +137,7 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
 
             <?php if (isset($_SESSION['user_id'])): ?>
                 <?php if ($notif_count > 0): ?>
-                <a href="inc/notifications/" class="relative bg-rose-600/10 hover:bg-rose-600/20 border border-rose-500/20 text-rose-400 px-3 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium whitespace-nowrap">
+                <a href="/inc/notifications/" class="relative bg-rose-600/10 hover:bg-rose-600/20 border border-rose-500/20 text-rose-400 px-3 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium whitespace-nowrap">
                     <i class="fas fa-bell"></i>
                     <span class="notif-badge absolute -top-1 -right-1 w-4 h-4 bg-rose-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center border border-rose-900">
                         <?= $notif_count ?>
