@@ -540,7 +540,33 @@ $is_logged_in = true;
         :root{--sidebar:240px;}
         *{box-sizing:border-box;}
         body{background:#0d0f14;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;min-height:100vh;}
-        .sidebar{position:fixed;top:0;left:0;width:var(--sidebar);height:100vh;background:#111318;border-right:1px solid rgba(255,255,255,.06);display:flex;flex-direction:column;z-index:40;overflow-y:auto;}
+        
+        /* --- CORRECTION SIDEBAR & LAYOUT --- */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: var(--sidebar);
+            height: 100vh;
+            background: #111318;
+            border-right: 1px solid rgba(255,255,255,.06);
+            display: flex;
+            flex-direction: column;
+            z-index: 40;
+            overflow-y: auto;
+            /* Par défaut visible sur desktop */
+            transform: translateX(0);
+            transition: transform 0.25s ease-in-out;
+        }
+
+        /* Sur mobile, on cache la sidebar par défaut */
+        @media(max-width:768px){
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.open { transform: translateX(0); }
+            .main-content { margin-left: 0 !important; }
+            .mobile-overlay.open { display: block; }
+        }
+
         .sidebar-logo{padding:1.5rem 1.25rem 1rem;border-bottom:1px solid rgba(255,255,255,.05);}
         .sidebar-nav{padding:.75rem .75rem;flex:1;}
         .nav-item{display:flex;align-items:center;gap:.75rem;padding:.625rem .875rem;border-radius:.625rem;font-size:.82rem;font-weight:500;color:#6b7280;transition:all .15s;text-decoration:none;margin-bottom:.15rem;border:1px solid transparent;}
@@ -550,7 +576,15 @@ $is_logged_in = true;
         .nav-section{font-size:.65rem;font-weight:700;letter-spacing:.1em;color:#374151;text-transform:uppercase;padding:.75rem .875rem .35rem;}
         .nav-separator{height:1px;background:rgba(255,255,255,.05);margin:.5rem .75rem;}
         .sidebar-footer{padding:.875rem 1rem;border-top:1px solid rgba(255,255,255,.05);}
-        .main-content{margin-left:var(--sidebar);min-height:100vh;display:flex;flex-direction:column;}
+        
+        .main-content {
+            margin-left: var(--sidebar);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            transition: margin-left 0.25s ease-in-out;
+        }
+        
         .topbar{background:#111318;border-bottom:1px solid rgba(255,255,255,.06);padding:.875rem 1.75rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:30;}
         .content{padding:1.75rem;flex:1;}
         .card{background:#161a22;border:1px solid rgba(255,255,255,.07);border-radius:.875rem;}
@@ -579,13 +613,6 @@ $is_logged_in = true;
         .btn-sky{background:rgba(14,165,233,.1);color:#0ea5e9;border-color:rgba(14,165,233,.2);}
         .btn-sky:hover{background:rgba(14,165,233,.2);}
         .mobile-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:39;}
-        @media(max-width:768px){
-            .sidebar{transform:translateX(-100%);transition:transform .25s;}
-            .sidebar.open{transform:translateX(0);}
-            .mobile-overlay.open{display:block;}
-            .main-content{margin-left:0;}
-            .topbar,.content{padding:.875rem 1rem;}
-        }
     </style>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script>
@@ -639,9 +666,10 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_sidebar.php';
     <!-- Topbar -->
     <div class="topbar">
         <div class="flex items-center gap-3">
-            <<button id="adminSidebarToggle" class="md:hidden text-gray-400 hover:text-white text-lg w-8" aria-label="Ouvrir le menu admin">
-    <i class="fas fa-bars"></i>
-</button>
+            <!-- Bouton Toggle Sidebar (Visible uniquement sur mobile via CSS si nécessaire, ou toujours visible) -->
+            <button id="adminSidebarToggle" class="md:hidden text-gray-400 hover:text-white text-lg w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/5 transition" aria-label="Ouvrir le menu admin" onclick="toggleSidebar()">
+                <i class="fas fa-bars"></i>
+            </button>
             <div>
                 <div class="text-sm font-bold text-white">
                     <?php $titles = ['clients'=>'Clients','servers'=>'Serveurs','server'=>'Détail serveur','invoices'=>'Factures','email'=>'Emails','settings'=>'Paramètres','dashboard'=>'Vue d\'ensemble']; echo $titles[$view] ?? 'Vue d\'ensemble'; ?>
@@ -728,7 +756,7 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_sidebar.php';
                 <?php foreach (array_slice($all_servers, 0, 6) as $sv):
                     $st = $sv['status'] ?? 'unknown';
                     $st_badge = match($st) { 'paid'=>'badge-green','suspended'=>'badge-orange','expired'=>'badge-red',default=>'badge-gray' };
-                    $st_label = match($st) { 'paid'=>'Actif','suspended'=>'Suspendu','expired'=>'Expiré',default=>'Autre' };
+                    $st_label = match($st) { 'paid'=>'Actif','pending'=>'Pending','suspended'=>'Suspendu','expired'=>'Expiré',default=>'Autre' };
                 ?>
                 <div class="flex items-center gap-3 px-5 py-3 border-b border-white/[0.03] last:border-0 hover:bg-white/[0.02] transition">
                     <div class="w-7 h-7 rounded-lg bg-sky-500/10 flex items-center justify-center shrink-0"><i class="fas fa-server text-sky-400 text-xs"></i></div>
