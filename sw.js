@@ -1,15 +1,15 @@
 // Incrémentez ce numéro de version à chaque modification majeure de vos fichiers statiques
-const CACHE_NAME = 'orinstone-cache-v1.85'; 
+const CACHE_NAME = 'orinstone-cache-v0.0.97'; 
 
 const ASSETS_TO_CACHE = [
   '/',
   '/index.php',
   '/manifest.json',
   'https://cdn.tailwindcss.com',
-  'https://cdn.tailwindcss.com',
   './inc/clients_sidebar.js',
   './inc/navbar.js',
-  './inc/admin_sidebar.js'
+  './inc/admin_sidebar.js',
+  './inc/notifications.js',
 ];
 
 // Installation : Mise en cache initiale des composants indispensables

@@ -204,7 +204,7 @@
                         Orinstone Studio <i class="fas fa-external-link-alt text-[8px]"></i>
                     </a>
                     <span class="text-gray-600">·</span>
-                    <span class="font-mono text-gray-600 bg-white/5 px-2 py-0.5 rounded">v2.0.0</span>
+                    <span class="font-mono text-gray-600 bg-white/5 px-2 py-0.5 rounded">v0.0.97</span>
                 </div>
             </div>
         </div>
