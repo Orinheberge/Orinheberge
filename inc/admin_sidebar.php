@@ -256,7 +256,7 @@ $_critical_maintenance = $pdo->query("
     </div>
 
     <div class="mt-3 pt-3 border-t border-white/5 flex items-center justify-center gap-3 text-[10px] text-gray-600">
-      <span>v2.0.0</span>
+      <span>v0.0.91</span>
       <span>·</span>
       <a href="/" target="_blank" class="hover:text-gray-400 transition">
         <i class="fas fa-external-link-alt"></i> Site
