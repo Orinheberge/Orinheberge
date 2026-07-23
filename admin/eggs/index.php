@@ -1,5 +1,16 @@
 <?php
-ini_set('display_errors',1); error_reporting(E_ALL);
+// ─── Gestion sécurisée des erreurs (Compatible PHP 8.0 - 8.5+) ──────────────
+// On essaie d'afficher les erreurs seulement si la config du serveur l'autorise
+try {
+    if (function_exists('ini_set') && ini_get('display_errors') !== '1') {
+        // Si ce n'est pas déjà activé par le serveur, on tente de l'activer
+        @ini_set('display_errors', '1');
+    }
+} catch (Throwable $e) {
+    // Ignorer silencieusement si c'est désactivé au niveau php.ini/admin
+}
+error_reporting(E_ALL);
+
 session_start();
 if (!isset($_SESSION['user_id'])) { header('Location: /login/'); exit(); }
 
@@ -93,9 +104,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $eggs = $pdo->query('SELECT e.*, (SELECT COUNT(*) FROM products p WHERE p.egg_id=e.id) AS product_count FROM eggs e ORDER BY e.id')->fetchAll();
 
 // Fetch nests from panel
-// FIX: curl_exec() renvoie une chaine JSON brute, il faut la decoder avant
-// de l'utiliser comme tableau, sinon $panel_nests reste toujours vide et
-// le bouton "Import depuis Panel" ne s'affiche jamais.
 $panel_nests = [];
 if ($panel_url && $api_key_admin) {
     $ch = curl_init($panel_url . '/api/application/nests');
