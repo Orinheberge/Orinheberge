@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/lang.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/settings.php'; // ← AJOUT CRITIQUE
 require_once $_SERVER['DOCUMENT_ROOT'] . '/vendor/autoload.php';
 
 // Configuration Stripe
@@ -45,7 +46,7 @@ try {
     if (empty($user['stripe_customer_id'])) {
         $customer = \Stripe\Customer::create([
             'email' => $user['email'],
-            'name' => $user['firstname'] . ' ' . $user['lastname'],
+            'name' => trim($user['firstname'] . ' ' . $user['lastname']),
             'metadata' => ['user_id' => $user['id']]
         ]);
         $pdo->prepare('UPDATE users SET stripe_customer_id = ? WHERE id = ?')
@@ -62,30 +63,33 @@ try {
         ]);
         $payment_methods = $pm_list->data;
     } catch (Exception $e) {
-        // Pas de cartes encore
+        error_log('[Stripe Cards] Erreur récupération PM: ' . $e->getMessage());
     }
 
     // Traitement suppression
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_card'])) {
-        $pm_id = $_POST['payment_method_id'];
-        try {
-            $pm = \Stripe\PaymentMethod::retrieve($pm_id);
-            $pm->detach();
-            
-            // Supprimer de la BDD locale
-            $pdo->prepare('DELETE FROM user_stripe_cards WHERE user_id = ? AND payment_method_id = ?')
-                ->execute([$_SESSION['user_id'], $pm_id]);
-            
-            $message = 'Carte supprimée avec succès.';
-            $message_type = 'success';
-        } catch (Exception $e) {
-            $message = 'Erreur lors de la suppression.';
-            $message_type = 'error';
+        $pm_id = trim($_POST['payment_method_id'] ?? '');
+        if ($pm_id) {
+            try {
+                $pm = \Stripe\PaymentMethod::retrieve($pm_id);
+                $pm->detach();
+
+                $pdo->prepare('DELETE FROM user_stripe_cards WHERE user_id = ? AND payment_method_id = ?')
+                    ->execute([$_SESSION['user_id'], $pm_id]);
+
+                $message = 'Carte supprimée avec succès.';
+                $message_type = 'success';
+            } catch (Exception $e) {
+                error_log('[Stripe Cards] Erreur suppression: ' . $e->getMessage());
+                $message = 'Erreur lors de la suppression.';
+                $message_type = 'error';
+            }
         }
     }
 
 } catch (Exception $e) {
-    $message = 'Erreur: ' . $e->getMessage();
+    error_log('[Stripe Cards] Erreur critique: ' . $e->getMessage());
+    $message = 'Une erreur est survenue. Veuillez réessayer plus tard.';
     $message_type = 'error';
 }
 ?>
@@ -131,7 +135,7 @@ try {
 
             <?php if ($message): ?>
             <div class="mb-6 p-4 rounded-xl border <?php echo $message_type === 'success' ? 'bg-green-500/10 border-green-500/30 text-green-400' : 'bg-red-500/10 border-red-500/30 text-red-400'; ?>">
-                <?php echo $message; ?>
+                <?php echo htmlspecialchars($message); ?>
             </div>
             <?php endif; ?>
 
@@ -140,12 +144,12 @@ try {
                 <h2 class="text-xl font-bold text-white mb-6 flex items-center gap-2">
                     <i class="fas fa-plus-circle text-sky-500"></i> Ajouter une carte
                 </h2>
-                
+
                 <form id="payment-form" class="space-y-5">
                     <div id="card-element" class="StripeElement">
                         <!-- Stripe Elements sera injecté ici -->
                     </div>
-                    
+
                     <div id="card-errors" role="alert" class="text-red-400 text-sm hidden">
                         <i class="fas fa-exclamation-circle mr-1"></i>
                         <span class="error-message"></span>
@@ -154,7 +158,7 @@ try {
                     <button type="submit" id="submit-button" class="bg-sky-600 hover:bg-sky-500 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-sky-600/20 transition transform hover:-translate-y-0.5 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
                         <i class="fas fa-shield-alt mr-2"></i>Valider avec ma banque
                     </button>
-                    
+
                     <p class="text-xs text-gray-500 flex items-center gap-2">
                         <i class="fas fa-lock text-emerald-400"></i>
                         Paiement sécurisé par Stripe • Validation 3D Secure requise • 0,00€
@@ -177,21 +181,16 @@ try {
                 </div>
             <?php else: ?>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <?php foreach ($payment_methods as $pm): 
+                    <?php foreach ($payment_methods as $pm):
                         $card = $pm->card;
                         $date_added = isset($pm->created) ? date('d/m/Y', $pm->created) : 'Inconnu';
-                        
-                        // Récupérer infos locales si existent
-                        $stmt_local = $pdo->prepare('SELECT id FROM user_stripe_cards WHERE user_id = ? AND payment_method_id = ?');
-                        $stmt_local->execute([$_SESSION['user_id'], $pm->id]);
-                        $local_card = $stmt_local->fetch();
                     ?>
                     <div class="glass-panel rounded-xl p-5 card-item relative group">
                         <div class="flex items-start justify-between mb-4">
                             <div class="flex items-center gap-3">
                                 <div class="w-12 h-12 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center">
-                                    <i class="fab fa-cc-<?php echo strtolower($card->brand); ?> text-2xl 
-                                        <?php 
+                                    <i class="fab fa-cc-<?php echo strtolower($card->brand); ?> text-2xl
+                                        <?php
                                         if ($card->brand === 'Visa') echo 'text-blue-400';
                                         elseif ($card->brand === 'Mastercard') echo 'text-red-400';
                                         elseif ($card->brand === 'American Express') echo 'text-cyan-400';
@@ -203,7 +202,7 @@ try {
                                         <?php echo !empty($pm->billing_details->name) ? htmlspecialchars($pm->billing_details->name) : 'Carte ' . ucfirst($card->brand); ?>
                                     </div>
                                     <div class="text-gray-500 text-xs font-mono">
-                                        •••• •••• •••• <?php echo $card->last4; ?>
+                                        •••• •••• •••• <?php echo htmlspecialchars($card->last4); ?>
                                     </div>
                                     <?php if ($card->exp_month && $card->exp_year): ?>
                                     <div class="text-gray-500 text-[10px] mt-1">
@@ -225,13 +224,6 @@ try {
                             </span>
                             <span class="text-[10px] text-gray-600">Ajoutée le <?php echo $date_added; ?></span>
                         </div>
-                        <?php if ($pm->id === $user['default_payment_method']): ?>
-                        <div class="mt-3 pt-2 border-t border-sky-500/20">
-                            <span class="text-[10px] text-sky-400 font-bold uppercase tracking-wider">
-                                <i class="fas fa-star mr-1"></i>Carte par défaut
-                            </span>
-                        </div>
-                        <?php endif; ?>
                     </div>
                     <?php endforeach; ?>
                 </div>
@@ -244,11 +236,9 @@ try {
 </div>
 
 <script>
-// Initialisation Stripe
-const stripe = Stripe('<?php echo $stripe_pub_key; ?>');
+const stripe = Stripe('<?php echo htmlspecialchars($stripe_pub_key); ?>');
 const elements = stripe.elements();
 
-// Style des éléments Stripe
 const style = {
     base: {
         color: '#ffffff',
@@ -264,7 +254,6 @@ const style = {
     }
 };
 
-// Création du CardElement
 const cardElement = elements.create('card', {
     style: style,
     hidePostalCode: true,
@@ -272,11 +261,10 @@ const cardElement = elements.create('card', {
 });
 cardElement.mount('#card-element');
 
-// Gestion des erreurs
 cardElement.on('change', function(event) {
     const errorDiv = document.getElementById('card-errors');
     const errorMessage = errorDiv.querySelector('.error-message');
-    
+
     if (event.error) {
         errorMessage.textContent = event.error.message;
         errorDiv.classList.remove('hidden');
@@ -285,52 +273,46 @@ cardElement.on('change', function(event) {
     }
 });
 
-// Soumission du formulaire
 const form = document.getElementById('payment-form');
 const submitButton = document.getElementById('submit-button');
 
 form.addEventListener('submit', async function(event) {
     event.preventDefault();
-    
+
     submitButton.disabled = true;
     submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Validation en cours...';
-    
+
     try {
-        // 1. Créer un SetupIntent côté serveur
         const response = await fetch('/client/cards/create-intent.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({})
         });
-        
+
         const data = await response.json();
-        
+
         if (data.error) {
             throw new Error(data.error);
         }
-        
-        // 2. Confirmer le SetupIntent avec la carte
+
         const result = await stripe.confirmCardSetup(data.client_secret, {
             payment_method: {
                 card: cardElement,
                 billing_details: {
-                    name: '<?php echo addslashes($user['firstname'] . ' ' . $user['lastname']); ?>'
+                    name: '<?php echo addslashes(trim($user['firstname'] . ' ' . $user['lastname'])); ?>'
                 }
             }
         });
-        
+
         if (result.error) {
             throw new Error(result.error.message);
         }
-        
-        // 3. Vérifier si authentification 3D Secure nécessaire
+
         if (result.setupIntent.status === 'requires_action') {
-            // Redirection vers la page de la banque
             window.location.href = '/client/cards/verify.php?setup_intent=' + result.setupIntent.id;
             return;
         }
-        
-        // 4. Succès - Enregistrer en base
+
         const saveResponse = await fetch('/client/cards/save-card.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -338,15 +320,15 @@ form.addEventListener('submit', async function(event) {
                 payment_method_id: result.setupIntent.payment_method
             })
         });
-        
+
         const saveData = await saveResponse.json();
-        
+
         if (saveData.success) {
             window.location.href = '/client/cards/?success=1';
         } else {
             throw new Error(saveData.error || 'Erreur sauvegarde');
         }
-        
+
     } catch (error) {
         const errorDiv = document.getElementById('card-errors');
         const errorMessage = errorDiv.querySelector('.error-message');
