@@ -9,7 +9,7 @@ if (!isset($_SESSION['user_id'])) {
 require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/db.php';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/lang.php';
 
-// Récupérer les clés et configs depuis extension_settings
+// Récupérer les clés Stripe et config PayPal
 $ext_settings_raw = $pdo->query("SELECT e.slug, es.key, es.value FROM extension_settings es JOIN extensions e ON e.id = es.extension_id")->fetchAll();
 $ext_cfg = [];
 foreach ($ext_settings_raw as $r) $ext_cfg[$r['slug']][$r['key']] = $r['value'];
@@ -42,7 +42,7 @@ $user_stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
 $user_stmt->execute([$_SESSION['user_id']]);
 $user = $user_stmt->fetch();
 
-// Récupérer les cartes enregistrées
+// Récupérer les cartes enregistrées via Stripe API
 $saved_cards = [];
 if (!empty($user['stripe_customer_id'])) {
     $ch = curl_init("https://api.stripe.com/v1/payment_methods?customer=" . urlencode($user['stripe_customer_id']) . "&type=card&limit=10");
@@ -72,7 +72,6 @@ $paypal_link = "https://paypal.me/{$paypalme_username}/{$paypal_amount}";
         .glass { background: rgba(255,255,255,0.03); backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,0.06); }
         .StripeElement { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.1); border-radius: 0.75rem; padding: 0.75rem 1rem; color: white; transition: all 0.2s; }
         .StripeElement--focus { border-color: #38bdf8; box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2); }
-        /* Style personnalisé pour le bouton Revolut Pay */
         .StripeElement-revolutPay { background: #1e293b; border-radius: 0.75rem; }
     </style>
 </head>
@@ -117,14 +116,14 @@ $paypal_link = "https://paypal.me/{$paypalme_username}/{$paypal_amount}";
             <form id="checkout-form" class="space-y-5">
                 <input type="hidden" name="order_id" value="<?= htmlspecialchars($order['order_id']) ?>">
                 
-                <!-- 1. Apple Pay / Google Pay (Apparaît uniquement si supporté par l'appareil) -->
+                <!-- 1. Apple Pay / Google Pay (Payment Request Button) -->
                 <div id="payment-request-section" class="hidden">
                     <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Paiement Express</label>
                     <div id="payment-request-button" class="mb-4"></div>
                     <div class="relative flex items-center justify-center my-4">
                         <div class="border-t border-white/10 w-full"></div>
                         <span class="bg-[#070a13] px-3 text-[10px] text-gray-500 absolute">OU</span>
-                    </div
+                    </div>
                 </div>
 
                 <!-- 2. Revolut Pay -->
@@ -266,7 +265,6 @@ try {
         style: { base: { backgroundColor: '#1e293b', color: '#ffffff' } }
     });
     
-    // On essaie de le monter, si l'API rejette (ex: région non supportée), on catch l'erreur
     revolutPay.mount('#revolut-pay-element');
     document.getElementById('revolut-pay-section').classList.remove('hidden');
 
