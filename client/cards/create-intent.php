@@ -1,7 +1,7 @@
 <?php
 session_start();
 require_once $_SERVER['DOCUMENT_ROOT'] . '/vendor/autoload.php';
-require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/config.php'; 
+require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/settings.php.php'; 
 $stripe_secret_key = get_setting('stripe_secret_key');
 // Votre config avec la clé Stripe
 
