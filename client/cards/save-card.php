@@ -1,23 +1,22 @@
 <?php
 session_start();
-require_once $_SERVER['DOCUMENT_ROOT'] . '/vendor/autoload.php';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/settings.php';
-
-$stripe_secret_key = get_setting('stripe_secret_key');
-
-if (empty($stripe_secret_key)) {
-    echo json_encode(['success' => false, 'error' => 'Configuration Stripe manquante']);
-    exit();
-}
-
-\Stripe\Stripe::setApiKey($stripe_secret_key);
-
-header('Content-Type: application/json');
 
 if (!isset($_SESSION['user_id'])) {
     echo json_encode(['success' => false, 'error' => 'Non authentifié']);
     exit();
 }
+
+$stripe_secret_key = get_setting('stripe_secret_key');
+if (empty($stripe_secret_key)) {
+    echo json_encode(['success' => false, 'error' => 'Configuration Stripe manquante']);
+    exit();
+}
+
+require_once $_SERVER['DOCUMENT_ROOT'] . '/vendor/autoload.php';
+\Stripe\Stripe::setApiKey($stripe_secret_key);
+
+header('Content-Type: application/json');
 
 try {
     $data = json_decode(file_get_contents('php://input'), true);
@@ -32,19 +31,29 @@ try {
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
     ]);
 
-    // Récupérer les infos de la carte depuis Stripe
-    $pm = \Stripe\PaymentMethod::retrieve($payment_method_id);
-    
-    // Attacher la carte au customer (si pas déjà fait)
-    if ($pm->customer !== $_SESSION['stripe_customer_id']) {
-        $pm->attach(['customer' => $_SESSION['stripe_customer_id']]);
+    $stmt = $pdo->prepare('SELECT stripe_customer_id FROM users WHERE id = ?');
+    $stmt->execute([$_SESSION['user_id']]);
+    $user = $stmt->fetch();
+
+    if (empty($user['stripe_customer_id'])) {
+        throw new Exception('Customer Stripe introuvable');
     }
 
-    // Sauvegarder en base locale (juste l'ID Stripe, pas les données sensibles!)
+    $pm = \Stripe\PaymentMethod::retrieve($payment_method_id);
+    
+    if ($pm->customer !== $user['stripe_customer_id']) {
+        $pm->attach(['customer' => $user['stripe_customer_id']]);
+    }
+
     $stmt = $pdo->prepare('
         INSERT INTO user_stripe_cards (user_id, payment_method_id, card_brand, card_last4, card_exp_month, card_exp_year) 
         VALUES (?, ?, ?, ?, ?, ?)
-        ON DUPLICATE KEY UPDATE updated_at = NOW()
+        ON DUPLICATE KEY UPDATE 
+            card_brand = VALUES(card_brand),
+            card_last4 = VALUES(card_last4),
+            card_exp_month = VALUES(card_exp_month),
+            card_exp_year = VALUES(card_exp_year),
+            updated_at = NOW()
     ');
     
     $stmt->execute([
@@ -59,6 +68,7 @@ try {
     echo json_encode(['success' => true]);
 
 } catch (Exception $e) {
+    error_log('[Stripe Save Card] Erreur: ' . $e->getMessage());
     echo json_encode(['success' => false, 'error' => $e->getMessage()]);
 }
 ?>
