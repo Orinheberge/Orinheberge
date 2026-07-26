@@ -6,7 +6,15 @@ namespace Composer\Autoload;
 
 class ComposerStaticInitd751713988987e9331980363e24189ce
 {
+    public static $files = array (
+        'd92f49fe138fde4e7a3ec6f988960524' => __DIR__ . '/..' . '/stripe/stripe-php/lib/version_check.php',
+    );
+
     public static $prefixLengthsPsr4 = array (
+        'S' =>
+        array (
+            'Stripe\\' => 7,
+        ),
         'A' =>
         array (
             'App\\' => 4,
@@ -14,6 +22,10 @@ class ComposerStaticInitd751713988987e9331980363e24189ce
     );
 
     public static $prefixDirsPsr4 = array (
+        'Stripe\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/stripe/stripe-php/lib',
+        ),
         'App\\' =>
         array (
             0 => __DIR__ . '/../..' . '/src',
