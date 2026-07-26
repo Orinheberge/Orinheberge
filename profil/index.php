@@ -140,15 +140,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $avatar_url = !empty($user['avatar']) ? '/' . $user['avatar'] : 'https://www.gravatar.com/avatar/' . md5(strtolower(trim($user['email']))) . '?d=mp&s=150';
 
-$display_card_number = '';
-if (!empty($card_info['card_number'])) {
-    $decrypted_number = decrypt_data($card_info['card_number']);
-    if ($decrypted_number) {
-        $type_label = strtoupper($card_info['card_type'] ?: 'CARD');
-        $last4 = substr($decrypted_number, -4);
-        $display_card_number = "$type_label •••• $last4";
-    }
-}
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo $lang; ?>" class="scroll-smooth">
@@ -180,40 +171,8 @@ if (!empty($card_info['card_number'])) {
 <!-- Suppression de overflow-hidden pour permettre le scroll -->
 <body class="min-h-screen text-gray-300 font-sans flex flex-col">
 
-    <!-- WRAPPER PRINCIPAL POUR LE LAYOUT -->
-    <div class="flex flex-1 w-full">
-        
-        <!-- SIDEBAR (Sticky pour suivre le scroll) -->
-        <aside class="w-64 glass-panel hidden md:flex flex-col fixed h-screen top-0 left-0 z-40 border-r border-white/5 overflow-y-auto">
-            <div class="p-6 flex items-center gap-3 border-b border-white/5 shrink-0">
-                <a href="/" class="flex items-center gap-3 group">
-                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center text-white font-bold shadow-lg group-hover:shadow-sky-500/50 transition">O</div>
-                    <span class="font-bold text-lg tracking-wide text-white group-hover:text-sky-400 transition">OrinStone</span>
-                </a>
-            </div>
-
-            <nav class="flex-1 py-6 space-y-1 px-3">
-                <a href="/client/" class="sidebar-link active flex items-center px-3 py-3 text-sm font-medium rounded-r-lg">
-                    <i class="fas fa-user-circle w-6"></i> <?php echo t('profil.heading'); ?>
-                </a>
-                <a href="/client/servers/" class="sidebar-link flex items-center px-3 py-3 text-sm font-medium hover:text-white rounded-r-lg">
-                    <i class="fas fa-server w-6"></i> Mes Serveurs
-                </a>
-                <a href="/billing/" class="sidebar-link flex items-center px-3 py-3 text-sm font-medium hover:text-white rounded-r-lg">
-                    <i class="fas fa-file-invoice-dollar w-6"></i> Facturation
-                </a>
-                <a href="/support/" class="sidebar-link flex items-center px-3 py-3 text-sm font-medium hover:text-white rounded-r-lg">
-                    <i class="fas fa-ticket-alt w-6"></i> Support
-                </a>
-            </nav>
-
-            <div class="p-4 border-t border-white/5 shrink-0">
-                <a href="/logout/" class="flex items-center gap-3 px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded-lg transition">
-                    <i class="fas fa-sign-out-alt"></i> Déconnexion
-                </a>
-            </div>
-        </aside>
-
+    <?php require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php'; ?>
+   
         <!-- CONTENU PRINCIPAL -->
         <div class="flex-1 md:ml-64 flex flex-col min-h-screen relative w-full">
             
@@ -300,54 +259,6 @@ if (!empty($card_info['card_number'])) {
                             <div>
                                 <label class="block text-xs font-bold uppercase text-gray-500 mb-2">Confirmation</label>
                                 <input type="password" name="password_confirm" placeholder="••••••••" class="input-field w-full rounded-lg px-4 py-3 text-white">
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Section Paiement -->
-                    <div class="glass-panel rounded-2xl p-6 lg:p-8 border-l-4 border-l-sky-500/50">
-                        <div class="flex justify-between items-center mb-6">
-                            <h2 class="text-xl font-bold text-white flex items-center gap-2">
-                                <i class="fas fa-credit-card text-sky-500"></i> Moyens de Paiement
-                            </h2>
-                            <?php if ($display_card_number): ?>
-                                <span class="bg-green-500/20 text-green-400 text-xs px-3 py-1 rounded-full border border-green-500/30">
-                                    <i class="fas fa-check mr-1"></i> <?php echo $display_card_number; ?>
-                                </span>
-                            <?php endif; ?>
-                        </div>
-
-                        <div class="bg-[#0f172a]/50 rounded-xl p-5 border border-white/5 space-y-4">
-                            <div>
-                                <label class="block text-xs font-bold uppercase text-gray-500 mb-2">Numéro de carte</label>
-                                <div class="relative">
-                                    <i class="fab fa-cc-visa absolute left-3 top-3.5 text-gray-500 text-lg"></i>
-                                    <input type="text" name="card_number" placeholder="0000 0000 0000 0000" maxlength="19" class="input-field w-full rounded-lg pl-10 pr-4 py-3 text-white font-mono tracking-wider">
-                                </div>
-                            </div>
-                            
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-xs font-bold uppercase text-gray-500 mb-2">Titulaire</label>
-                                    <input type="text" name="card_holder" placeholder="M JOHN DOE" class="input-field w-full rounded-lg px-4 py-3 text-white uppercase">
-                                </div>
-                                <div class="grid grid-cols-2 gap-2">
-                                    <div>
-                                        <label class="block text-xs font-bold uppercase text-gray-500 mb-2">Exp.</label>
-                                        <input type="text" name="card_expiry" placeholder="MM/AA" maxlength="5" class="input-field w-full rounded-lg px-4 py-3 text-white text-center">
-                                    </div>
-                                    <div>
-                                        <label class="block text-xs font-bold uppercase text-gray-500 mb-2">CVV</label>
-                                        <input type="password" name="card_cvv" placeholder="123" maxlength="3" class="input-field w-full rounded-lg px-4 py-3 text-white text-center">
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="pt-2">
-                                <label class="flex items-center gap-3 cursor-pointer group">
-                                    <input type="checkbox" name="save_card" value="1" class="w-5 h-5 rounded border-gray-600 bg-gray-700 text-sky-500 focus:ring-sky-500/50">
-                                    <span class="text-sm text-gray-400 group-hover:text-white transition">Enregistrer cette carte pour les prochains paiements</span>
-                                </label>
                             </div>
                         </div>
                     </div>
