@@ -6,8 +6,10 @@ require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/settings.php'; // ← AJOUT CRITI
 require_once $_SERVER['DOCUMENT_ROOT'] . '/vendor/autoload.php';
 
 // Configuration Stripe
-$stripe_pub_key = get_setting('stripe_public_key');
-$stripe_secret_key = get_setting('stripe_secret_key');
+//$stripe_pub_key = get_setting('stripe_public_key');
+//$stripe_secret_key = get_setting('stripe_secret_key');
+$stripe_pub_key = 'pk_live_51TYsYg2f2egcuUT4obSIMXsBBAVpzw0Gk18niYNgWQ5vhvV8nX5aAI6nZqEZ12RfHg1nmP2qjczVfPuX8Eb0ePzk00qDqtPro2'; 
+$stripe_secret_key = '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';
 
 if (empty($stripe_pub_key) || empty($stripe_secret_key)) {
     die('Configuration Stripe manquante. Contactez l\'administrateur.');
