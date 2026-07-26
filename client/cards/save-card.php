@@ -27,7 +27,7 @@ try {
         throw new Exception('Payment method ID manquant');
     }
 
-    $pdo = new PDO('mysql:host=localhost;dbname=s43_orinheberge;charset=utf8mb4', DB_USER, DB_PASS, [
+    $pdo = new PDO('mysql:host=localhost;dbname=s43_orinheberge;charset=utf8mb4', root, 1504, [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
     ]);
