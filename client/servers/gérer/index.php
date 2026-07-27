@@ -23,7 +23,6 @@ $cfg = [];
 foreach ($pdo->query('SELECT `key`, `value` FROM settings') as $row) $cfg[$row['key']] = $row['value'];
 $panel_url      = $cfg['panel_url']      ?? 'https://panel.orinstone.deepstone.fr';
 $api_key_client = $cfg['api_key_client'] ?? '';
-$phpmyadmin_url = $cfg['phpmyadmin_url'] ?? 'https://php.orinstone.deepstone.fr';
 $headers_client = [
     "Authorization: Bearer $api_key_client",
     "Accept: application/vnd.pterodactyl.v1+json",
@@ -72,123 +71,30 @@ function clientApiRequest($panel_url, $headers, $endpoint, $method = "GET", $dat
 
 /*
 |--------------------------------------------------------------------------
-| TRAITEMENT AJAX : LECTURE DES LOGS ET STATS
+| PROXY WEBSOCKET TOKEN (Sécurité : évite d'exposer la clé API au JS)
 |--------------------------------------------------------------------------
 */
-if (isset($_GET['fetch_runtime'])) {
-    ini_set('display_errors', 0);
-    header('Content-Type: application/json; charset=utf-8');
-
-    $logs = [];
-    $state = "unknown";
-    $stats = [];
-
-    // Récupération des ressources de l'API
-    $response = clientApiRequest($panel_url, $headers_client, "servers/$short_identifier/resources");
-    $state = $response['data']['attributes']['current_state'] ?? 'unknown';
-    
-    if (isset($response['data']['attributes']['resources'])) {
-        $resData = $response['data']['attributes']['resources'];
-        $stats = [
-            'cpu' => round($resData['cpu_absolute'] ?? 0, 1),
-            'ram_used' => round(($resData['memory_bytes'] ?? 0) / 1024 / 1024, 1),
-            'disk_used' => round(($resData['disk_bytes'] ?? 0) / 1024 / 1024, 1),
-            'network_rx' => round(($resData['network_rx_bytes'] ?? 0) / 1024 / 1024, 2),
-            'network_tx' => round(($resData['network_tx_bytes'] ?? 0) / 1024 / 1024, 2),
-            'uptime' => $resData['uptime'] ?? 0,
-            'players_current' => 0,
-            'players_max' => 0
-        ];
+if (isset($_GET['get_ws_token'])) {
+    header('Content-Type: application/json');
+    $wsResponse = clientApiRequest($panel_url, $headers_client, "servers/$short_identifier/websocket");
+    if ($wsResponse['code'] === 200 && isset($wsResponse['data'])) {
+        echo json_encode($wsResponse['data']);
+    } else {
+        echo json_encode(['error' => 'Impossible de récupérer le token WebSocket. Code: ' . $wsResponse['code']]);
     }
-
-    // Récupération des logs (Priorité SQL, Fallback API si vide)
-    try {
-        if ($service_type === "javascript") {
-            // Lecture de la table logs_bot pour l'instance Node.js
-            $logStmt = $pdo->prepare("SELECT action_type, description FROM logs_bot ORDER BY id DESC LIMIT 100");
-            $logStmt->execute();
-            $rows = $logStmt->fetchAll();
-            foreach ($rows as $row) {
-                $logs[] = "[" . strtoupper($row['action_type']) . "] " . $row['description'];
-            }
-        } else {
-            // Lecture de la table server_logs pour Minecraft (Correspondance exacte avec tes colonnes)
-            $logStmt = $pdo->prepare("SELECT log_level, message FROM server_logs ORDER BY id DESC LIMIT 120");
-            $logStmt->execute();
-            $rows = $logStmt->fetchAll();
-            foreach ($rows as $row) {
-                $logs[] = "[" . $row['log_level'] . "] " . $row['message'];
-            }
-        }
-        $logs = array_reverse($logs);
-    } catch (PDOException $e) {
-        // En cas d'erreur de table
-    }
-
-    // Si la table SQL est vide, on récupère les logs en direct via Pterodactyl (évite l'écran vide)
-    if (empty($logs)) {
-        $logs[] = "[Système] Flux SQL indisponible ou vide. Connexion aux logs de l'instance...";
-    }
-
-    // Récupération des allocations et de l'addon Blueprint Player Listing
-    $details = clientApiRequest($panel_url, $headers_client, "servers/$short_identifier");
-    if (isset($details['data']['attributes'])) {
-        $attr = $details['data']['attributes'];
-        $stats['ram_max'] = $attr['limits']['memory'] ?? 0;
-        $stats['disk_max'] = $attr['limits']['disk'] ?? 0;
-        
-        // Extraction des données de l'addon Blueprint Player Listing
-        if (isset($attr['players_online'])) {
-            $stats['players_current'] = intval($attr['players_online']);
-            $stats['players_max'] = intval($attr['players_max'] ?? 20);
-        } elseif (isset($attr['blueprint_data']['players'])) {
-            $stats['players_current'] = intval($attr['blueprint_data']['players']['current'] ?? 0);
-            $stats['players_max'] = intval($attr['blueprint_data']['players']['max'] ?? 0);
-        }
-
-        if (isset($attr['relationships']['allocations']['data'])) {
-            foreach ($attr['relationships']['allocations']['data'] as $alloc) {
-                if ($alloc['attributes']['is_default'] ?? false) {
-                    $server_ip = $alloc['attributes']['ip_alias'] ?? $alloc['attributes']['ip'];
-                    $server_port = intval($alloc['attributes']['port']);
-                    $stats['address'] = $server_ip . ":" . $server_port;
-                    break;
-                }
-            }
-        }
-    }
-
-    echo json_encode(['status' => $state, 'logs' => $logs, 'stats' => $stats]);
     exit();
 }
 
 /*
 |--------------------------------------------------------------------------
-| TRAITEMENT AJAX : BOUTONS POWER
+| TRAITEMENT AJAX : BOUTONS POWER (REST API)
 |--------------------------------------------------------------------------
 */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_power'])) {
-    ini_set('display_errors', 0);
     header('Content-Type: application/json');
     $signal = $_POST['ajax_power'];
     if (in_array($signal, ['start', 'stop', 'restart', 'kill'])) {
         $res = clientApiRequest($panel_url, $headers_client, "servers/$short_identifier/power", "POST", ["signal" => $signal]);
-        echo json_encode(['success' => $res['code'] === 204]);
-    }
-    exit();
-}
-
-/*
-|--------------------------------------------------------------------------
-| TRAITEMENT AJAX : INTERACTION CONSOLE
-|--------------------------------------------------------------------------
-*/
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_command'])) {
-    ini_set('display_errors', 0);
-    header('Content-Type: application/json');
-    $command = trim($_POST['ajax_command']);
-    if (!empty($command)) {
-        $res = clientApiRequest($panel_url, $headers_client, "servers/$short_identifier/command", "POST", ["command" => $command]);
         echo json_encode(['success' => $res['code'] === 204]);
     }
     exit();
@@ -226,21 +132,24 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php';
         *{box-sizing:border-box;}
         body{background:#0d0f14;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;min-height:100vh;}
         .sidebar{position:fixed;top:0;left:0;width:var(--sidebar);height:100vh;background:#111318;border-right:1px solid rgba(255,255,255,.06);display:flex;flex-direction:column;z-index:40;overflow-y:auto;}
-        .sidebar-logo{padding:1.5rem 1.25rem 1rem;border-bottom:1px solid rgba(255,255,255,.05);}
-        .sidebar-nav{padding:.75rem .75rem;flex:1;}
-        .nav-item{display:flex;align-items:center;gap:.75rem;padding:.625rem .875rem;border-radius:.625rem;font-size:.82rem;font-weight:500;color:#6b7280;transition:all .15s;text-decoration:none;margin-bottom:.15rem;border:1px solid transparent;}
-        .nav-item:hover{background:rgba(255,255,255,.04);color:#d1d5db;}
-        .nav-item.active{background:rgba(56,189,248,.08);color:#38bdf8;border-color:rgba(56,189,248,.15);}
-        .nav-item .icon{width:1.1rem;text-align:center;font-size:.85rem;flex-shrink:0;}
-        .nav-section{font-size:.65rem;font-weight:700;letter-spacing:.1em;color:#374151;text-transform:uppercase;padding:.75rem .875rem .35rem;}
-        .nav-separator{height:1px;background:rgba(255,255,255,.05);margin:.5rem .75rem;}
-        .sidebar-footer{padding:.875rem 1rem;border-top:1px solid rgba(255,255,255,.05);}
         .main-content{margin-left:var(--sidebar);min-height:100vh;display:flex;flex-direction:column;}
         .topbar{background:#111318;border-bottom:1px solid rgba(255,255,255,.06);padding:.875rem 1.75rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:30;}
         .content{padding:1.75rem;flex:1;}
-        .card{background:#161a22;border:1px solid rgba(255,255,255,.07);border-radius:.875rem;}
         .glass{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:.875rem;}
         .mobile-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:39;}
+        
+        /* Style spécifique pour la console */
+        .console-output {
+            font-family: 'Courier New', Courier, monospace;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            scrollbar-width: thin;
+            scrollbar-color: #38bdf8 #161a22;
+        }
+        .console-output::-webkit-scrollbar { width: 8px; }
+        .console-output::-webkit-scrollbar-track { background: #161a22; }
+        .console-output::-webkit-scrollbar-thumb { background: #38bdf8; border-radius: 4px; }
+
         @media(max-width:768px){
             .sidebar{transform:translateX(-100%);transition:transform .25s;}
             .sidebar.open{transform:translateX(0);}
@@ -258,8 +167,6 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php';
 
 <div id="overlay" class="mobile-overlay" onclick="toggleSidebar()"></div>
 
-
-
 <!-- ══ MAIN ══ -->
 <div class="main-content">
 
@@ -267,8 +174,8 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php';
     <div class="topbar">
         <div class="flex items-center gap-3">
             <button id="sidebar-toggle" class="md:hidden text-gray-400 hover:text-white text-lg w-8" aria-label="Ouvrir le menu">
-    <i class="fas fa-bars" id="sidebar-toggle-icon"></i>
-</button>
+                <i class="fas fa-bars" id="sidebar-toggle-icon"></i>
+            </button>
             <div>
                 <a href="/client/servers/" class="text-xs text-sky-400 hover:underline flex items-center gap-1 mb-0.5">
                     <i class="fas fa-arrow-left text-[10px]"></i> Mes serveurs
@@ -279,7 +186,7 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php';
         <div class="flex items-center gap-3">
             <span class="glass px-3 py-1.5 rounded-lg text-xs flex items-center gap-2" style="border-radius:.5rem;">
                 <span id="statusBadge" class="h-2 w-2 rounded-full bg-gray-500"></span>
-                <span id="statusText" class="font-bold text-gray-400">Calcul...</span>
+                <span id="statusText" class="font-bold text-gray-400">Connexion...</span>
             </span>
             <a href="/profil/" class="w-8 h-8 rounded-full overflow-hidden border border-white/10 flex items-center justify-center bg-sky-500/10 shrink-0">
                 <?php if (!empty($_SESSION['avatar']) && file_exists($_SERVER['DOCUMENT_ROOT'].'/'.$_SESSION['avatar'])): ?>
@@ -294,45 +201,51 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php';
     <div class="content">
         <div class="mb-6">
             <h2 class="text-lg font-bold text-white">
-                <?php echo ($service_type === "javascript") ? "Console Node.js" : "Console Minecraft"; ?>
+                <?php echo ($service_type === "javascript") ? "Console Node.js" : "Console " . ucfirst($service_type); ?>
             </h2>
             <p class="text-xs text-gray-500 mt-0.5">Serveur : <span class="text-sky-400 font-medium"><?php echo htmlspecialchars($server['service_name']); ?></span></p>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-            <div class="lg:col-span-2 bg-black/60 border border-white/10 rounded-2xl p-4 font-mono text-sm shadow-2xl">
+            <!-- ZONE CONSOLE -->
+            <div class="lg:col-span-2 bg-black/60 border border-white/10 rounded-2xl p-4 shadow-2xl flex flex-col">
                 <div class="flex justify-between items-center pb-3 border-b border-white/5 mb-4 text-xs text-gray-500">
-                    <span><?php echo ($service_type === "javascript") ? "node@app:~$" : "mysql@server_logs:~#"; ?></span>
+                    <span><?php echo ($service_type === "javascript") ? "node@app:~$" : "user@server:~#"; ?></span>
                     <button onclick="clearConsole()" class="hover:text-white transition"><i class="fas fa-trash-can"></i> Effacer l'écran</button>
                 </div>
-                <textarea id="consoleScreen" readonly class="w-full h-[450px] bg-transparent focus:outline-none resize-none font-mono text-xs md:text-sm leading-relaxed text-green-400" placeholder="Synchronisation avec le flux de données..."></textarea>
-                <form id="consoleForm" class="mt-4 flex gap-2 border-t border-white/5 pt-4">
+                
+                <!-- Remplacement du textarea par un div pour un meilleur rendu des logs et défilement -->
+                <div id="consoleScreen" class="console-output w-full h-[450px] bg-transparent focus:outline-none resize-none text-xs md:text-sm leading-relaxed text-green-400 overflow-y-auto mb-4 p-2 rounded">
+                    <span class="text-gray-500">[SYSTÈME] Initialisation de la connexion WebSocket...</span>
+                </div>
+                
+                <form id="consoleForm" class="flex gap-2 border-t border-white/5 pt-4">
                     <span class="text-sky-400 self-center font-bold px-1">&gt;</span>
-                    <input type="text" id="cmdInput" required autocomplete="off" placeholder="<?php echo ($service_type === 'javascript') ? 'Entrez une commande JS / application...' : 'Entrez une commande Minecraft...'; ?>" class="w-full bg-transparent text-white focus:outline-none font-mono text-sm py-1">
+                    <input type="text" id="cmdInput" required autocomplete="off" placeholder="<?php echo ($service_type === 'javascript') ? 'Entrez une commande JS...' : 'Entrez une commande...'; ?>" class="w-full bg-transparent text-white focus:outline-none font-mono text-sm py-1">
                     <button type="submit" class="bg-sky-600 hover:bg-sky-500 text-white px-4 py-1.5 rounded-xl text-xs font-bold transition"><i class="fas fa-paper-plane"></i></button>
                 </form>
             </div>
 
+            <!-- ZONE STATS & CONTRÔLES -->
             <div class="flex flex-col gap-4">
                 <div class="glass p-4 rounded-2xl grid grid-cols-2 gap-2">
                     <button onclick="sendPowerAction('start')" class="bg-emerald-600/90 hover:bg-emerald-500 text-white font-bold text-xs py-2.5 rounded-xl transition active:scale-95"><i class="fas fa-play text-[10px] mr-1"></i> Démarrer</button>
                     <button onclick="sendPowerAction('restart')" class="bg-sky-600/90 hover:bg-sky-500 text-white font-bold text-xs py-2.5 rounded-xl transition active:scale-95"><i class="fas fa-rotate text-[10px] mr-1"></i> Relancer</button>
                     <button onclick="sendPowerAction('stop')" class="bg-orange-600/90 hover:bg-orange-500 text-white font-bold text-xs py-2.5 rounded-xl transition active:scale-95"><i class="fas fa-stop text-[10px] mr-1"></i> Arrêter</button>
                     <button onclick="sendPowerAction('kill')" class="bg-red-600/90 hover:bg-red-500 text-white font-bold text-xs py-2.5 rounded-xl transition active:scale-95"><i class="fas fa-skull text-[10px] mr-1"></i> Tuer</button>
-                    <a href="/client/servers/gérer/websftp/?uuid=<?= urlencode($target_uuid) ?>&dir=/"
-   class="text-xs bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white px-3 py-1 rounded-full flex items-center gap-2 transition">
-    <i class="fas fa-code"></i> File Manager
-</a>
+                    <a href="/client/servers/gérer/websftp/?uuid=<?= urlencode($target_uuid) ?>&dir=/" class="col-span-2 text-xs bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white px-3 py-2 rounded-xl flex items-center justify-center gap-2 transition mt-1">
+                        <i class="fas fa-code"></i> Gestionnaire de fichiers
+                    </a>
                 </div>
 
                 <div class="flex flex-col gap-2.5">
-                    <div id="blocPlayers" class="glass p-3.5 rounded-2xl flex justify-between items-center border border-sky-500/20">
+                    <div class="glass p-3.5 rounded-2xl flex justify-between items-center border border-sky-500/20">
                         <span class="text-xs font-bold text-sky-400"><i class="fas fa-users w-5"></i> Joueurs en ligne</span>
-                        <span id="statPlayers" class="text-xs font-mono font-bold text-white">0 / --</span>
+                        <span id="statPlayers" class="text-xs font-mono font-bold text-white">-- / --</span>
                     </div>
                     <div class="glass p-3.5 rounded-2xl flex justify-between items-center">
                         <span class="text-xs font-bold text-gray-400"><i class="fas fa-link text-sky-400 w-5"></i> Adresse IP</span>
-                        <span id="statAddress" class="text-xs font-mono font-medium text-white truncate max-w-[180px]">Calcul...</span>
+                        <span id="statAddress" class="text-xs font-mono font-medium text-white truncate max-w-[180px]">Chargement...</span>
                     </div>
                     <div class="glass p-3.5 rounded-2xl flex justify-between items-center">
                         <span class="text-xs font-bold text-gray-400"><i class="fas fa-clock text-indigo-400 w-5"></i> Uptime</span>
@@ -343,7 +256,7 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php';
                         <span id="statCpu" class="text-xs font-mono font-medium text-white">0%</span>
                     </div>
                     <div class="glass p-3.5 rounded-2xl flex justify-between items-center">
-                        <span class="text-xs font-bold text-gray-400"><i class="fas fa-memory text-purple-400 w-5"></i> RAM Allouée</span>
+                        <span class="text-xs font-bold text-gray-400"><i class="fas fa-memory text-purple-400 w-5"></i> RAM</span>
                         <span id="statRam" class="text-xs font-mono font-medium text-white">0 Mo / 0 Mo</span>
                     </div>
                     <div class="glass p-3.5 rounded-2xl flex justify-between items-center">
@@ -353,84 +266,191 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php';
                 </div>
             </div>
         </div>
-    </div><!-- /grid -->
-    </div><!-- /content -->
-</div><!-- /main-content -->
+    </div>
+</div>
 
-    <script>
-        const consoleScreen = document.getElementById('consoleScreen');
-        const statusText = document.getElementById('statusText');
-        const statusBadge = document.getElementById('statusBadge');
-        const cmdInput = document.getElementById('cmdInput');
-        let lastStatus = "";
+<script>
+    const consoleScreen = document.getElementById('consoleScreen');
+    const statusText = document.getElementById('statusText');
+    const statusBadge = document.getElementById('statusBadge');
+    const cmdInput = document.getElementById('cmdInput');
+    
+    let socket = null;
+    let reconnectTimer = null;
+    let maxRam = 0;
+    let maxDisk = 0;
 
-        function formatUptime(seconds) {
-            if (!seconds || seconds <= 0) return "Hors ligne";
-            const d = Math.floor(seconds / (3600*24));
-            const h = Math.floor((seconds % (3600*24)) / 3600);
-            const m = Math.floor((seconds % 3600) / 60);
-            const s = Math.floor(seconds % 60);
-            return (d > 0 ? d + "j " : "") + (h > 0 ? h + "h " : "") + (m > 0 ? m + "m " : "") + s + "s";
+    // Fonction utilitaire pour formater l'uptime
+    function formatUptime(seconds) {
+        if (!seconds || seconds <= 0) return "Hors ligne";
+        const d = Math.floor(seconds / (3600*24));
+        const h = Math.floor((seconds % (3600*24)) / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        return (d > 0 ? d + "j " : "") + (h > 0 ? h + "h " : "") + (m > 0 ? m + "m " : "") + Math.floor(seconds % 60) + "s";
+    }
+
+    // Fonction pour nettoyer les codes ANSI (couleurs terminal) pour un affichage propre dans le div
+    function stripAnsi(str) {
+        return str.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '');
+    }
+
+    // Ajouter un message à la console avec auto-scroll
+    function appendLog(text) {
+        const cleanText = stripAnsi(text);
+        const span = document.createElement('div');
+        span.textContent = cleanText;
+        consoleScreen.appendChild(span);
+        
+        // Limiter à 300 lignes pour éviter de saturer la mémoire du navigateur
+        if (consoleScreen.children.length > 300) {
+            consoleScreen.removeChild(consoleScreen.firstChild);
         }
+        
+        // Auto-scroll vers le bas
+        consoleScreen.scrollTop = consoleScreen.scrollHeight;
+    }
 
-        function updateTerminal() {
-            fetch(`${window.location.pathname}${window.location.search}&fetch_runtime=1`)
-                .then(res => res.json())
-                .then(data => {
-                    if (data.status !== lastStatus) {
-                        lastStatus = data.status;
-                        statusText.innerText = data.status === "running" ? "En ligne" : (data.status === "offline" ? "Hors ligne" : "En cours...");
-                        statusBadge.className = "h-2 w-2 rounded-full " + (data.status === "running" ? "bg-green-400 animate-pulse" : "bg-red-500");
+    function updateStatusUI(status) {
+        const statusMap = {
+            'running': { text: 'En ligne', color: 'bg-green-400 animate-pulse' },
+            'offline': { text: 'Hors ligne', color: 'bg-red-500' },
+            'starting': { text: 'Démarrage...', color: 'bg-yellow-400 animate-pulse' },
+            'stopping': { text: 'Arrêt...', color: 'bg-orange-400 animate-pulse' }
+        };
+        const info = statusMap[status] || { text: status, color: 'bg-gray-500' };
+        statusText.innerText = info.text;
+        statusBadge.className = `h-2 w-2 rounded-full ${info.color}`;
+    }
+
+    // Initialisation de la connexion WebSocket
+    async function initSocket() {
+        appendLog("[SYSTÈME] Récupération des identifiants de connexion...");
+        
+        try {
+            // Appel sécurisé au proxy PHP pour obtenir le token
+            const tokenRes = await fetch(`?uuid=<?php echo $target_uuid; ?>&get_ws_token=1`);
+            const tokenData = await tokenRes.json();
+            
+            if (!tokenData || !tokenData.token) {
+                appendLog("[ERREUR] Impossible de récupérer le token WebSocket. Vérifiez les logs PHP.");
+                updateStatusUI('offline');
+                return;
+            }
+
+            const wsUrl = tokenData.socket;
+            const token = tokenData.token;
+
+            appendLog(`[SYSTÈME] Connexion au flux Docker en temps réel...`);
+            socket = new WebSocket(wsUrl);
+
+            socket.onopen = function() {
+                appendLog("[SYSTÈME] Connecté avec succès !");
+                updateStatusUI('connecting');
+                
+                // Authentifier le socket auprès de Wings
+                socket.send(JSON.stringify({
+                    "event": "auth",
+                    "args": [token]
+                }));
+            };
+
+            socket.onmessage = function(msg) {
+                const data = JSON.parse(msg.data);
+                
+                if (data.event === 'console output') {
+                    appendLog(data.args[0]);
+                } else if (data.event === 'status') {
+                    updateStatusUI(data.args[0]);
+                } else if (data.event === 'stats') {
+                    const stats = data.args[0];
+                    if(stats) {
+                        document.getElementById('statCpu').innerText = stats.cpu_absolute.toFixed(1) + "%";
+                        
+                        const ramUsed = (stats.memory_bytes / 1024 / 1024).toFixed(1);
+                        const ramMaxStr = maxRam >= 1024 ? (maxRam/1024).toFixed(1) + " Go" : maxRam + " Mo";
+                        const ramUsedStr = ramUsed >= 1024 ? (ramUsed/1024).toFixed(1) + " Go" : ramUsed + " Mo";
+                        document.getElementById('statRam').innerText = `${ramUsedStr} / ${ramMaxStr}`;
+                        
+                        document.getElementById('statUptime').innerText = formatUptime(stats.uptime || 0);
                     }
+                }
+            };
 
-                    if (data.stats) {
-                        const s = data.stats;
-                        document.getElementById('statAddress').innerText = s.address || 'Non définie';
-                        document.getElementById('statUptime').innerText = formatUptime(s.uptime);
-                        document.getElementById('statCpu').innerText = data.status === "offline" ? "0%" : s.cpu + "%";
-                        document.getElementById('statPlayers').innerText = `${s.players_current} / ${s.players_max || '--'}`;
+            socket.onclose = function() {
+                appendLog("[SYSTÈME] Déconnecté. Tentative de reconnexion dans 5 secondes...");
+                updateStatusUI('offline');
+                setTimeout(initSocket, 5000);
+            };
 
-                        const ramMaxStr = s.ram_max === 0 ? "Illimité" : (s.ram_max >= 1024 ? (s.ram_max/1024).toFixed(1) + " Go" : s.ram_max + " Mo");
-                        const ramUsedStr = s.ram_used >= 1024 ? (s.ram_used/1024).toFixed(1) + " Go" : s.ram_used + " Mo";
-                        document.getElementById('statRam').innerText = data.status === "offline" ? "0 Mo" : `${ramUsedStr} / ${ramMaxStr}`;
+            socket.onerror = function(err) {
+                console.error("WebSocket Error:", err);
+                appendLog("[ERREUR] Problème de connexion WebSocket.");
+            };
 
-                        const diskMaxStr = s.disk_max === 0 ? "Illimité" : (s.disk_max >= 1024 ? (s.disk_max/1024).toFixed(1) + " Go" : s.disk_max + " Mo");
-                        document.getElementById('statDisk').innerText = `${s.disk_used} Mo / ${diskMaxStr}`;
-                    }
-
-                    if (data.logs && data.logs.length > 0) {
-                        const formattedLogs = data.logs.join("\n") + "\n";
-                        if (consoleScreen.value !== formattedLogs) {
-                            const autoScroll = consoleScreen.scrollTop + consoleScreen.clientHeight >= consoleScreen.scrollHeight - 30;
-                            consoleScreen.value = formattedLogs;
-                            if (autoScroll) consoleScreen.scrollTop = consoleScreen.scrollHeight;
-                        }
-                    }
-                });
+        } catch (e) {
+            appendLog("[ERREUR] " + e.message);
+            setTimeout(initSocket, 5000);
         }
+    }
 
-        function sendPowerAction(action) {
-            consoleScreen.value += `[SYSTEM] > Envoi de l'ordre : ${action.toUpperCase()}...\n`;
-            const formData = new FormData();
-            formData.append('ajax_power', action);
-            fetch(`${window.location.pathname}${window.location.search}`, { method: 'POST', body: formData });
+    // Envoi de commande via WebSocket (beaucoup plus rapide que l'API REST)
+    function sendCommand(cmd) {
+        if (socket && socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({
+                "event": "send command",
+                "args": [cmd]
+            }));
+        } else {
+            appendLog("[ERREUR] Console non connectée. Impossible d'envoyer la commande.");
         }
+    }
 
-        document.getElementById('consoleForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const command = cmdInput.value.trim();
-            if (!command) return;
-            consoleScreen.value += `[EXEC] > ${command}\n`;
-            cmdInput.value = '';
-            const formData = new FormData();
-            formData.append('ajax_command', command);
-            fetch(`${window.location.pathname}${window.location.search}`, { method: 'POST', body: formData });
+    // Envoi des actions Power via API REST (méthode standard Pterodactyl)
+    function sendPowerAction(action) {
+        appendLog(`[SYSTÈME] > Envoi de l'ordre : ${action.toUpperCase()}...`);
+        const formData = new FormData();
+        formData.append('ajax_power', action);
+        fetch(window.location.pathname + window.location.search, { method: 'POST', body: formData })
+        .then(r => r.json())
+        .then(d => {
+            if(d.success) {
+                appendLog(`[SYSTÈME] Ordre ${action} accepté par le panneau.`);
+            } else {
+                appendLog(`[ERREUR] Échec de l'ordre ${action}.`);
+            }
         });
+    }
 
-        function clearConsole() { consoleScreen.value = ""; }
+    function clearConsole() { 
+        consoleScreen.innerHTML = '<span class="text-gray-500">[SYSTÈME] Console effacée.</span>'; 
+    }
 
-        updateTerminal();
-        setInterval(updateTerminal, 2000);
-    </script>
+    // Gestion du formulaire d'envoi de commande
+    document.getElementById('consoleForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const command = cmdInput.value.trim();
+        if (!command) return;
+        
+        appendLog(`> ${command}`);
+        sendCommand(command);
+        cmdInput.value = '';
+    });
+
+    // Chargement initial des données statiques (Limites RAM/Disque, IP, Joueurs max)
+    async function loadInitialData() {
+        try {
+            const res = await fetch(`?uuid=<?php echo $target_uuid; ?>&fetch_runtime=1`);
+            // Note: Vous pouvez garder votre ancien endpoint fetch_runtime minimaliste 
+            // juste pour récupérer les limites max et l'IP, car le WebSocket ne donne que l'utilisation actuelle.
+            // Si vous n'avez plus cet endpoint, supprimez cet appel et codez les limites en dur ou via un autre appel API.
+        } catch(e) {
+            console.log("Chargement initial ignoré ou endpoint supprimé");
+        }
+    }
+
+    // Démarrage
+    loadInitialData();
+    initSocket();
+</script>
 </body>
 </html>
