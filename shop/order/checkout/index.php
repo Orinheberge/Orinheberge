@@ -63,6 +63,7 @@ $paypal_link = "https://paypal.me/{$paypalme_username}/{$paypal_amount}";
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' https://js.stripe.com https://m.stripe.network blob:; frame-src 'self' https://js.stripe.com https://m.stripe.network; style-src 'self' 'unsafe-inline'; img-src 'self' https://*.stripe.com data:; font-src 'self' https://fonts.gstatic.com data:;">
     <title>Paiement Sécurisé | OrinHeberge</title>
     <script src="https://js.stripe.com/v3/"></script>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -214,6 +215,9 @@ const paymentRequest = stripe.paymentRequest({
     requestPayerEmail: true,
 });
 
+
+
+
 const prButton = elements.create('paymentRequestButton', {
     paymentRequest: paymentRequest,
     style: { paymentRequestButton: { type: 'default', theme: 'dark', height: '48px' } }
@@ -361,6 +365,8 @@ document.getElementById('checkout-form').addEventListener('submit', async functi
         btn.innerHTML = '<i class="fas fa-shield-alt"></i> Payer <?= number_format((float)$order['renewal_price'], 2, '.', '') ?> €';
     }
 });
+
+
 </script>
 </body>
 </html>
