@@ -144,53 +144,6 @@ $paypal_link = "https://paypal.me/{$paypalme_username}/{$paypal_amount}";
 <script>
 const stripe = Stripe('<?= htmlspecialchars($stripe_public_key) ?>');
 
-// ✅ CORRECTION CSS : Définition explicite des styles pour l'iframe Stripe
-const options = {
-    clientSecret: null,
-    appearance: {
-        theme: 'night', // Thème sombre natif de Stripe
-        variables: {
-            colorPrimary: '#38bdf8',      // Couleur principale (Sky Blue)
-            colorBackground: 'transparent', // Fond transparent pour laisser voir notre .glass
-            colorText: '#ffffff',         // Texte blanc
-            colorDanger: '#f87171',       // Rouge erreur
-            fontFamily: '"Inter", system-ui, sans-serif',
-            borderRadius: '12px',
-            spacingUnit: '4px',
-            fontSizeBase: '14px'
-        },
-        rules: {
-            '.Input': {
-                backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                borderColor: 'rgba(255, 255, 255, 0.1)',
-                color: '#ffffff',
-                boxShadow: 'none'
-            },
-            '.Input:focus': {
-                backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                borderColor: '#38bdf8',
-                boxShadow: '0 0 0 2px rgba(56, 189, 248, 0.2)'
-            },
-            '.Label': {
-                color: '#9ca3af',
-                fontSize: '12px',
-                fontWeight: '600',
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em'
-            },
-            '.Tab': {
-                backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                borderColor: 'rgba(255, 255, 255, 0.06)'
-            },
-            '.Tab--selected': {
-                backgroundColor: 'rgba(56, 189, 248, 0.1)',
-                borderColor: '#38bdf8',
-                color: '#38bdf8'
-            }
-        }
-    }
-};
-
 let elements = null;
 
 // 1. Récupérer le PaymentIntent depuis le serveur
@@ -207,15 +160,79 @@ fetch('/shop/order/checkout/process.php', {
         return;
     }
     
-    options.clientSecret = data.client_secret;
+    // ✅ CONFIGURATION TAILWIND DARK THEME POUR STRIPE
+    const options = {
+        clientSecret: data.client_secret,
+        appearance: {
+            theme: 'night',
+            variables: {
+                colorPrimary: '#0ea5e9',       // Tailwind sky-500
+                colorBackground: '#0f172a',    // Tailwind slate-900
+                colorText: '#f8fafc',          // Tailwind slate-50
+                colorDanger: '#ef4444',        // Tailwind red-500
+                fontFamily: 'Inter, system-ui, sans-serif',
+                borderRadius: '0.75rem',       // Tailwind rounded-xl
+                spacingUnit: '4px',
+            },
+            rules: {
+                '.Input': {
+                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                    color: '#f8fafc',
+                    boxShadow: 'none'
+                },
+                '.Input:focus': {
+                    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                    borderColor: '#0ea5e9',
+                    boxShadow: '0 0 0 2px rgba(14, 165, 233, 0.2)'
+                },
+                '.Label': {
+                    color: '#94a3b8',          // Tailwind slate-400
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em'
+                },
+                '.Tab': {
+                    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                    color: '#94a3b8'
+                },
+                '.Tab--selected': {
+                    backgroundColor: 'rgba(14, 165, 233, 0.1)',
+                    borderColor: '#0ea5e9',
+                    color: '#38bdf8'           // Tailwind sky-400
+                },
+                '.AccordionItem': {
+                    borderColor: 'rgba(255, 255, 255, 0.1)'
+                }
+            }
+        }
+    };
+
     elements = stripe.elements(options);
     
+    // ✅ FORCER L'AFFICHAGE DES CARTES ET MÉTHODES DE PAIEMENT
     const paymentElement = elements.create('payment', {
-        layout: { type: 'tabs', defaultCollapsed: false },
-        fields: { billingDetails: 'auto' }
+        layout: { 
+            type: 'accordion',           // Affiche une liste claire (Carte, Revolut, etc.)
+            defaultCollapsed: false,     // ⚠️ CRUCIAL : Empêche de cacher le formulaire de carte
+            radios: true,                // Affiche des boutons radio pour choisir
+            spacedAccordionItems: true   // Ajoute de l'espace entre les options
+        },
+        fields: { 
+            billingDetails: { 
+                name: 'auto',
+                email: 'auto',
+                address: 'never'         // Cache l'adresse pour garder le formulaire compact
+            } 
+        },
+        business: {
+            name: 'OrinHeberge'
+        }
     });
-    paymentElement.mount('#payment-element');
     
+    paymentElement.mount('#payment-element');
     document.getElementById('submit-btn').disabled = false;
 })
 .catch(error => {
@@ -245,7 +262,7 @@ document.getElementById('payment-form').addEventListener('submit', async (e) => 
 
 function showMessage(messageText) {
     const messageContainer = document.getElementById('payment-message');
-    messageContainer.textContent = messageText;
+    messageContainer.innerHTML = `<i class="fas fa-exclamation-circle mr-2"></i>${messageText}`;
     messageContainer.classList.remove('hidden');
 }
 
@@ -261,7 +278,7 @@ function setLoading(isLoading) {
     } else {
         submitBtn.disabled = false;
         spinner.classList.add('hidden');
-        buttonText.textContent = 'Payer <?= number_format((float)$order['renewal_price'], 2, '.', '') ?> €';
+        buttonText.textContent = `Payer <?= number_format((float)$order['renewal_price'], 2, '.', '') ?> €`;
     }
 }
 </script>
