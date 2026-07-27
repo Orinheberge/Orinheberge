@@ -45,14 +45,14 @@ $amount_cents = (int)round((float)$order['renewal_price'] * 100);
 $paypal_amount = number_format((float)$order['renewal_price'], 2, '.', '');
 $paypal_link = "https://paypal.me/{$paypalme_username}/{$paypal_amount}";
 
-header("Content-Security-Policy: default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css  https://cdn.tailwindcss.com https://js.stripe.com https://m.stripe.network blob:; connect-src 'self' https://api.stripe.com https://m.stripe.network; frame-src 'self' https://js.stripe.com https://m.stripe.network; img-src 'self' https://*.stripe.com data:; style-src 'self' 'unsafe-inline';");
+// ✅ CSP CORRIGÉE : Font Awesome déplacé dans style-src, gravatar ajouté aux images
+header("Content-Security-Policy: default-src 'self'; script-src 'self' https://cdn.tailwindcss.com https://js.stripe.com https://m.stripe.network blob:; connect-src 'self' https://api.stripe.com https://m.stripe.network; frame-src 'self' https://js.stripe.com https://m.stripe.network; img-src 'self' https://*.stripe.com https://www.gravatar.com data:; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com;");
 ?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
     <title>Paiement Sécurisé | OrinHeberge</title>
     <script src="https://js.stripe.com/v3/"></script>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -61,7 +61,10 @@ header("Content-Security-Policy: default-src 'self'; script-src 'self' https://c
         body { background: #070a13; }
         .glass { background: rgba(255,255,255,0.03); backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,0.06); }
         
-        /* Correction CSS pour le conteneur du Payment Element */
+        /* Sécurité pour éviter que les images débordent (ex: avatar navbar) */
+        img { max-width: 100%; height: auto; }
+        
+        /* Conteneur du Payment Element */
         #payment-element {
             padding: 1rem;
             border-radius: 0.75rem;
@@ -145,7 +148,6 @@ header("Content-Security-Policy: default-src 'self'; script-src 'self' https://c
 
 <script>
 const stripe = Stripe('<?= htmlspecialchars($stripe_public_key) ?>');
-
 let elements = null;
 
 // 1. Récupérer le PaymentIntent depuis le serveur
@@ -154,7 +156,13 @@ fetch('/shop/order/checkout/process.php', {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ order_id: '<?= htmlspecialchars($order['order_id']) ?>' })
 })
-.then(res => res.json())
+.then(async res => {
+    // ✅ CORRECTION : Vérifier que la réponse est bien un succès HTTP avant de parser le JSON
+    if (!res.ok) {
+        throw new Error(`Erreur serveur HTTP: ${res.status}`);
+    }
+    return res.json();
+})
 .then(data => {
     if (data.error) {
         showMessage(data.error);
@@ -214,18 +222,16 @@ fetch('/shop/order/checkout/process.php', {
 
     elements = stripe.elements(options);
     
-    // ✅ FORCER L'AFFICHAGE DES CARTES ET MÉTHODES DE PAIEMENT
+    // ✅ FORCER L'AFFICHAGE DES CARTES ET MÉTHODES DE PAIEMENT (Config API Stripe valide)
     const paymentElement = elements.create('payment', {
         layout: { 
-            type: 'accordion',           // Affiche une liste claire (Carte, Revolut, etc.)
-            defaultCollapsed: false,     // ⚠️ CRUCIAL : Empêche de cacher le formulaire de carte
-            radios: true,                // Affiche des boutons radio pour choisir
-            spacedAccordionItems: true   // Ajoute de l'espace entre les options
+            type: 'accordion',           
+            defaultCollapsed: false,     // ⚠️ CRUCIAL : Affiche le formulaire de carte par défaut
+            radios: true,                
+            spacedAccordionItems: true   
         },
         fields: { 
             billingDetails: { 
-                name: 'auto',
-                email: 'auto',
                 address: 'never'         // Cache l'adresse pour garder le formulaire compact
             } 
         },
@@ -238,8 +244,9 @@ fetch('/shop/order/checkout/process.php', {
     document.getElementById('submit-btn').disabled = false;
 })
 .catch(error => {
-    console.error('Erreur:', error);
-    showMessage("Erreur de connexion au serveur de paiement.");
+    console.error('Erreur de chargement du paiement:', error);
+    showMessage("Erreur de connexion au serveur de paiement. Veuillez réessayer.");
+    document.getElementById('submit-btn').disabled = true;
 });
 
 // 2. Gestion de la soumission
@@ -256,7 +263,9 @@ document.getElementById('payment-form').addEventListener('submit', async (e) => 
         },
     });
     
+    // Si on arrive ici, c'est qu'il y a eu une erreur immédiate (pas de redirection 3D Secure)
     if (error) {
+        console.error('Erreur de paiement Stripe:', error);
         showMessage(error.message);
         setLoading(false);
     }
