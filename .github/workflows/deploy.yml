@@ -55,6 +55,7 @@ jobs:
             root@5.48.143.126 bash -s <<'REMOTE'
           cd /var/www/orinheberge
           composer install --no-dev --optimize-autoloader --no-interaction
+          composer config platform-check false
           chown -R www-data:www-data /var/www/orinheberge
           chmod -R 755 /var/www/orinheberge
           chmod -R 775 /var/www/orinheberge/inc/uploads/

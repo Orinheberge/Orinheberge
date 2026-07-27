@@ -72,7 +72,6 @@ $paypal_link = "https://paypal.me/{$paypalme_username}/{$paypal_amount}";
         .glass { background: rgba(255,255,255,0.03); backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,0.06); }
         .StripeElement { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.1); border-radius: 0.75rem; padding: 0.75rem 1rem; color: white; transition: all 0.2s; }
         .StripeElement--focus { border-color: #38bdf8; box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2); }
-        .StripeElement-revolutPay { background: #1e293b; border-radius: 0.75rem; }
     </style>
 </head>
 <body class="text-gray-200 font-sans min-h-screen flex flex-col">
@@ -116,7 +115,7 @@ $paypal_link = "https://paypal.me/{$paypalme_username}/{$paypal_amount}";
             <form id="checkout-form" class="space-y-5">
                 <input type="hidden" name="order_id" value="<?= htmlspecialchars($order['order_id']) ?>">
                 
-                <!-- 1. Apple Pay / Google Pay (Payment Request Button) -->
+                <!-- 1. Apple Pay / Google Pay -->
                 <div id="payment-request-section" class="hidden">
                     <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Paiement Express</label>
                     <div id="payment-request-button" class="mb-4"></div>
@@ -136,7 +135,7 @@ $paypal_link = "https://paypal.me/{$paypalme_username}/{$paypal_amount}";
                     </div>
                 </div>
 
-                <!-- 3. Cartes Bancaires (Enregistrées ou Nouvelle) -->
+                <!-- 3. Cartes Bancaires -->
                 <div>
                     <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Carte Bancaire</label>
                     
@@ -176,14 +175,13 @@ $paypal_link = "https://paypal.me/{$paypalme_username}/{$paypal_amount}";
                     </div>
                 </div>
 
-                <!-- Bouton de soumission pour les cartes -->
                 <button type="submit" id="pay-btn" class="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white p-4 rounded-xl font-bold transition shadow-lg shadow-sky-600/20 disabled:opacity-50 disabled:cursor-not-allowed">
                     <i class="fas fa-shield-alt"></i>
                     Payer <?= number_format((float)$order['renewal_price'], 2, '.', '') ?> €
                 </button>
             </form>
 
-            <!-- 4. PayPal.me (Alternative externe) -->
+            <!-- 4. PayPal.me -->
             <div class="mt-6 pt-6 border-t border-white/10">
                 <a href="<?= htmlspecialchars($paypal_link) ?>" target="_blank"
                    class="flex items-center justify-center gap-3 bg-[#003087] hover:bg-[#001f5a] text-white p-4 rounded-xl font-bold transition shadow-lg transform hover:-translate-y-0.5">
@@ -207,9 +205,7 @@ const elements = stripe.elements();
 const orderId = '<?= htmlspecialchars($order['order_id']) ?>';
 const amountCents = <?= $amount_cents ?>;
 
-// ==========================================
-// 1. APPLE PAY / GOOGLE PAY (Payment Request)
-// ==========================================
+// 1. APPLE PAY / GOOGLE PAY
 const paymentRequest = stripe.paymentRequest({
     country: 'FR',
     currency: 'eur',
@@ -249,7 +245,8 @@ paymentRequest.on('paymentmethod', async function(ev) {
             alert('Erreur de paiement: ' + error.message);
         } else {
             ev.complete('success');
-            window.location.href = '/shop/order/success/?payment_intent=' + paymentIntent.id;
+            // 🔵 REDIRECTION VERS LE GESTIONNAIRE DE SUCCÈS
+            window.location.href = '/shop/order/checkout/success-handler.php?payment_intent=' + paymentIntent.id;
         }
     } catch (err) {
         ev.complete('fail');
@@ -257,9 +254,7 @@ paymentRequest.on('paymentmethod', async function(ev) {
     }
 });
 
-// ==========================================
 // 2. REVOLUT PAY
-// ==========================================
 try {
     const revolutPay = elements.create('revolutPay', {
         style: { base: { backgroundColor: '#1e293b', color: '#ffffff' } }
@@ -279,7 +274,7 @@ try {
             if (data.error) throw new Error(data.error);
 
             const { error } = await stripe.confirmRevolutPayPayment(data.client_secret, {
-                return_url: window.location.origin + '/shop/order/success/?payment_intent={PAYMENT_INTENT_ID}'
+                return_url: window.location.origin + '/shop/order/checkout/success-handler.php?payment_intent={PAYMENT_INTENT_ID}'
             });
             if (error) alert('Erreur Revolut: ' + error.message);
         } catch (err) {
@@ -287,12 +282,10 @@ try {
         }
     });
 } catch (e) {
-    console.log('Revolut Pay non disponible ou non supporté');
+    console.log('Revolut Pay non disponible');
 }
 
-// ==========================================
-// 3. CARTE BANCAIRE (Enregistrée ou Nouvelle)
-// ==========================================
+// 3. CARTE BANCAIRE
 const cardElement = elements.create('card', {
     style: { base: { color: '#ffffff', fontSize: '14px', '::placeholder': { color: '#64748b' }, backgroundColor: 'transparent' }, invalid: { color: '#f87171' } },
     hidePostalCode: true
@@ -357,7 +350,8 @@ document.getElementById('checkout-form').addEventListener('submit', async functi
         if (result.error) throw new Error(result.error.message);
         
         if (result.paymentIntent.status === 'succeeded') {
-            window.location.href = '/shop/order/success/?payment_intent=' + result.paymentIntent.id;
+            // 🔵 REDIRECTION VERS LE GESTIONNAIRE DE SUCCÈS
+            window.location.href = '/shop/order/checkout/success-handler.php?payment_intent=' + result.paymentIntent.id;
         }
     } catch (err) {
         const errorDiv = document.getElementById('card-errors');

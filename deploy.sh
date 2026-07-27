@@ -45,6 +45,7 @@ echo "📦 Composer, permissions et reload des services..."
 sshpass -p "$SERVER_PASS" ssh -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" bash -s <<REMOTE
 cd "$REMOTE_PATH"
 composer install --no-dev --optimize-autoloader --no-interaction
+composer config platform-check false
 chown -R www-data:www-data "$REMOTE_PATH"
 chmod -R 755 "$REMOTE_PATH"
 chmod -R 775 "$REMOTE_PATH/inc/uploads/"
