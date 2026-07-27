@@ -39,17 +39,24 @@ try {
         'amount' => $amount_cents,
         'currency' => 'eur',
         'description' => 'Commande OrinHeberge #' . $order_id,
-        'automatic_payment_methods' => ['enabled' => true], // 🔑 C'est cette ligne qui active Apple Pay, Google Pay et Revolut Pay automatiquement
+        // 🔑 Active automatiquement carte, Apple Pay, Google Pay, Revolut Pay,
+        // PayPal, etc. selon ce qui est activé dans Stripe Dashboard >
+        // Settings > Payment methods. Le Payment Element côté front choisit
+        // lui-même quelles méthodes afficher, on n'a rien à lister ici.
+        'automatic_payment_methods' => [
+            'enabled' => true,
+            'allow_redirects' => 'always', // requis pour PayPal / Revolut Pay qui redirigent
+        ],
         'metadata' => [
             'order_id' => $order_id,
             'user_id' => $_SESSION['user_id']
         ]
     ];
-    
+
     if ($customer_id) {
-        $params['customer'] = $customer_id; // 🔑 C'est cette ligne qui affiche les cartes enregistrées du client
+        $params['customer'] = $customer_id; // affiche aussi les moyens de paiement déjà enregistrés du client
     }
-    
+
     $ch = curl_init("https://api.stripe.com/v1/payment_intents");
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
@@ -58,18 +65,18 @@ try {
         CURLOPT_POSTFIELDS     => http_build_query($params),
         CURLOPT_HTTPHEADER     => ["Content-Type: application/x-www-form-urlencoded"],
     ]);
-    
+
     $raw = curl_exec($ch);
     $result = json_decode($raw, true);
     curl_close($ch);
-    
+
     if (!empty($result['error'])) {
         echo json_encode(['error' => $result['error']['message']]);
         exit();
     }
-    
+
     echo json_encode(['client_secret' => $result['client_secret']]);
-    
+
 } catch (Exception $e) {
     error_log('[Stripe Process] Erreur: ' . $e->getMessage());
     echo json_encode(['error' => 'Erreur serveur lors de la préparation du paiement']);

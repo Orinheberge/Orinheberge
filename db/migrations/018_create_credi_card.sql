@@ -39,3 +39,9 @@ ON DUPLICATE KEY UPDATE `value` = VALUES(`value`);
 INSERT INTO extension_settings (extension_id, `key`, `value`) 
 VALUES ((SELECT id FROM extensions WHERE slug='stripe'), 'webhook_secret', 'whsec_1dY9L8MHz1PVl9n4E5oon8XyQa8iTmBJ')
 ON DUPLICATE KEY UPDATE `value` = VALUES(`value`);  
+
+CREATE TABLE pending_credentials (
+    order_id VARCHAR(32) PRIMARY KEY,
+    password VARCHAR(64) NOT NULL,
+    created_at DATETIME NOT NULL
+);

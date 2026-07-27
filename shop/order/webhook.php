@@ -2,13 +2,14 @@
 /**
  * Webhook Stripe pour OrinHeberge
  * Gère la création automatique du serveur et de la facture après paiement réussi.
+ * C'EST LA SEULE SOURCE DE VÉRITÉ pour le provisioning (voir success-handler.php).
  */
 require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/db.php';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/api/Facture.php'; // Votre fonction createInvoice()
 require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/smtp.php';        // Votre fonction send_order_confirmation_email()
 require_once $_SERVER['DOCUMENT_ROOT'] . '/webhook/discord.php'; // Votre fonction sendDiscordWebhook()
 
-// ⚠️ IMPORTANT : Incluez ici le fichier qui contient vos fonctions Pterodactyl 
+// ⚠️ IMPORTANT : Incluez ici le fichier qui contient vos fonctions Pterodactyl
 // (ex: require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/api/pterodactyl.php';)
 // Assurez-vous que getOrCreatePanelUser() et createPanelServerWithAutoTransfer() sont disponibles.
 
@@ -46,7 +47,7 @@ try {
 // ─── TRAITEMENT DU PAIEMENT RÉUSSI ─────────────────────────────
 if ($event->type === 'payment_intent.succeeded') {
     $pi = $event->data->object;
-    
+
     $order_id = $pi['metadata']['order_id'] ?? null;
     $user_id  = $pi['metadata']['user_id'] ?? null;
     $payment_intent_id = $pi['id'];
@@ -111,6 +112,17 @@ if ($event->type === 'payment_intent.succeeded') {
             $srv['id'] ?? 0, $srv['uuid'] ?? '', $srv['identifier'] ?? '',
             $payment_intent_id, $order['renewal_price'], $next_pay
         ]);
+
+        // 4bis. Relais one-shot du mot de passe panel vers success-handler.php
+        //       (webhook.php ne redirige jamais l'utilisateur, il faut donc
+        //       transmettre le mot de passe autrement que par la session)
+        if ($pass) {
+            $pdo->prepare("
+                INSERT INTO pending_credentials (order_id, password, created_at)
+                VALUES (?, ?, NOW())
+                ON DUPLICATE KEY UPDATE password = VALUES(password), created_at = NOW()
+            ")->execute([$new_order_id, $pass]);
+        }
 
         // 5. Créer la facture payée
         $created_invoice = createInvoice($pdo, [

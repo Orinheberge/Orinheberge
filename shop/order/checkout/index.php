@@ -1,5 +1,5 @@
 <?php
-ini_set('display_errors', 0);
+ini_set('display_errors', 0); // Désactiver l'affichage des erreurs en prod
 session_start();
 if (!isset($_SESSION['user_id'])) {
     header("Location: /login/");
@@ -9,18 +9,18 @@ if (!isset($_SESSION['user_id'])) {
 require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/db.php';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/lang.php';
 
+// Récupérer les clés Stripe via extension_settings
 $ext_settings_raw = $pdo->query("SELECT e.slug, es.key, es.value FROM extension_settings es JOIN extensions e ON e.id = es.extension_id")->fetchAll();
 $ext_cfg = [];
 foreach ($ext_settings_raw as $r) $ext_cfg[$r['slug']][$r['key']] = $r['value'];
-
 $stripe_secret_key = $ext_cfg['stripe']['secret_key'] ?? '';
 $stripe_public_key = $ext_cfg['stripe']['public_key'] ?? '';
-$paypalme_username = $ext_cfg['paypal']['username'] ?? 'metal544002009';
 
 if (empty($stripe_secret_key) || empty($stripe_public_key)) {
     die("Configuration Stripe manquante.");
 }
 
+// Vérifier que l'utilisateur a bien une commande en attente
 $order_id = $_GET['order_id'] ?? $_SESSION['current_pending_order_id'] ?? null;
 if (!$order_id) {
     header("Location: /shop/cart/");
@@ -37,16 +37,9 @@ if (!$order) {
     exit();
 }
 
-$user_stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
-$user_stmt->execute([$_SESSION['user_id']]);
-$user = $user_stmt->fetch();
-
-$amount_cents = (int)round((float)$order['renewal_price'] * 100);
-$paypal_amount = number_format((float)$order['renewal_price'], 2, '.', '');
-$paypal_link = "https://paypal.me/{$paypalme_username}/{$paypal_amount}";
-
-// ✅ CSP CORRIGÉE : Font Awesome déplacé dans style-src, gravatar ajouté aux images
-header("Content-Security-Policy: default-src 'self'; script-src 'self' https://cdn.tailwindcss.com https://js.stripe.com https://m.stripe.network blob:; connect-src 'self' https://api.stripe.com https://m.stripe.network; frame-src 'self' https://js.stripe.com https://m.stripe.network; img-src 'self' https://*.stripe.com https://www.gravatar.com data:; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com;");
+// URL de retour absolue, utilisée par Stripe pour les méthodes à redirection (PayPal, Revolut Pay...)
+$scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+$return_url = $scheme . '://' . $_SERVER['HTTP_HOST'] . '/shop/order/success/';
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -60,17 +53,10 @@ header("Content-Security-Policy: default-src 'self'; script-src 'self' https://c
     <style>
         body { background: #070a13; }
         .glass { background: rgba(255,255,255,0.03); backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,0.06); }
-        
-        /* Sécurité pour éviter que les images débordent (ex: avatar navbar) */
-        img { max-width: 100%; height: auto; }
-        
-        /* Conteneur du Payment Element */
-        #payment-element {
-            padding: 1rem;
-            border-radius: 0.75rem;
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-        }
+        #payment-element { min-height: 220px; }
+        #payment-loading { display:flex; align-items:center; justify-content:center; min-height:220px; color:#64748b; font-size:13px; gap:10px; }
+        .spinner-sm { width:18px; height:18px; border:2px solid rgba(255,255,255,0.1); border-top-color:#38bdf8; border-radius:50%; animation:spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="text-gray-200 font-sans min-h-screen flex flex-col">
@@ -79,8 +65,8 @@ header("Content-Security-Policy: default-src 'self'; script-src 'self' https://c
 
 <div class="flex-grow flex items-center justify-center px-4 py-8">
     <div class="w-full max-w-4xl grid grid-cols-1 lg:grid-cols-5 gap-6">
-        
-        <!-- Récapitulatif -->
+
+        <!-- Récapitulatif de la commande -->
         <div class="lg:col-span-2 glass p-6 rounded-2xl h-fit">
             <h2 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
                 <i class="fas fa-receipt text-sky-400"></i> Récapitulatif
@@ -105,41 +91,31 @@ header("Content-Security-Policy: default-src 'self'; script-src 'self' https://c
             </a>
         </div>
 
-        <!-- Formulaire de paiement Stripe Payment Element -->
+        <!-- Formulaire de paiement -->
         <div class="lg:col-span-3 glass p-6 rounded-2xl">
             <h2 class="text-lg font-bold text-white mb-6 flex items-center gap-2">
-                <i class="fas fa-lock text-emerald-400"></i> Moyen de paiement
+                <i class="fas fa-lock text-emerald-400"></i> Paiement Sécurisé
             </h2>
 
-            <form id="payment-form" class="space-y-6">
-                <div id="payment-element">
-                    <!-- Le Payment Element de Stripe sera injecté ici -->
-                </div>
-                
-                <div id="payment-message" class="hidden text-red-400 text-sm bg-red-500/10 border border-red-500/20 p-3 rounded-lg"></div>
+            <form id="checkout-form" class="space-y-5">
+                <input type="hidden" name="order_id" value="<?= htmlspecialchars($order['order_id']) ?>">
 
-                <button type="submit" id="submit-btn" disabled class="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white p-4 rounded-xl font-bold transition shadow-lg shadow-sky-600/20 disabled:opacity-50 disabled:cursor-not-allowed">
-                    <span id="button-text">Payer <?= number_format((float)$order['renewal_price'], 2, '.', '') ?> €</span>
-                    <span id="spinner" class="hidden"><i class="fas fa-spinner fa-spin"></i></span>
+                <!-- Stripe monte ici carte / Apple Pay / Google Pay / Revolut Pay / PayPal automatiquement -->
+                <div id="payment-loading">
+                    <div class="spinner-sm"></div>
+                    <span>Chargement des moyens de paiement...</span>
+                </div>
+                <div id="payment-element" class="hidden"></div>
+
+                <div id="card-errors" role="alert" class="text-red-400 text-xs mt-2 hidden">
+                    <i class="fas fa-exclamation-circle mr-1"></i><span class="error-message"></span>
+                </div>
+
+                <button type="submit" id="pay-btn" disabled class="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white p-4 rounded-xl font-bold transition shadow-lg shadow-sky-600/20 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="fas fa-shield-alt"></i>
+                    <span id="pay-btn-label">Payer <?= number_format((float)$order['renewal_price'], 2, '.', '') ?> €</span>
                 </button>
             </form>
-
-            <!-- PayPal.me (Alternative externe) -->
-            <div class="mt-6 pt-6 border-t border-white/10">
-                <div class="relative flex items-center justify-center my-4">
-                    <div class="border-t border-white/10 w-full"></div>
-                    <span class="bg-[#070a13] px-3 text-[10px] text-gray-500 absolute">OU</span>
-                </div>
-                <a href="<?= htmlspecialchars($paypal_link) ?>" target="_blank"
-                   class="flex items-center justify-center gap-3 bg-[#003087] hover:bg-[#001f5a] text-white p-4 rounded-xl font-bold transition shadow-lg transform hover:-translate-y-0.5">
-                    <i class="fab fa-paypal text-xl"></i>
-                    Payer par PayPal.me (<?= $paypal_amount ?> €)
-                </a>
-                <div class="mt-3 p-3 rounded-xl bg-blue-500/5 border border-blue-500/10 text-xs text-gray-400 text-left flex gap-2">
-                    <i class="fas fa-circle-info text-blue-400 mt-0.5 shrink-0"></i>
-                    <span>Pour PayPal.me, indiquez votre email <strong class="text-white"><?= htmlspecialchars($user['email']) ?></strong> ou le n° de commande <strong class="text-white">#<?= htmlspecialchars($order['order_id']) ?></strong> en note. Activation manuelle sous 24h.</span>
-                </div>
-            </div>
         </div>
     </div>
 </div>
@@ -148,150 +124,105 @@ header("Content-Security-Policy: default-src 'self'; script-src 'self' https://c
 
 <script>
 const stripe = Stripe('<?= htmlspecialchars($stripe_public_key) ?>');
-let elements = null;
+const orderId = document.querySelector('input[name="order_id"]').value;
+const returnUrl = '<?= htmlspecialchars($return_url, ENT_QUOTES) ?>';
+const payAmountLabel = '<?= number_format((float)$order["renewal_price"], 2, ".", "") ?> €';
 
-// 1. Récupérer le PaymentIntent depuis le serveur
-fetch('/shop/order/checkout/process.php', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ order_id: '<?= htmlspecialchars($order['order_id']) ?>' })
-})
-.then(async res => {
-    // ✅ CORRECTION : Vérifier que la réponse est bien un succès HTTP avant de parser le JSON
-    if (!res.ok) {
-        throw new Error(`Erreur serveur HTTP: ${res.status}`);
-    }
-    return res.json();
-})
-.then(data => {
-    if (data.error) {
-        showMessage(data.error);
-        document.getElementById('submit-btn').disabled = true;
-        return;
-    }
-    
-    // ✅ CONFIGURATION TAILWIND DARK THEME POUR STRIPE
-    const options = {
-        clientSecret: data.client_secret,
-        appearance: {
-            theme: 'night',
-            variables: {
-                colorPrimary: '#0ea5e9',       // Tailwind sky-500
-                colorBackground: '#0f172a',    // Tailwind slate-900
-                colorText: '#f8fafc',          // Tailwind slate-50
-                colorDanger: '#ef4444',        // Tailwind red-500
-                fontFamily: 'Inter, system-ui, sans-serif',
-                borderRadius: '0.75rem',       // Tailwind rounded-xl
-                spacingUnit: '4px',
-            },
-            rules: {
-                '.Input': {
-                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                    borderColor: 'rgba(255, 255, 255, 0.1)',
-                    color: '#f8fafc',
-                    boxShadow: 'none'
-                },
-                '.Input:focus': {
-                    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                    borderColor: '#0ea5e9',
-                    boxShadow: '0 0 0 2px rgba(14, 165, 233, 0.2)'
-                },
-                '.Label': {
-                    color: '#94a3b8',          // Tailwind slate-400
-                    fontSize: '12px',
-                    fontWeight: '600',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em'
-                },
-                '.Tab': {
-                    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-                    borderColor: 'rgba(255, 255, 255, 0.1)',
-                    color: '#94a3b8'
-                },
-                '.Tab--selected': {
-                    backgroundColor: 'rgba(14, 165, 233, 0.1)',
-                    borderColor: '#0ea5e9',
-                    color: '#38bdf8'           // Tailwind sky-400
-                },
-                '.AccordionItem': {
-                    borderColor: 'rgba(255, 255, 255, 0.1)'
-                }
-            }
-        }
-    };
+let elements;
 
-    elements = stripe.elements(options);
-    
-    // ✅ FORCER L'AFFICHAGE DES CARTES ET MÉTHODES DE PAIEMENT (Config API Stripe valide)
-    const paymentElement = elements.create('payment', {
-        layout: { 
-            type: 'accordion',           
-            defaultCollapsed: false,     // ⚠️ CRUCIAL : Affiche le formulaire de carte par défaut
-            radios: true,                
-            spacedAccordionItems: true   
-        },
-        fields: { 
-            billingDetails: { 
-                address: 'never'         // Cache l'adresse pour garder le formulaire compact
-            } 
-        },
-        business: {
-            name: 'OrinHeberge'
-        }
-    });
-    
-    paymentElement.mount('#payment-element');
-    document.getElementById('submit-btn').disabled = false;
-})
-.catch(error => {
-    console.error('Erreur de chargement du paiement:', error);
-    showMessage("Erreur de connexion au serveur de paiement. Veuillez réessayer.");
-    document.getElementById('submit-btn').disabled = true;
-});
-
-// 2. Gestion de la soumission
-document.getElementById('payment-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    if (!elements) return;
-    
-    setLoading(true);
-    
-    const { error } = await stripe.confirmPayment({
-        elements,
-        confirmParams: {
-            return_url: window.location.origin + '/shop/order/success/?payment_intent={PAYMENT_INTENT_ID}'
-        },
-    });
-    
-    // Si on arrive ici, c'est qu'il y a eu une erreur immédiate (pas de redirection 3D Secure)
-    if (error) {
-        console.error('Erreur de paiement Stripe:', error);
-        showMessage(error.message);
-        setLoading(false);
-    }
-});
-
-function showMessage(messageText) {
-    const messageContainer = document.getElementById('payment-message');
-    messageContainer.innerHTML = `<i class="fas fa-exclamation-circle mr-2"></i>${messageText}`;
-    messageContainer.classList.remove('hidden');
+function showError(msg) {
+    const errorDiv = document.getElementById('card-errors');
+    errorDiv.querySelector('.error-message').textContent = msg;
+    errorDiv.classList.remove('hidden');
 }
 
 function setLoading(isLoading) {
-    const submitBtn = document.getElementById('submit-btn');
-    const spinner = document.getElementById('spinner');
-    const buttonText = document.getElementById('button-text');
-    
-    if (isLoading) {
-        submitBtn.disabled = true;
-        spinner.classList.remove('hidden');
-        buttonText.textContent = 'Traitement en cours...';
-    } else {
-        submitBtn.disabled = false;
-        spinner.classList.add('hidden');
-        buttonText.textContent = `Payer <?= number_format((float)$order['renewal_price'], 2, '.', '') ?> €`;
+    const btn = document.getElementById('pay-btn');
+    const label = document.getElementById('pay-btn-label');
+    btn.disabled = isLoading;
+    label.innerHTML = isLoading
+        ? '<i class="fas fa-spinner fa-spin"></i> Traitement en cours...'
+        : 'Payer ' + payAmountLabel;
+}
+
+async function initialize() {
+    try {
+        // Création du PaymentIntent côté serveur (active automatiquement carte,
+        // Apple Pay, Google Pay, Revolut Pay et PayPal selon ce qui est activé
+        // sur le compte Stripe)
+        const resp = await fetch('/shop/order/checkout/process.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ order_id: orderId })
+        });
+        const data = await resp.json();
+        if (data.error) {
+            showError(data.error);
+            return;
+        }
+
+        elements = stripe.elements({
+            clientSecret: data.client_secret,
+            appearance: {
+                theme: 'night',
+                variables: {
+                    colorBackground: 'rgba(255,255,255,0.02)',
+                    colorPrimary: '#38bdf8',
+                    colorText: '#e2e8f0',
+                    colorDanger: '#f87171',
+                    borderRadius: '12px',
+                }
+            }
+        });
+
+        const paymentElement = elements.create('payment', {
+            layout: 'tabs'
+        });
+        paymentElement.mount('#payment-element');
+
+        paymentElement.on('ready', () => {
+            document.getElementById('payment-loading').classList.add('hidden');
+            document.getElementById('payment-element').classList.remove('hidden');
+            document.getElementById('pay-btn').disabled = false;
+        });
+
+        paymentElement.on('change', (event) => {
+            const errorDiv = document.getElementById('card-errors');
+            if (event.error) {
+                showError(event.error.message);
+            } else {
+                errorDiv.classList.add('hidden');
+            }
+        });
+    } catch (err) {
+        showError('Impossible de charger le paiement. Merci de réessayer.');
     }
 }
+
+initialize();
+
+document.getElementById('checkout-form').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    if (!elements) return;
+    setLoading(true);
+
+    // Stripe redirige automatiquement vers returnUrl à la fin, que ce soit
+    // pour une carte (parfois pas de redirection nécessaire) ou pour une
+    // méthode type PayPal/Revolut Pay (redirection obligatoire).
+    const { error } = await stripe.confirmPayment({
+        elements,
+        confirmParams: {
+            return_url: returnUrl,
+        },
+    });
+
+    // On n'arrive ici que si une erreur immédiate survient (ex: carte refusée
+    // avant même la redirection). Sinon le navigateur a déjà quitté la page.
+    if (error) {
+        showError(error.message);
+        setLoading(false);
+    }
+});
 </script>
 </body>
 </html>
