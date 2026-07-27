@@ -1,5 +1,6 @@
 <?php
 ini_set('display_errors', 0); // Désactiver l'affichage des erreurs en prod
+require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/security.php'; // En-têtes de sécurité (CSP) — doit être avant tout output
 session_start();
 if (!isset($_SESSION['user_id'])) {
     header("Location: /login/");
