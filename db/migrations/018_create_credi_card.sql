@@ -35,3 +35,7 @@ INSERT INTO `settings` (`key`, `value`) VALUES
 ('stripe_secret_key', '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'),
 ('stripe_webhook_secret', 'whsec_ALogsxOzxXw6s0wEbJyf1TkslBIsGZpM')
 ON DUPLICATE KEY UPDATE `value` = VALUES(`value`);
+
+INSERT INTO extension_settings (extension_id, `key`, `value`) 
+VALUES ((SELECT id FROM extensions WHERE slug='stripe'), 'webhook_secret', 'whsec_1dY9L8MHz1PVl9n4E5oon8XyQa8iTmBJ')
+ON DUPLICATE KEY UPDATE `value` = VALUES(`value`);  
