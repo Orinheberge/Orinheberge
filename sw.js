@@ -1,11 +1,15 @@
 // Incrémentez ce numéro de version à chaque modification majeure de vos fichiers statiques
-const CACHE_NAME = 'orinstone-cache-v0.0.97'; 
+const CACHE_NAME = 'orinstone-cache-v0.0.98';
 
+// ⚠️ On ne précache QUE des ressources same-origin.
+// https://cdn.tailwindcss.com a été retiré : étant cross-origin sans en-tête
+// CORS, il faisait échouer cache.addAll() dans son ENSEMBLE (un seul échec
+// suffit à faire planter tout le tableau), donc AUCUN asset n'était réellement
+// mis en cache tant que cette ligne était présente.
 const ASSETS_TO_CACHE = [
   '/',
   '/index.php',
   '/manifest.json',
-  'https://cdn.tailwindcss.com',
   './inc/clients_sidebar.js',
   './inc/navbar.js',
   './inc/admin_sidebar.js',
@@ -45,8 +49,23 @@ self.addEventListener('fetch', (event) => {
   // Ignorer les requêtes non-GET (connexions, formulaires, requêtes API POST)
   if (event.request.method !== 'GET') return;
 
-  // Optionnel : Ne pas mettre en cache les pages d'administration ou dynamiques pour éviter les bugs d'affichage
   const url = new URL(event.request.url);
+
+  // ⚠️ Ne JAMAIS intercepter les requêtes cross-origin (Stripe, CDN Tailwind,
+  // Font Awesome, etc.) :
+  //  - Stripe demande explicitement que js.stripe.com soit TOUJOURS chargé
+  //    depuis le réseau, jamais servi depuis un cache (détection de fraude,
+  //    mises à jour de sécurité poussées côté Stripe)
+  //  - Les CDN cross-origin sans en-tête CORS renvoient des réponses
+  //    "opaques" que cache.put() gère mal et qui provoquent les erreurs
+  //    "blocked by CORS policy" vues précédemment
+  // On laisse simplement le navigateur gérer ces requêtes nativement, sans
+  // passer par cet event.respondWith().
+  if (url.origin !== self.location.origin) {
+    return;
+  }
+
+  // Ne pas mettre en cache les pages d'administration ou dynamiques pour éviter les bugs d'affichage
   if (url.pathname.startsWith('/admin/') || url.pathname.includes('nocache')) {
     event.respondWith(fetch(event.request));
     return;
