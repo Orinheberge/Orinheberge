@@ -126,7 +126,6 @@ $return_url = $scheme . '://' . $_SERVER['HTTP_HOST'] . '/shop/order/success/';
 
 <?php include $_SERVER['DOCUMENT_ROOT'] . '/inc/footer.php'; ?>
 
-<!-- ✅ Le nonce est ici, autorisé par la nouvelle CSP -->
 <script nonce="<?= CSP_NONCE ?>">
 document.addEventListener('DOMContentLoaded', async function() {
     const stripe = Stripe('<?= htmlspecialchars($stripe_public_key) ?>');
@@ -202,9 +201,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                 }
             });
 
-            // ✅ CORRECTION : Utiliser 'accordion' avec defaultCollapsed: false garantit l'affichage
+            // ✅ CORRECTION DÉFINITIVE : 'tabs' est le mode le plus stable et évite les erreurs de booléen
             const paymentElement = elements.create('payment', {
-                layout: { type: 'accordion', defaultCollapsed: false, radios: true, spacedAccordionItems: true }
+                layout: 'tabs'
             });
             
             paymentElement.mount('#payment-element');
