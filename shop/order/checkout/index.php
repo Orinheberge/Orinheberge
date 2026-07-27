@@ -44,13 +44,15 @@ $user = $user_stmt->fetch();
 $amount_cents = (int)round((float)$order['renewal_price'] * 100);
 $paypal_amount = number_format((float)$order['renewal_price'], 2, '.', '');
 $paypal_link = "https://paypal.me/{$paypalme_username}/{$paypal_amount}";
+
+header("Content-Security-Policy: default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css  https://cdn.tailwindcss.com https://js.stripe.com https://m.stripe.network blob:; connect-src 'self' https://api.stripe.com https://m.stripe.network; frame-src 'self' https://js.stripe.com https://m.stripe.network; img-src 'self' https://*.stripe.com data:; style-src 'self' 'unsafe-inline';");
 ?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://js.stripe.com https://m.stripe.network blob:; connect-src 'self' https://api.stripe.com https://m.stripe.network; frame-src 'self' https://js.stripe.com https://m.stripe.network; img-src 'self' https://*.stripe.com data:; style-src 'self' 'unsafe-inline';">
+    
     <title>Paiement Sécurisé | OrinHeberge</title>
     <script src="https://js.stripe.com/v3/"></script>
     <script src="https://cdn.tailwindcss.com"></script>
