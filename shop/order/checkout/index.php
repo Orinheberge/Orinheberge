@@ -50,6 +50,7 @@ $paypal_link = "https://paypal.me/{$paypalme_username}/{$paypal_amount}";
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://js.stripe.com https://m.stripe.network blob:; connect-src 'self' https://api.stripe.com https://m.stripe.network; frame-src 'self' https://js.stripe.com https://m.stripe.network; img-src 'self' https://*.stripe.com data:; style-src 'self' 'unsafe-inline';">
     <title>Paiement Sécurisé | OrinHeberge</title>
     <script src="https://js.stripe.com/v3/"></script>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -57,8 +58,14 @@ $paypal_link = "https://paypal.me/{$paypalme_username}/{$paypal_amount}";
     <style>
         body { background: #070a13; }
         .glass { background: rgba(255,255,255,0.03); backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,0.06); }
-        /* Style personnalisé pour le Payment Element de Stripe */
-        .StripeElement { background: rgba(255,255,255,0.02); border-radius: 0.75rem; padding: 1rem; }
+        
+        /* Correction CSS pour le conteneur du Payment Element */
+        #payment-element {
+            padding: 1rem;
+            border-radius: 0.75rem;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
     </style>
 </head>
 <body class="text-gray-200 font-sans min-h-screen flex flex-col">
@@ -101,7 +108,7 @@ $paypal_link = "https://paypal.me/{$paypalme_username}/{$paypal_amount}";
 
             <form id="payment-form" class="space-y-6">
                 <div id="payment-element">
-                    <!-- Le Payment Element de Stripe sera injecté ici (Cartes, Apple Pay, Google Pay, Revolut) -->
+                    <!-- Le Payment Element de Stripe sera injecté ici -->
                 </div>
                 
                 <div id="payment-message" class="hidden text-red-400 text-sm bg-red-500/10 border border-red-500/20 p-3 rounded-lg"></div>
@@ -116,7 +123,7 @@ $paypal_link = "https://paypal.me/{$paypalme_username}/{$paypal_amount}";
             <div class="mt-6 pt-6 border-t border-white/10">
                 <div class="relative flex items-center justify-center my-4">
                     <div class="border-t border-white/10 w-full"></div>
-                    <span class="bg-[#070a13] px-3 text-[10px] text-gray-500 absolute">OU</span a>
+                    <span class="bg-[#070a13] px-3 text-[10px] text-gray-500 absolute">OU</span>
                 </div>
                 <a href="<?= htmlspecialchars($paypal_link) ?>" target="_blank"
                    class="flex items-center justify-center gap-3 bg-[#003087] hover:bg-[#001f5a] text-white p-4 rounded-xl font-bold transition shadow-lg transform hover:-translate-y-0.5">
@@ -136,11 +143,51 @@ $paypal_link = "https://paypal.me/{$paypalme_username}/{$paypal_amount}";
 
 <script>
 const stripe = Stripe('<?= htmlspecialchars($stripe_public_key) ?>');
+
+// ✅ CORRECTION CSS : Définition explicite des styles pour l'iframe Stripe
 const options = {
-    clientSecret: null, // Sera défini après le fetch
+    clientSecret: null,
     appearance: {
-        theme: 'night',
-        variables: { colorPrimary: '#38bdf8', colorBackground: 'rgba(255,255,255,0.02)', colorText: '#ffffff', colorDanger: '#f87171', fontFamily: 'system-ui, sans-serif', spacingUnit: '4px', borderRadius: '12px' }
+        theme: 'night', // Thème sombre natif de Stripe
+        variables: {
+            colorPrimary: '#38bdf8',      // Couleur principale (Sky Blue)
+            colorBackground: 'transparent', // Fond transparent pour laisser voir notre .glass
+            colorText: '#ffffff',         // Texte blanc
+            colorDanger: '#f87171',       // Rouge erreur
+            fontFamily: '"Inter", system-ui, sans-serif',
+            borderRadius: '12px',
+            spacingUnit: '4px',
+            fontSizeBase: '14px'
+        },
+        rules: {
+            '.Input': {
+                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                borderColor: 'rgba(255, 255, 255, 0.1)',
+                color: '#ffffff',
+                boxShadow: 'none'
+            },
+            '.Input:focus': {
+                backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                borderColor: '#38bdf8',
+                boxShadow: '0 0 0 2px rgba(56, 189, 248, 0.2)'
+            },
+            '.Label': {
+                color: '#9ca3af',
+                fontSize: '12px',
+                fontWeight: '600',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em'
+            },
+            '.Tab': {
+                backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                borderColor: 'rgba(255, 255, 255, 0.06)'
+            },
+            '.Tab--selected': {
+                backgroundColor: 'rgba(56, 189, 248, 0.1)',
+                borderColor: '#38bdf8',
+                color: '#38bdf8'
+            }
+        }
     }
 };
 
@@ -163,14 +210,12 @@ fetch('/shop/order/checkout/process.php', {
     options.clientSecret = data.client_secret;
     elements = stripe.elements(options);
     
-    // Monter le Payment Element (il affichera automatiquement Carte, Apple Pay, Google Pay, Revolut Pay)
     const paymentElement = elements.create('payment', {
         layout: { type: 'tabs', defaultCollapsed: false },
         fields: { billingDetails: 'auto' }
     });
     paymentElement.mount('#payment-element');
     
-    // Activer le bouton une fois l'élément chargé
     document.getElementById('submit-btn').disabled = false;
 })
 .catch(error => {
@@ -178,19 +223,16 @@ fetch('/shop/order/checkout/process.php', {
     showMessage("Erreur de connexion au serveur de paiement.");
 });
 
-// 2. Gestion de la soumission du formulaire
+// 2. Gestion de la soumission
 document.getElementById('payment-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    
     if (!elements) return;
     
     setLoading(true);
     
-    // confirmPayment gère automatiquement la redirection 3D Secure pour TOUTES les méthodes (Carte, Apple Pay, Google Pay, Revolut)
     const { error } = await stripe.confirmPayment({
         elements,
         confirmParams: {
-            // Stripe remplacera {PAYMENT_INTENT_ID} automatiquement par le vrai ID
             return_url: window.location.origin + '/shop/order/success/?payment_intent={PAYMENT_INTENT_ID}'
         },
     });
@@ -199,7 +241,6 @@ document.getElementById('payment-form').addEventListener('submit', async (e) => 
         showMessage(error.message);
         setLoading(false);
     }
-    // En cas de succès, Stripe redirige automatiquement vers le return_url ci-dessus
 });
 
 function showMessage(messageText) {
