@@ -35,26 +35,19 @@ $amount_cents = (int)round((float)$order_data['renewal_price'] * 100);
 $customer_id = $order_data['stripe_customer_id'];
 
 try {
+    // ✅ CORRECTION : Convertir les booléens PHP en chaînes 'true'/'false' pour Stripe
     $params = [
         'amount' => $amount_cents,
         'currency' => 'eur',
         'description' => 'Commande OrinHeberge #' . $order_id,
-        // 🔑 Active automatiquement carte, Apple Pay, Google Pay, Revolut Pay,
-        // PayPal, etc. selon ce qui est activé dans Stripe Dashboard >
-        // Settings > Payment methods. Le Payment Element côté front choisit
-        // lui-même quelles méthodes afficher, on n'a rien à lister ici.
-        'automatic_payment_methods' => [
-            'enabled' => true,
-            'allow_redirects' => 'always', // requis pour PayPal / Revolut Pay qui redirigent
-        ],
-        'metadata' => [
-            'order_id' => $order_id,
-            'user_id' => $_SESSION['user_id']
-        ]
+        'automatic_payment_methods[enabled]' => 'true',  // ️ 'true' en chaîne, pas true en booléen
+        'automatic_payment_methods[allow_redirects]' => 'always',
+        'metadata[order_id]' => $order_id,
+        'metadata[user_id]' => $_SESSION['user_id']
     ];
 
     if ($customer_id) {
-        $params['customer'] = $customer_id; // affiche aussi les moyens de paiement déjà enregistrés du client
+        $params['customer'] = $customer_id;
     }
 
     $ch = curl_init("https://api.stripe.com/v1/payment_intents");
