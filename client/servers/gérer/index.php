@@ -71,16 +71,34 @@ function clientApiRequest($panel_url, $headers, $endpoint, $method = "GET", $dat
 
 /*
 |--------------------------------------------------------------------------
-| PROXY WEBSOCKET TOKEN (Sécurité : évite d'exposer la clé API au JS)
+| PROXY WEBSOCKET TOKEN (Correction : utilise l'UUID complet)
 |--------------------------------------------------------------------------
 */
 if (isset($_GET['get_ws_token'])) {
     header('Content-Type: application/json');
-    $wsResponse = clientApiRequest($panel_url, $headers_client, "servers/$short_identifier/websocket");
-    if ($wsResponse['code'] === 200 && isset($wsResponse['data'])) {
-        echo json_encode($wsResponse['data']);
+    
+    // IMPORTANT : Utiliser l'UUID COMPLET ($target_uuid) pour l'endpoint websocket
+    $endpoint = "servers/$target_uuid/websocket";
+    $wsResponse = clientApiRequest($panel_url, $headers_client, $endpoint);
+    
+    if ($wsResponse['code'] !== 200) {
+        echo json_encode([
+            'error' => true, 
+            'message' => 'Erreur API Pterodactyl', 
+            'code' => $wsResponse['code'],
+            'response' => $wsResponse['data']
+        ]);
+        exit();
+    }
+
+    // Gestion de la structure de réponse imbriquée de Pterodactyl
+    $payload = $wsResponse['data'];
+    if (isset($payload['data']['data'])) {
+        echo json_encode($payload['data']['data']);
+    } elseif (isset($payload['data'])) {
+        echo json_encode($payload['data']);
     } else {
-        echo json_encode(['error' => 'Impossible de récupérer le token WebSocket. Code: ' . $wsResponse['code']]);
+        echo json_encode($payload);
     }
     exit();
 }
@@ -98,6 +116,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_power'])) {
         echo json_encode(['success' => $res['code'] === 204]);
     }
     exit();
+}
+
+// Récupération des détails du serveur pour les limites et l'IP (chargement initial)
+$details = clientApiRequest($panel_url, $headers_client, "servers/$short_identifier");
+$ram_max = 0;
+$disk_max = 0;
+$server_address = 'Non définie';
+$players_max = 0;
+
+if (isset($details['data']['attributes'])) {
+    $attr = $details['data']['attributes'];
+    $ram_max = $attr['limits']['memory'] ?? 0;
+    $disk_max = $attr['limits']['disk'] ?? 0;
+    
+    if (isset($attr['players_max'])) {
+        $players_max = intval($attr['players_max']);
+    } elseif (isset($attr['blueprint_data']['players']['max'])) {
+        $players_max = intval($attr['blueprint_data']['players']['max']);
+    }
+
+    if (isset($attr['relationships']['allocations']['data'])) {
+        foreach ($attr['relationships']['allocations']['data'] as $alloc) {
+            if ($alloc['attributes']['is_default'] ?? false) {
+                $server_ip = $alloc['attributes']['ip_alias'] ?? $alloc['attributes']['ip'];
+                $server_port = intval($alloc['attributes']['port']);
+                $server_address = $server_ip . ":" . $server_port;
+                break;
+            }
+        }
+    }
 }
 
 // Rafraîchir session utilisateur
@@ -214,9 +262,9 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php';
                     <button onclick="clearConsole()" class="hover:text-white transition"><i class="fas fa-trash-can"></i> Effacer l'écran</button>
                 </div>
                 
-                <!-- Remplacement du textarea par un div pour un meilleur rendu des logs et défilement -->
+                <!-- Div optimisé pour les logs en temps réel -->
                 <div id="consoleScreen" class="console-output w-full h-[450px] bg-transparent focus:outline-none resize-none text-xs md:text-sm leading-relaxed text-green-400 overflow-y-auto mb-4 p-2 rounded">
-                    <span class="text-gray-500">[SYSTÈME] Initialisation de la connexion WebSocket...</span>
+                    <div class="text-gray-500">[SYSTÈME] Initialisation de la connexion WebSocket...</div>
                 </div>
                 
                 <form id="consoleForm" class="flex gap-2 border-t border-white/5 pt-4">
@@ -241,7 +289,7 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php';
                 <div class="flex flex-col gap-2.5">
                     <div class="glass p-3.5 rounded-2xl flex justify-between items-center border border-sky-500/20">
                         <span class="text-xs font-bold text-sky-400"><i class="fas fa-users w-5"></i> Joueurs en ligne</span>
-                        <span id="statPlayers" class="text-xs font-mono font-bold text-white">-- / --</span>
+                        <span id="statPlayers" class="text-xs font-mono font-bold text-white">0 / --</span>
                     </div>
                     <div class="glass p-3.5 rounded-2xl flex justify-between items-center">
                         <span class="text-xs font-bold text-gray-400"><i class="fas fa-link text-sky-400 w-5"></i> Adresse IP</span>
@@ -276,11 +324,13 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php';
     const cmdInput = document.getElementById('cmdInput');
     
     let socket = null;
-    let reconnectTimer = null;
-    let maxRam = 0;
-    let maxDisk = 0;
+    
+    // Données initiales injectées par PHP
+    const initialRamMax = <?php echo $ram_max; ?>;
+    const initialDiskMax = <?php echo $disk_max; ?>;
+    const initialAddress = "<?php echo addslashes($server_address); ?>";
+    const initialPlayersMax = <?php echo $players_max; ?>;
 
-    // Fonction utilitaire pour formater l'uptime
     function formatUptime(seconds) {
         if (!seconds || seconds <= 0) return "Hors ligne";
         const d = Math.floor(seconds / (3600*24));
@@ -289,23 +339,21 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php';
         return (d > 0 ? d + "j " : "") + (h > 0 ? h + "h " : "") + (m > 0 ? m + "m " : "") + Math.floor(seconds % 60) + "s";
     }
 
-    // Fonction pour nettoyer les codes ANSI (couleurs terminal) pour un affichage propre dans le div
     function stripAnsi(str) {
+        if (!str) return '';
         return str.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '');
     }
 
-    // Ajouter un message à la console avec auto-scroll
     function appendLog(text) {
         const cleanText = stripAnsi(text);
-        const span = document.createElement('div');
-        span.textContent = cleanText;
-        consoleScreen.appendChild(span);
+        const div = document.createElement('div');
+        div.textContent = cleanText;
+        consoleScreen.appendChild(div);
         
         // Limiter à 300 lignes pour éviter de saturer la mémoire du navigateur
         if (consoleScreen.children.length > 300) {
             consoleScreen.removeChild(consoleScreen.firstChild);
         }
-        
         // Auto-scroll vers le bas
         consoleScreen.scrollTop = consoleScreen.scrollHeight;
     }
@@ -315,24 +363,36 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php';
             'running': { text: 'En ligne', color: 'bg-green-400 animate-pulse' },
             'offline': { text: 'Hors ligne', color: 'bg-red-500' },
             'starting': { text: 'Démarrage...', color: 'bg-yellow-400 animate-pulse' },
-            'stopping': { text: 'Arrêt...', color: 'bg-orange-400 animate-pulse' }
+            'stopping': { text: 'Arrêt...', color: 'bg-orange-400 animate-pulse' },
+            'connecting': { text: 'Connexion...', color: 'bg-blue-400 animate-pulse' }
         };
         const info = statusMap[status] || { text: status, color: 'bg-gray-500' };
         statusText.innerText = info.text;
         statusBadge.className = `h-2 w-2 rounded-full ${info.color}`;
     }
 
-    // Initialisation de la connexion WebSocket
     async function initSocket() {
         appendLog("[SYSTÈME] Récupération des identifiants de connexion...");
         
         try {
-            // Appel sécurisé au proxy PHP pour obtenir le token
-            const tokenRes = await fetch(`?uuid=<?php echo $target_uuid; ?>&get_ws_token=1`);
+            const urlParams = new URLSearchParams(window.location.search);
+            const uuid = urlParams.get('uuid');
+            
+            const tokenRes = await fetch(`?uuid=${uuid}&get_ws_token=1`);
             const tokenData = await tokenRes.json();
             
-            if (!tokenData || !tokenData.token) {
-                appendLog("[ERREUR] Impossible de récupérer le token WebSocket. Vérifiez les logs PHP.");
+            if (tokenData.error) {
+                appendLog(`[ERREUR] ${tokenData.message}`);
+                if(tokenData.response) {
+                    appendLog(`[DÉTAIL] ${JSON.stringify(tokenData.response)}`);
+                }
+                updateStatusUI('offline');
+                return;
+            }
+            
+            if (!tokenData || !tokenData.token || !tokenData.socket) {
+                appendLog("[ERREUR] Réponse API invalide (Token ou Socket manquant).");
+                console.log("Réponse brute:", tokenData);
                 updateStatusUI('offline');
                 return;
             }
@@ -340,14 +400,13 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php';
             const wsUrl = tokenData.socket;
             const token = tokenData.token;
 
-            appendLog(`[SYSTÈME] Connexion au flux Docker en temps réel...`);
+            appendLog("[SYSTÈME] Connexion au démon Docker en temps réel...");
             socket = new WebSocket(wsUrl);
 
             socket.onopen = function() {
-                appendLog("[SYSTÈME] Connecté avec succès !");
+                appendLog("[SYSTÈME] Connecté ! Authentification en cours...");
                 updateStatusUI('connecting');
                 
-                // Authentifier le socket auprès de Wings
                 socket.send(JSON.stringify({
                     "event": "auth",
                     "args": [token]
@@ -367,12 +426,14 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php';
                         document.getElementById('statCpu').innerText = stats.cpu_absolute.toFixed(1) + "%";
                         
                         const ramUsed = (stats.memory_bytes / 1024 / 1024).toFixed(1);
-                        const ramMaxStr = maxRam >= 1024 ? (maxRam/1024).toFixed(1) + " Go" : maxRam + " Mo";
+                        const ramMaxStr = initialRamMax >= 1024 ? (initialRamMax/1024).toFixed(1) + " Go" : initialRamMax + " Mo";
                         const ramUsedStr = ramUsed >= 1024 ? (ramUsed/1024).toFixed(1) + " Go" : ramUsed + " Mo";
                         document.getElementById('statRam').innerText = `${ramUsedStr} / ${ramMaxStr}`;
                         
                         document.getElementById('statUptime').innerText = formatUptime(stats.uptime || 0);
                     }
+                } else if (data.event === 'daemon error') {
+                    appendLog(`[ERREUR DÉMON] ${data.args[0]}`);
                 }
             };
 
@@ -388,12 +449,11 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php';
             };
 
         } catch (e) {
-            appendLog("[ERREUR] " + e.message);
+            appendLog("[ERREUR JS] " + e.message);
             setTimeout(initSocket, 5000);
         }
     }
 
-    // Envoi de commande via WebSocket (beaucoup plus rapide que l'API REST)
     function sendCommand(cmd) {
         if (socket && socket.readyState === WebSocket.OPEN) {
             socket.send(JSON.stringify({
@@ -405,7 +465,6 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php';
         }
     }
 
-    // Envoi des actions Power via API REST (méthode standard Pterodactyl)
     function sendPowerAction(action) {
         appendLog(`[SYSTÈME] > Envoi de l'ordre : ${action.toUpperCase()}...`);
         const formData = new FormData();
@@ -422,7 +481,7 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php';
     }
 
     function clearConsole() { 
-        consoleScreen.innerHTML = '<span class="text-gray-500">[SYSTÈME] Console effacée.</span>'; 
+        consoleScreen.innerHTML = '<div class="text-gray-500">[SYSTÈME] Console effacée.</div>'; 
     }
 
     // Gestion du formulaire d'envoi de commande
@@ -436,16 +495,17 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php';
         cmdInput.value = '';
     });
 
-    // Chargement initial des données statiques (Limites RAM/Disque, IP, Joueurs max)
-    async function loadInitialData() {
-        try {
-            const res = await fetch(`?uuid=<?php echo $target_uuid; ?>&fetch_runtime=1`);
-            // Note: Vous pouvez garder votre ancien endpoint fetch_runtime minimaliste 
-            // juste pour récupérer les limites max et l'IP, car le WebSocket ne donne que l'utilisation actuelle.
-            // Si vous n'avez plus cet endpoint, supprimez cet appel et codez les limites en dur ou via un autre appel API.
-        } catch(e) {
-            console.log("Chargement initial ignoré ou endpoint supprimé");
-        }
+    // Chargement initial des données statiques (Limites & IP)
+    function loadInitialData() {
+        document.getElementById('statAddress').innerText = initialAddress;
+        
+        const ramMaxStr = initialRamMax >= 1024 ? (initialRamMax/1024).toFixed(1) + " Go" : initialRamMax + " Mo";
+        document.getElementById('statRam').innerText = `0 Mo / ${ramMaxStr}`;
+        
+        const diskMaxStr = initialDiskMax >= 1024 ? (initialDiskMax/1024).toFixed(1) + " Go" : initialDiskMax + " Mo";
+        document.getElementById('statDisk').innerText = `0 Mo / ${diskMaxStr}`;
+        
+        document.getElementById('statPlayers').innerText = `0 / ${initialPlayersMax || '--'}`;
     }
 
     // Démarrage
