@@ -36,6 +36,31 @@ if (!$order) {
     exit();
 }
 
+// ✅ AJOUT : Récupérer l'utilisateur pour obtenir son stripe_customer_id
+$user_stmt = $pdo->prepare("SELECT id, stripe_customer_id FROM users WHERE id = ? LIMIT 1");
+$user_stmt->execute([$_SESSION['user_id']]);
+$user = $user_stmt->fetch();
+
+// ✅ AJOUT : Récupérer le moyen de paiement par défaut enregistré
+$default_payment_method_id = '';
+if (!empty($user['stripe_customer_id'])) {
+    try {
+        $ch = curl_init("https://api.stripe.com/v1/payment_methods?customer=" . urlencode($user['stripe_customer_id']) . "&type=card&limit=1");
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_USERPWD        => $stripe_secret_key . ":",
+        ]);
+        $pm_raw = json_decode(curl_exec($ch), true);
+        curl_close($ch);
+        
+        if (!empty($pm_raw['data'][0]['id'])) {
+            $default_payment_method_id = $pm_raw['data'][0]['id'];
+        }
+    } catch (Exception $e) {
+        error_log('[Checkout] Erreur récupération PM: ' . $e->getMessage());
+    }
+}
+
 $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
 $return_url = $scheme . '://' . $_SERVER['HTTP_HOST'] . '/shop/order/success/';
 ?>
@@ -132,6 +157,9 @@ document.addEventListener('DOMContentLoaded', async function() {
     const orderId = document.querySelector('input[name="order_id"]').value;
     const returnUrl = '<?= htmlspecialchars($return_url, ENT_QUOTES) ?>';
     const payAmountLabel = '<?= number_format((float)$order["renewal_price"], 2, ".", "") ?> €';
+    
+    // ✅ AJOUT : Passer l'ID du moyen de paiement par défaut depuis le PHP
+    const defaultPMId = '<?= htmlspecialchars($default_payment_method_id) ?>';
 
     let elements;
     let paymentReady = false;
@@ -187,6 +215,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 return;
             }
 
+            // ✅ AJOUT : Utiliser defaultValues pour pré-sélectionner la carte enregistrée
             elements = stripe.elements({
                 clientSecret: data.client_secret,
                 appearance: {
@@ -198,10 +227,12 @@ document.addEventListener('DOMContentLoaded', async function() {
                         colorDanger: '#f87171',
                         borderRadius: '12px',
                     }
+                },
+                defaultValues: {
+                    paymentMethod: defaultPMId || undefined // Ne définit rien si aucune carte n'est enregistrée
                 }
             });
 
-            // ✅ CORRECTION DÉFINITIVE : 'tabs' est le mode le plus stable et évite les erreurs de booléen
             const paymentElement = elements.create('payment', {
                 layout: 'tabs'
             });
