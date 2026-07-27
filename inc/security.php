@@ -18,13 +18,21 @@
  * aussi, sinon il sera bloqué par cette policy.
  */
 
+// Nonce unique par requête : permet d'autoriser UN script inline précis
+// (celui qu'on marque avec nonce="<?= CSP_NONCE ?>") sans ouvrir la porte à
+// n'importe quel script inline (ce que ferait 'unsafe-inline').
+if (!defined('CSP_NONCE')) {
+    define('CSP_NONCE', base64_encode(random_bytes(16)));
+}
+
 $csp = [
     // Bloque tout par défaut sauf ce qui est explicitement autorisé plus bas
     "default-src" => "'self'",
 
-    // Scripts : Stripe + Tailwind CDN. blob: est nécessaire pour les workers
-    // internes de Stripe.js (détection de fraude, 3D Secure, Payment Element)
-    "script-src" => "'self' https://js.stripe.com https://m.stripe.network https://cdn.tailwindcss.com blob:",
+    // Scripts : Stripe + Tailwind CDN + notre script inline autorisé par nonce.
+    // blob: est nécessaire pour les workers internes de Stripe.js (détection
+    // de fraude, 3D Secure, Payment Element)
+    "script-src" => "'self' 'nonce-" . CSP_NONCE . "' https://js.stripe.com https://m.stripe.network https://cdn.tailwindcss.com blob:",
 
     // Web Workers utilisés par Stripe.js
     "worker-src" => "'self' blob:",

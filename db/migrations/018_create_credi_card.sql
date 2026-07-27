@@ -45,3 +45,10 @@ CREATE TABLE pending_credentials (
     password VARCHAR(64) NOT NULL,
     created_at DATETIME NOT NULL
 );
+
+CREATE TABLE policy_acceptances (
+    order_id VARCHAR(32) PRIMARY KEY,
+    user_id INT NOT NULL,
+    ip_address VARCHAR(45) DEFAULT NULL,
+    accepted_at DATETIME NOT NULL
+);

@@ -112,6 +112,15 @@ $return_url = $scheme . '://' . $_SERVER['HTTP_HOST'] . '/shop/order/success/';
                     <i class="fas fa-exclamation-circle mr-1"></i><span class="error-message"></span>
                 </div>
 
+                <label class="flex items-start gap-3 cursor-pointer text-xs text-gray-400 select-none">
+                    <input type="checkbox" id="accept-policy" class="mt-0.5 w-4 h-4 rounded border-gray-600 bg-transparent text-sky-500 focus:ring-sky-500 focus:ring-offset-0">
+                    <span>
+                        J'ai lu et j'accepte la
+                        <a href="/politique-paiement/" target="_blank" class="text-sky-400 hover:underline">Politique de Paiement</a>
+                        d'OrinHeberge, notamment les conditions relatives à la facturation, au renouvellement et aux remboursements.
+                    </span>
+                </label>
+
                 <button type="submit" id="pay-btn" disabled class="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white p-4 rounded-xl font-bold transition shadow-lg shadow-sky-600/20 disabled:opacity-50 disabled:cursor-not-allowed">
                     <i class="fas fa-shield-alt"></i>
                     <span id="pay-btn-label">Payer <?= number_format((float)$order['renewal_price'], 2, '.', '') ?> €</span>
@@ -123,13 +132,40 @@ $return_url = $scheme . '://' . $_SERVER['HTTP_HOST'] . '/shop/order/success/';
 
 <?php include $_SERVER['DOCUMENT_ROOT'] . '/inc/footer.php'; ?>
 
-<script>
+<script nonce="<?= CSP_NONCE ?>">
 const stripe = Stripe('<?= htmlspecialchars($stripe_public_key) ?>');
 const orderId = document.querySelector('input[name="order_id"]').value;
 const returnUrl = '<?= htmlspecialchars($return_url, ENT_QUOTES) ?>';
 const payAmountLabel = '<?= number_format((float)$order["renewal_price"], 2, ".", "") ?> €';
 
 let elements;
+let paymentReady = false;
+
+const policyCheckbox = document.getElementById('accept-policy');
+const payBtn = document.getElementById('pay-btn');
+let policyLoggedOnce = false;
+
+function updatePayButtonState() {
+    payBtn.disabled = !(paymentReady && policyCheckbox.checked);
+}
+
+policyCheckbox.addEventListener('change', function () {
+    updatePayButtonState();
+
+    // Enregistrement côté serveur de l'acceptation (preuve : date, IP, commande)
+    // On ne le refait pas si l'utilisateur décoche/recoche plusieurs fois.
+    if (this.checked && !policyLoggedOnce) {
+        policyLoggedOnce = true;
+        fetch('/shop/order/checkout/accept-policy.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ order_id: orderId })
+        }).catch(() => {
+            // Non bloquant pour l'UX ; le serveur revalidera de toute façon
+            // l'acceptation avant la création réelle du paiement si besoin.
+        });
+    }
+});
 
 function showError(msg) {
     const errorDiv = document.getElementById('card-errors');
@@ -184,7 +220,8 @@ async function initialize() {
         paymentElement.on('ready', () => {
             document.getElementById('payment-loading').classList.add('hidden');
             document.getElementById('payment-element').classList.remove('hidden');
-            document.getElementById('pay-btn').disabled = false;
+            paymentReady = true;
+            updatePayButtonState();
         });
 
         paymentElement.on('change', (event) => {
@@ -205,6 +242,12 @@ initialize();
 document.getElementById('checkout-form').addEventListener('submit', async function (e) {
     e.preventDefault();
     if (!elements) return;
+
+    if (!policyCheckbox.checked) {
+        showError('Merci d\'accepter la Politique de Paiement avant de continuer.');
+        return;
+    }
+
     setLoading(true);
 
     // Stripe redirige automatiquement vers returnUrl à la fin, que ce soit
