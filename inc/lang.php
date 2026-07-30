@@ -473,3 +473,57 @@ $translations['month.oct']                   = ['fr' => 'octobre',    'en' => 'O
 $translations['month.nov']                   = ['fr' => 'novembre',   'en' => 'November'];
 $translations['month.dec']                   = ['fr' => 'décembre',   'en' => 'December'];
 	
+// --- TEXTES POLITIQUE DE PAIEMENT ---
+$translations['payment.title']     = ['fr' => 'Politique de Paiement - OrinHeberge', 'en' => 'Payment Policy - OrinHeberge'];
+$translations['payment.heading']   = ['fr' => 'Politique de Paiement', 'en' => 'Payment Policy'];
+$translations['payment.subtitle']  = ['fr' => 'Dernière mise à jour : ' . date('d') . ' ' . $translations['month.' . strtolower(date('M'))][$lang] . ' ' . date('Y'), 'en' => 'Last updated: ' . $translations['month.' . strtolower(date('M'))][$lang] . ' ' . date('d, Y')];
+
+// Section 1
+$translations['payment.s1.title']  = ['fr' => 'Objet', 'en' => 'Purpose'];
+$translations['payment.s1.text']   = ['fr' => 'La présente Politique de Paiement complète les Conditions Générales d\'Utilisation (CGU) et la Licence OrinStone Studio régissant le Logiciel utilisé par OrinHeberge. Elle décrit les modalités de paiement, de facturation et de remboursement applicables aux services d\'hébergement proposés.', 'en' => 'This Payment Policy supplements the General Terms of Use (TOU) and the OrinStone Studio License governing the Software used by OrinHeberge. It describes the payment, billing, and refund terms applicable to the hosting services offered.'];
+
+// Section 2
+$translations['payment.s2.title']  = ['fr' => 'Moyens de paiement acceptés', 'en' => 'Accepted Payment Methods'];
+$translations['payment.s2.intro']  = ['fr' => 'OrinHeberge propose les moyens de paiement suivants, via des prestataires de paiement tiers agréés :', 'en' => 'OrinHeberge offers the following payment methods through authorized third-party payment providers:'];
+$translations['payment.s2.text']   = ['fr' => 'Ces transactions sont traitées par Stripe (et, le cas échéant, PayPal), des prestataires de services de paiement (PSP) tiers indépendants d\'OrinHeberge. OrinHeberge ne stocke à aucun moment les données bancaires complètes de ses clients : celles-ci transitent directement et de façon chiffrée vers le PSP concerné.', 'en' => 'These transactions are processed by Stripe (and, where applicable, PayPal), third-party payment service providers (PSPs) independent of OrinHeberge. OrinHeberge never stores complete banking details: these are transmitted directly and securely encrypted to the relevant PSP.'];
+
+// Section 3
+$translations['payment.s3.title']  = ['fr' => 'Sécurité des transactions', 'en' => 'Transaction Security'];
+$translations['payment.s3.t1']     = ['fr' => 'Toutes les transactions sont sécurisées par chiffrement TLS et traitées selon les standards PCI-DSS appliqués par nos prestataires de paiement.', 'en' => 'All transactions are secured by TLS encryption and processed according to PCI-DSS standards applied by our payment providers.'];
+$translations['payment.s3.t2']     = ['fr' => 'Conformément à l\'article 5 de la Licence OrinStone Studio, OrinHeberge est seul responsable de la configuration sécurisée de son infrastructure de paiement et de la conformité à la réglementation (RGPD, DSP2).', 'en' => 'In accordance with Article 5 of the OrinStone Studio License, OrinHeberge is solely responsible for the secure configuration of its payment infrastructure and compliance with regulations (GDPR, PSD2).'];
+$translations['payment.s3.t3']     = ['fr' => 'OrinStone Studio, éditeur du Logiciel, n\'intervient à aucun moment dans le traitement des paiements et n\'a pas accès aux données de transaction.', 'en' => 'OrinStone Studio, the software publisher, does not intervene in payment processing at any time and has no access to transaction data.'];
+
+// Section 4
+$translations['payment.s4.title']  = ['fr' => 'Facturation', 'en' => 'Billing'];
+$translations['payment.s4.t1']     = ['fr' => 'Toute commande donne lieu à l\'émission d\'une facture, disponible dans l\'espace client, après confirmation du paiement.', 'en' => 'Every order generates an invoice, available in the customer area, after payment confirmation.'];
+$translations['payment.s4.t2']     = ['fr' => 'Les prix affichés sont en euros (€) et incluent les taxes applicables, sauf mention contraire.', 'en' => 'Displayed prices are in euros (€) and include applicable taxes, unless stated otherwise.'];
+$translations['payment.s4.t3']     = ['fr' => 'Pour les services à renouvellement périodique, le client est informé de la date du prochain prélèvement dans son espace client. Le non-paiement peut entraîner la suspension puis la suppression du service.', 'en' => 'For recurring services, the customer is notified of the next charge date in their account. Non-payment may lead to service suspension and termination.'];
+
+// Section 5
+$translations['payment.s5.title']  = ['fr' => 'Confirmation et activation du service', 'en' => 'Confirmation & Service Activation'];
+$translations['payment.s5.t1']     = ['fr' => 'L\'activation du service (création du serveur, accès au panel) intervient automatiquement après confirmation du paiement, dans un délai habituel de quelques secondes à quelques minutes.', 'en' => 'Service activation (server setup, panel access) occurs automatically after payment confirmation, usually within seconds or minutes.'];
+$translations['payment.s5.t2']     = ['fr' => 'En cas de délai anormal d\'activation malgré un paiement confirmé, le client est invité à contacter le support.', 'en' => 'In case of abnormal delay despite payment confirmation, the customer is invited to contact support.'];
+
+// Section 6
+$translations['payment.s6.title']  = ['fr' => 'Remboursements et rétractation', 'en' => 'Refunds & Right of Withdrawal'];
+$translations['payment.s6.t1']     = ['fr' => 'Conformément à l\'article L221-28 du Code de la consommation, le droit de rétractation ne s\'applique pas aux services pleinement exécutés avant la fin du délai de rétractation avec l\'accord préalable exprès du consommateur.', 'en' => 'In accordance with consumer regulations, the right of withdrawal does not apply to services fully executed prior to the withdrawal period with explicit consumer consent.'];
+$translations['payment.s6.t2']     = ['fr' => 'En souscrivant à un service, le client reconnaît et accepte que l\'activation immédiate du serveur constitue le début d\'exécution du service, renonçant ainsi à son droit de rétractation.', 'en' => 'By subscribing, the customer agrees that immediate server setup constitutes service commencement, waiving their right of withdrawal.'];
+$translations['payment.s6.t3']     = ['fr' => 'Garantie satisfait ou remboursé sous 24 heures sur demande auprès du support (sous réserve d\'un usage conforme aux CGU).', 'en' => '24-hour money-back guarantee upon request to support (provided usage complies with Terms of Service).'];
+$translations['payment.s6.t4']     = ['fr' => 'Aucun remboursement ne sera accordé en cas de suspension ou résiliation pour violation des CGU, usage abusif ou activité illégale.', 'en' => 'No refund will be granted in case of suspension or termination due to TOS violation, abuse, or illegal activity.'];
+
+// Section 7
+$translations['payment.s7.title']  = ['fr' => 'Litiges et rétrofacturation (Chargeback)', 'en' => 'Disputes & Chargebacks'];
+$translations['payment.s7.t1']     = ['fr' => 'En cas de désaccord sur une facturation, le client s\'engage à contacter le support OrinHeberge avant toute démarche de rétrofacturation (chargeback).', 'en' => 'In case of a billing dispute, the customer agrees to contact OrinHeberge support before initiating any chargeback process.'];
+$translations['payment.s7.t2']     = ['fr' => 'Toute rétrofacturation abusive entraînera la suspension immédiate et définitive des services concernés.', 'en' => 'Any abusive chargeback will result in the immediate and permanent suspension of the services concerned.'];
+
+// Section 8
+$translations['payment.s8.title']  = ['fr' => 'Limitation de responsabilité', 'en' => 'Limitation of Liability'];
+$translations['payment.s8.text']   = ['fr' => 'La responsabilité d\'OrinHeberge concernant les incidents de paiement ne saurait excéder les sommes effectivement perçues au titre de la commande concernée. OrinHeberge ne saurait être tenu responsable des dysfonctionnements propres aux plateformes tierces.', 'en' => 'OrinHeberge\'s liability regarding payment incidents shall not exceed the amounts actually collected for the relevant order. OrinHeberge cannot be held liable for third-party platform malfunctions.'];
+
+// Section 9
+$translations['payment.s9.title']  = ['fr' => 'Données personnelles', 'en' => 'Personal Data'];
+$translations['payment.s9.text']   = ['fr' => 'Les données transmises lors du paiement (nom, email, éléments de facturation) sont traitées conformément à notre Politique de Confidentialité et au RGPD.', 'en' => 'Data transmitted during payment (name, email, billing details) is processed in accordance with our Privacy Policy and GDPR.'];
+
+// Section 10
+$translations['payment.s10.title'] = ['fr' => 'Contact', 'en' => 'Contact'];
+$translations['payment.s10.text']  = ['fr' => 'Pour toute question relative à la présente Politique de Paiement :', 'en' => 'For any questions regarding this Payment Policy:'];
