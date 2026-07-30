@@ -6,6 +6,7 @@ session_start();
 
 $docRoot = $_SERVER['DOCUMENT_ROOT'] ?: __DIR__;
 require_once $docRoot . '/inc/lang.php';
+require_once $docRoot . '/inc/db.php';
 
 $is_logged_in = isset($_SESSION['user_id']);
 ?>
