@@ -103,7 +103,10 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
     <div class="max-w-7xl mx-auto flex items-center gap-4 p-5">
 
         <h1 class="text-3xl font-black text-white tracking-tight shrink-0">
-            <a href="/">OrinHeberge</a>
+          <a href="/" class="flex items-center gap-2">
+    <img src="favicon.png" alt="OrinHeberge Logo" class="w-5 h-5 object-contain">
+    <span class="text-sm font-bold text-white">Orin<span class="text-sky-500">Heberge</span></span>
+</a>
         </h1>
 
         <div class="hidden md:flex items-center gap-2 lg:gap-3 flex-1 justify-end flex-wrap">
