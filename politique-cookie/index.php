@@ -1,10 +1,16 @@
 <?php
+ini_set('display_errors', 1); // À retirer une fois l'erreur identifiée
+error_reporting(E_ALL);
+
 session_start();
-require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/lang.php';
+
+$docRoot = $_SERVER['DOCUMENT_ROOT'] ?: __DIR__;
+require_once $docRoot . '/inc/lang.php';
+
 $is_logged_in = isset($_SESSION['user_id']);
 ?>
 <!DOCTYPE html>
-<html lang="<?php echo $lang; ?>">
+<html lang="<?php echo htmlspecialchars($lang ?? 'fr'); ?>">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -24,7 +30,7 @@ $is_logged_in = isset($_SESSION['user_id']);
 </head>
 <body class="min-h-screen text-gray-200 flex flex-col justify-between font-sans">
 
-<?php $active_nav = ''; include $_SERVER['DOCUMENT_ROOT'] . '/inc/navbar.php'; ?>
+<?php $active_nav = ''; include $docRoot . '/inc/navbar.php'; ?>
 
 <main class="flex-grow flex items-center justify-center p-6 my-8">
   <div class="w-full max-w-4xl glass p-8 rounded-3xl shadow-2xl space-y-6">
@@ -45,7 +51,7 @@ $is_logged_in = isset($_SESSION['user_id']);
       </section>
 
       <section class="bg-white/[0.01] p-5 rounded-2xl border border-white/5">
-        <h2 class="text-base font-bold text-white mb-2"><i class="fas fa-[#5865F2] fa-shield-alt mr-2 text-sky-500"></i><?php echo t('cookies.s3.title'); ?></h2>
+        <h2 class="text-base font-bold text-white mb-2"><i class="fas fa-shield-alt mr-2 text-sky-500"></i><?php echo t('cookies.s3.title'); ?></h2>
         <p><?php echo t('cookies.s3.text'); ?></p>
       </section>
 
@@ -63,6 +69,6 @@ $is_logged_in = isset($_SESSION['user_id']);
   </div>
 </main>
 
-<?php include $_SERVER['DOCUMENT_ROOT'] . '/inc/footer.php'; ?>
+<?php include $docRoot . '/inc/footer.php'; ?>
 </body>
 </html>
