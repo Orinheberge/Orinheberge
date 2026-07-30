@@ -125,7 +125,7 @@
                         <i class="fas fa-credit-card w-4 text-center text-gray-600 group-hover:text-white transition"></i>
                         Politique de paiement
                     </a>
-                    <a href="/cookies/" class="hover:text-sky-400 transition flex items-center gap-3 group">
+                    <a href="/politique-cookie/" class="hover:text-sky-400 transition flex items-center gap-3 group">
                         <i class="fas fa-cookie-bite w-4 text-center text-gray-600 group-hover:text-white transition"></i>
                         Politique cookies
                     </a>

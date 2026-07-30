@@ -156,7 +156,7 @@ $open_tickets = $open_tickets ?? 0;
             <span>Mon profil</span>
         </a>
           <a href="/client/cards/" class="nav-item nav-profile <?php echo cs_active('/client/cards'); ?>">
-            <i class="fas fa-card icon"></i> 
+            <i class="fas fa-credit-card icon"></i> 
             <span>Mes Moyens Payments</span>
         </a>
         
