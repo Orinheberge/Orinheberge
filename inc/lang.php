@@ -527,3 +527,19 @@ $translations['payment.s9.text']   = ['fr' => 'Les données transmises lors du p
 // Section 10
 $translations['payment.s10.title'] = ['fr' => 'Contact', 'en' => 'Contact'];
 $translations['payment.s10.text']  = ['fr' => 'Pour toute question relative à la présente Politique de Paiement :', 'en' => 'For any questions regarding this Payment Policy:'];
+// --- POLITIQUE DES COOKIES ---
+$translations['cookies.title']    = ['fr' => 'Politique relative aux Cookies — OrinHeberge', 'en' => 'Cookie Policy — OrinHeberge'];
+$translations['cookies.heading']  = ['fr' => 'Politique des Cookies', 'en' => 'Cookie Policy'];
+$translations['cookies.subtitle'] = ['fr' => 'Transparence sur l\'utilisation des traceurs et cookies sur notre plateforme.', 'en' => 'Transparency on the use of trackers and cookies on our platform.'];
+
+$translations['cookies.s1.title'] = ['fr' => 'Qu\'est-ce qu\'un cookie ?', 'en' => 'What is a cookie?'];
+$translations['cookies.s1.text']  = ['fr' => 'Un cookie est un petit fichier texte déposé sur votre appareil lors de la visite d\'un site. Il permet de conserver des données de navigation afin d\'améliorer votre expérience utilisateur.', 'en' => 'A cookie is a small text file stored on your device when visiting a site. It holds browsing data to enhance your user experience.'];
+
+$translations['cookies.s2.title'] = ['fr' => 'Les cookies utilisés', 'en' => 'Cookies used'];
+$translations['cookies.s2.text']  = ['fr' => 'Nous utilisons uniquement des cookies essentiels au fonctionnement du service : maintien de votre session active, mémorisation de votre langue et gestion de votre panier.', 'en' => 'We only use cookies strictly necessary for service operation: keeping your session active, remembering your language preference, and managing your shopping cart.'];
+
+$translations['cookies.s3.title'] = ['fr' => 'Cookies tiers et sécurité', 'en' => 'Third-party cookies and security'];
+$translations['cookies.s3.text']  = ['fr' => 'Aucun cookie publicitaire ou de ciblage commercial n\'est utilisé. Seuls des services tiers de sécurité (Cloudflare) et de paiement (Stripe, PayPal) peuvent déposer des cookies techniques nécessaires.', 'en' => 'No advertising or marketing cookies are used. Only essential third-party services for security (Cloudflare) and payment (Stripe, PayPal) may issue necessary technical cookies.'];
+
+$translations['cookies.s4.title'] = ['fr' => 'Gestion des cookies', 'en' => 'Managing cookies'];
+$translations['cookies.s4.text']  = ['fr' => 'Vous pouvez configurer ou bloquer les cookies directement depuis les options de votre navigateur web. Attention, la désactivation complète des cookies peut restreindre l\'accès à l\'espace client.', 'en' => 'You can configure or block cookies directly through your web browser settings. Please note that disabling essential cookies may limit access to your client area.'];
