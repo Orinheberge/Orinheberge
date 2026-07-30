@@ -38,6 +38,9 @@
                     <a href="https://www.tiktok.com/@orinheberge5" target="_blank" class="w-9 h-9 rounded-lg bg-black/20 border border-white/10 flex items-center justify-center text-white hover:bg-[#fe2c55] hover:border-[#fe2c55] transition-all duration-300" title="TikTok">
                         <i class="fab fa-tiktok"></i>
                     </a>
+                    <a href="https://www.youtube.com/@Orinheberge" target="_blank" class="w-9 h-9 rounded-lg bg-black/20 border border-white/10 flex items-center justify-center text-white hover:bg-[#FF0000] hover:border-[#FF0000] transition-all duration-300" title="YouTube">
+                        <i class="fab fa-youtube"></i>
+                    </a>
                     <a href="https://github.com/orinheberge" target="_blank" class="w-9 h-9 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:bg-white hover:text-black hover:border-white transition-all duration-300" title="GitHub">
                         <i class="fab fa-github"></i>
                     </a>
@@ -163,7 +166,7 @@
                 <div class="flex items-center gap-6">
                     <div class="flex flex-col items-center gap-1 group cursor-default">
                         <div class="w-10 h-10 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center group-hover:scale-110 transition duration-300">
-                            <i class="fas fa-shield-check text-emerald-400"></i>
+                            <i class="fas fa-shield-halved text-emerald-400"></i>
                         </div>
                         <span class="text-[10px] text-gray-500 font-semibold">SSL Sécurisé</span>
                     </div>
