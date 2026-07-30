@@ -90,36 +90,24 @@ if ($db_status) {
         $all_rows = $stmt->fetchAll();
 
         foreach ($all_rows as $product) {
-            // Si la catégorie n'a pas encore de produit associé, on passe à la ligne suivante
-            if (empty($product['id'])) {
-                continue;
-            }
+            if (empty($product['id'])) continue;
 
             $slug = $product['slug'];
             $category = strtolower($product['category_slug']); 
 
-            // Détermination du bon palier d'affichage (tier) d'après le mot-clé présent dans le slug
-            $tier_found = 'premium'; // Par défaut
-            if (strpos($slug, 'free') !== false) {
-                $tier_found = 'free';
-            } elseif (strpos($slug, 'basic') !== false) {
-                $tier_found = 'basic';
-            } elseif (strpos($slug, 'medium') !== false) {
-                $tier_found = 'medium';
-            } elseif (strpos($slug, 'mythic') !== false) {
-                $tier_found = 'mythic';
-            }
+            $tier_found = 'premium'; 
+            if (strpos($slug, 'free') !== false) $tier_found = 'free';
+            elseif (strpos($slug, 'basic') !== false) $tier_found = 'basic';
+            elseif (strpos($slug, 'medium') !== false) $tier_found = 'medium';
+            elseif (strpos($slug, 'mythic') !== false) $tier_found = 'mythic';
 
-            // Reconstruction des clés de traduction pour les textes descriptifs des offres
             $short_cat = ($category === 'minecraft') ? 'mc' : (($category === 'python') ? 'py' : (($category === 'nodejs') ? 'node' : $category));
             $name_key = "offer.{$short_cat}_{$tier_found}.name";
             $desc_key = "offer.{$short_cat}_{$tier_found}.desc";
 
-            // Formatage propre des specs RAM et NVMe
             $ram_text = ($product['ram'] >= 1024) ? number_format($product['ram'] / 1024, 0) . ' GB' : $product['ram'] . ' MB';
             $disk_text = ($product['disk'] >= 1024) ? number_format($product['disk'] / 1024, 0) . ' GB' : $product['disk'] . ' MB';
 
-            // Ajout de l'offre BDD formatée dans le tableau $sections
             $sections[$tier_found]['offers'][] = [
                 'category'   => $category,
                 'slug'       => $slug,
@@ -205,26 +193,39 @@ function getCardStyle($tier_key) {
     <link rel="icon" type="image/png" href="https://heberge.orinstone.deepstone.fr/favicon.png">
     <link rel="apple-touch-icon" href="https://heberge.orinstone.deepstone.fr/favicon.png">
 
-
-<!-- Google tag (gtag.js) - Google Analytics 4 -->
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-YKZCE0SNDG"></script>
+<!-- Google Tag Manager (Chargement conditionnel via JS ci-dessous pour RGPD) -->
 <script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
+    // Fonction pour charger GTM et GA4 seulement si accepté
+    function loadAnalytics() {
+        // Google Tag Manager
+        (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+        new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+        j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+        'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+        })(window,document,'script','dataLayer','GTM-W5ZSVXHK');
 
-  gtag('config', 'G-YKZCE0SNDG');
+        // Google Analytics 4
+        var gaScript = document.createElement('script');
+        gaScript.async = true;
+        gaScript.src = "https://www.googletagmanager.com/gtag/js?id=G-YKZCE0SNDG";
+        document.head.appendChild(gaScript);
+        
+        gaScript.onload = function() {
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-YKZCE0SNDG');
+        };
+    }
+
+    // Vérification au chargement
+    document.addEventListener('DOMContentLoaded', function() {
+        const consent = localStorage.getItem('cookie_consent');
+        if (consent === 'accepted') {
+            loadAnalytics();
+        }
+    });
 </script>
-
-<!-- Google Tag Manager -->
-<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-})(window,document,'script','dataLayer','GTM-W5ZSVXHK');</script>
-<!-- End Google Tag Manager -->
-
 
     <!-- Schema.org JSON-LD (SEO avancé) -->
     <script type="application/ld+json">
@@ -243,7 +244,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     </script>
 
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="manifest" href="/manifest.json">
     <style>
         *{box-sizing:border-box;}
@@ -263,6 +264,15 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         @keyframes pulse-orb{0%,100%{opacity:.4;transform:translate(-50%, -50%) scale(1);}50%{opacity:.7;transform:translate(-50%, -50%) scale(1.1);}}
         
         .offer-badge{position:absolute;top:.875rem;right:.875rem;z-index:10;padding:.2rem .7rem;border-radius:9999px;font-size:.65rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;}
+        
+        /* Styles pour la bannière RGPD */
+        #cookie-banner {
+            transform: translateY(100%);
+            transition: transform 0.5s ease-in-out;
+        }
+        #cookie-banner.show {
+            transform: translateY(0);
+        }
     </style>
     <script>
         if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('/sw.js').catch(()=>{});});}
@@ -308,10 +318,10 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 
     <section class="py-8 px-6 border-y border-white/[0.04]">
         <div class="max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-            <div><p class="text-3xl font-black gradient-text">100%</p><p class="text-gray-500 text-xs mt-1">SSD NVMe</p></div>
-            <div><p class="text-3xl font-black gradient-text">0€</p><p class="text-gray-500 text-xs mt-1">Pour commencer</p></div>
-            <div><p class="text-3xl font-black gradient-text">24/7</p><p class="text-gray-500 text-xs mt-1">Support Discord</p></div>
-            <div><p class="text-3xl font-black gradient-text">DDoS</p><p class="text-gray-500 text-xs mt-1">Protection incluse</p></div>
+            <div><p class="text-3xl font-black gradient-text"><i class="fas fa-bolt text-2xl mb-1 block"></i>100%</p><p class="text-gray-500 text-xs mt-1">SSD NVMe</p></div>
+            <div><p class="text-3xl font-black gradient-text"><i class="fas fa-wallet text-2xl mb-1 block"></i>0€</p><p class="text-gray-500 text-xs mt-1">Pour commencer</p></div>
+            <div><p class="text-3xl font-black gradient-text"><i class="fas fa-headset text-2xl mb-1 block"></i>24/7</p><p class="text-gray-500 text-xs mt-1">Support Discord</p></div>
+            <div><p class="text-3xl font-black gradient-text"><i class="fas fa-shield-alt text-2xl mb-1 block"></i>DDoS</p><p class="text-gray-500 text-xs mt-1">Protection incluse</p></div>
         </div>
     </section>
 
@@ -345,7 +355,7 @@ function filterCategory(catId) {
     
     catGrid.innerHTML = '';
     if (cards.length === 0) {
-        catGrid.innerHTML = '<div class="col-span-full py-12 text-center text-gray-500 text-sm">Aucune offre disponible pour le moment dans cette catégorie.</div>';
+        catGrid.innerHTML = '<div class="col-span-full py-12 text-center text-gray-500 text-sm"><i class="fas fa-box-open text-4xl mb-3 opacity-50"></i><br>Aucune offre disponible pour le moment.</div>';
     } else {
         cards.forEach(card => { 
             const clone = card.cloneNode(true); 
@@ -408,15 +418,15 @@ window.addEventListener('DOMContentLoaded', () => filterCategory('all'));
                 $link = $is_logged_in ? $cart_route : '/login/';
             ?>
             <div data-category="<?php echo htmlspecialchars($cat); ?>" data-price="<?php echo $price_num; ?>"
-                 class="offer-card glass rounded-2xl border <?php echo $style['card_border']; ?> flex flex-col card-hover overflow-hidden relative">
+                 class="offer-card glass rounded-2xl border <?php echo $style['card_border']; ?> flex flex-col card-hover overflow-hidden relative group">
 
-                <div class="h-36 w-full bg-cover bg-center relative" style="background-image:url('<?php echo htmlspecialchars($offer['image_url']); ?>')">
+                <div class="h-36 w-full bg-cover bg-center relative transition-transform duration-500 group-hover:scale-105" style="background-image:url('<?php echo htmlspecialchars($offer['image_url']); ?>')">
                     <div class="absolute inset-0 bg-gradient-to-t from-[#070a13] via-transparent to-transparent"></div>
                     <div class="absolute top-3 left-3 right-3 flex justify-between items-center">
-                        <span class="<?php echo $style['badge_bg'].' '.$style['badge_text'].' '.$style['badge_border']; ?> px-2.5 py-0.5 rounded-full text-[11px] font-bold border uppercase tracking-wide">
+                        <span class="<?php echo $style['badge_bg'].' '.$style['badge_text'].' '.$style['badge_border']; ?> px-2.5 py-0.5 rounded-full text-[11px] font-bold border uppercase tracking-wide backdrop-blur-md">
                             <?php echo t($tier_data['label_key']); ?>
                         </span>
-                        <i class="<?php echo htmlspecialchars($offer['icon']).' '.$style['icon_color']; ?> text-xl drop-shadow"></i>
+                        <i class="<?php echo htmlspecialchars($offer['icon']).' '.$style['icon_color']; ?> text-2xl drop-shadow-lg transform group-hover:rotate-12 transition-transform"></i>
                     </div>
                 </div>
 
@@ -431,7 +441,7 @@ window.addEventListener('DOMContentLoaded', () => filterCategory('all'));
 
                     <ul class="space-y-2 text-xs text-gray-300 border-t border-white/5 pt-3 mb-4">
                         <?php foreach ($offer['features'] as $feat): ?>
-                        <li><i class="<?php echo $feat['icon'].' '.$style['icon_color']; ?> mr-2 w-3"></i><?php echo $feat['text']; ?></li>
+                        <li class="flex items-center gap-2"><i class="<?php echo $feat['icon'].' '.$style['icon_color']; ?> w-4 text-center"></i><?php echo $feat['text']; ?></li>
                         <?php endforeach; ?>
                     </ul>
 
@@ -442,13 +452,13 @@ window.addEventListener('DOMContentLoaded', () => filterCategory('all'));
                             <input type="hidden" name="name" value="<?php echo htmlspecialchars(t($offer['name_key'])); ?>">
                             <input type="hidden" name="price" value="<?php echo htmlspecialchars((string)$offer['price_value']); ?>">
                             <input type="hidden" name="period" value="<?php echo htmlspecialchars(t($offer['period_key'])); ?>">
-                            <button type="submit" class="w-full <?php echo $style['btn']; ?> text-slate-950 font-bold py-2.5 rounded-xl text-sm">
-                                <?php echo $btn_text; ?>
+                            <button type="submit" class="w-full <?php echo $style['btn']; ?> text-slate-950 font-bold py-2.5 rounded-xl text-sm flex items-center justify-center gap-2 transition-all hover:shadow-lg hover:shadow-current/20">
+                                <i class="fas fa-shopping-cart"></i> <?php echo $btn_text; ?>
                             </button>
                         </form>
                     <?php else: ?>
-                        <a href="<?php echo $link; ?>" class="w-full <?php echo $style['btn']; ?> text-slate-950 font-bold py-2.5 rounded-xl text-sm text-center block">
-                            <?php echo $btn_text; ?>
+                        <a href="<?php echo $link; ?>" class="w-full <?php echo $style['btn']; ?> text-slate-950 font-bold py-2.5 rounded-xl text-sm text-center block flex items-center justify-center gap-2 transition-all hover:shadow-lg hover:shadow-current/20">
+                            <i class="fas fa-lock"></i> <?php echo $btn_text; ?>
                         </a>
                     <?php endif; ?>
                 </div>
@@ -462,20 +472,53 @@ window.addEventListener('DOMContentLoaded', () => filterCategory('all'));
        
     </section>
 
+    <!-- Section Technologies Supportées (Nouvelle section avec icônes) -->
+    <section class="py-10 px-6 border-b border-white/[0.03]">
+        <div class="max-w-7xl mx-auto">
+            <p class="text-center text-gray-500 text-xs font-bold uppercase tracking-widest mb-6">Environnements Supportés</p>
+            <div class="flex flex-wrap justify-center gap-8 md:gap-16 opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
+                <div class="flex flex-col items-center gap-2 group cursor-default">
+                    <i class="fab fa-java text-4xl text-orange-500 group-hover:scale-110 transition"></i>
+                    <span class="text-xs font-bold text-gray-400">Java</span>
+                </div>
+                <div class="flex flex-col items-center gap-2 group cursor-default">
+                    <i class="fab fa-node-js text-4xl text-green-500 group-hover:scale-110 transition"></i>
+                    <span class="text-xs font-bold text-gray-400">Node.js</span>
+                </div>
+                <div class="flex flex-col items-center gap-2 group cursor-default">
+                    <i class="fab fa-python text-4xl text-blue-400 group-hover:scale-110 transition"></i>
+                    <span class="text-xs font-bold text-gray-400">Python</span>
+                </div>
+                <div class="flex flex-col items-center gap-2 group cursor-default">
+                    <i class="fab fa-php text-4xl text-indigo-400 group-hover:scale-110 transition"></i>
+                    <span class="text-xs font-bold text-gray-400">PHP</span>
+                </div>
+                <div class="flex flex-col items-center gap-2 group cursor-default">
+                    <i class="fas fa-cube text-4xl text-gray-300 group-hover:scale-110 transition"></i>
+                    <span class="text-xs font-bold text-gray-400">Minecraft</span>
+                </div>
+                <div class="flex flex-col items-center gap-2 group cursor-default">
+                    <i class="fab fa-linux text-4xl text-yellow-500 group-hover:scale-110 transition"></i>
+                    <span class="text-xs font-bold text-gray-400">Linux</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <section class="py-16 px-6 bg-white/[0.01] border-y border-white/[0.03]">
         <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
-                <span class="text-xs font-bold text-sky-400 tracking-widest uppercase mb-2 block">Performances Brutes</span>
+                <span class="text-xs font-bold text-sky-400 tracking-widest uppercase mb-2 block"><i class="fas fa-tachometer-alt mr-1"></i> Performances Brutes</span>
                 <h3 class="text-3xl md:text-4xl font-black mb-6 leading-tight">Une infrastructure optimisée pour le <span class="gradient-text">zéro-lenteur</span>.</h3>
                 <p class="text-gray-400 text-sm leading-relaxed mb-6">
                     Nous n'hébergeons pas vos projets sur du matériel obsolète. Nos machines physiques exploitent la puissance des coeurs AMD Ryzen couplée à une architecture réseau ultra redondante pour garantir stabilité et vitesse de traitement.
                 </p>
                 <div class="grid grid-cols-2 gap-4">
-                    <div class="p-4 rounded-xl border border-white/[0.03] bg-white/[0.01]">
+                    <div class="p-4 rounded-xl border border-white/[0.03] bg-white/[0.01] hover:border-sky-500/30 transition">
                         <div class="text-white font-bold text-sm mb-1"><i class="fas fa-network-wired text-sky-400 mr-1.5"></i> Réseau 10 Gbps</div>
                         <p class="text-gray-500 text-xs">Uplink haut débit pour une latence minimale en Europe.</p>
                     </div>
-                    <div class="p-4 rounded-xl border border-white/[0.03] bg-white/[0.01]">
+                    <div class="p-4 rounded-xl border border-white/[0.03] bg-white/[0.01] hover:border-purple-500/30 transition">
                         <div class="text-white font-bold text-sm mb-1"><i class="fas fa-memory text-purple-400 mr-1.5"></i> RAM DDR5 ECC</div>
                         <p class="text-gray-500 text-xs">Correction d'erreurs intégrée pour éviter tout crash applicatif.</p>
                     </div>
@@ -483,9 +526,9 @@ window.addEventListener('DOMContentLoaded', () => filterCategory('all'));
             </div>
             <div class="relative flex justify-center">
                 <div class="absolute w-72 h-72 bg-indigo-500/5 filter blur-3xl rounded-full top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
-                <div class="glass p-8 rounded-2xl border border-white/[0.06] max-w-md w-full font-mono text-xs text-gray-400 space-y-3">
+                <div class="glass p-8 rounded-2xl border border-white/[0.06] max-w-md w-full font-mono text-xs text-gray-400 space-y-3 shadow-2xl">
                     <div class="flex items-center justify-between border-b border-white/[0.05] pb-2">
-                        <span class="text-gray-500">Node Status</span>
+                        <span class="text-gray-500"><i class="fas fa-terminal mr-2"></i>Node Status</span>
                         <span class="text-green-400 flex items-center gap-1"><span class="h-1.5 w-1.5 rounded-full bg-green-400 animate-ping"></span> ONLINE</span>
                     </div>
                     <p><span class="text-purple-400">~ $</span> screen -r orin-node-01</p>
@@ -504,9 +547,10 @@ window.addEventListener('DOMContentLoaded', () => filterCategory('all'));
             <p class="text-gray-500 max-w-lg mx-auto text-sm">Les passionnés qui travaillent chaque jour pour maintenir vos serveurs en ligne.</p>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div class="glass p-6 rounded-2xl border border-white/[0.05] text-center flex flex-col items-center">
+            <!-- Mathéo -->
+            <div class="glass p-6 rounded-2xl border border-white/[0.05] text-center flex flex-col items-center group hover:border-sky-500/30 transition">
                 <div class="relative mb-4">
-                    <div class="w-20 h-20 bg-gradient-to-tr from-sky-400 to-purple-500 rounded-full p-0.5 shadow-xl">
+                    <div class="w-20 h-20 bg-gradient-to-tr from-sky-400 to-purple-500 rounded-full p-0.5 shadow-xl group-hover:scale-105 transition">
                         <img src="/img/staff/Mathéo-Favier.jpg" alt="Avatar" class="w-full h-full object-cover rounded-full bg-[#060911]">
                     </div>
                     <span class="absolute bottom-0 right-1 h-3 w-3 rounded-full bg-green-400 border-2 border-[#060911]"></span>
@@ -515,14 +559,15 @@ window.addEventListener('DOMContentLoaded', () => filterCategory('all'));
                 <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/20 mt-1 mb-3">Fondateur & Dev SysAdmin</span>
                 <p class="text-gray-500 text-xs leading-relaxed max-w-xs">Garant de l'architecture serveur et du développement global du panel.</p>
                 <div class="flex gap-3 mt-4 text-gray-400 text-sm">
-                    <a href="https://github.com/metal54400" class="hover:text-white transition"><i class="fab fa-github"></i></a>
-                    <a href="https://portfolio.deepstone.fr" class="hover:text-sky-400 transition"><i class="fab fa-avatar"></i></a>
+                    <a href="https://github.com/metal54400" class="hover:text-white transition hover:scale-110"><i class="fab fa-github"></i></a>
+                    <a href="https://portfolio.deepstone.fr" class="hover:text-sky-400 transition hover:scale-110"><i class="fas fa-globe"></i></a>
                 </div>
             </div>
 
-             <div class="glass p-6 rounded-2xl border border-white/[0.05] text-center flex flex-col items-center">
+             <!-- WixyMc -->
+            <div class="glass p-6 rounded-2xl border border-white/[0.05] text-center flex flex-col items-center group hover:border-purple-500/30 transition">
                 <div class="relative mb-4">
-                    <div class="w-20 h-20 bg-gradient-to-tr from-purple-500 to-pink-500 rounded-full p-0.5 shadow-xl">
+                    <div class="w-20 h-20 bg-gradient-to-tr from-purple-500 to-pink-500 rounded-full p-0.5 shadow-xl group-hover:scale-105 transition">
                         <img src="/img/staff/WixyMc.png" alt="Avatar" class="w-full h-full object-cover rounded-full bg-[#060911]">
                     </div>
                     <span class="absolute bottom-0 right-1 h-3 w-3 rounded-full bg-green-400 border-2 border-[#060911]"></span>
@@ -531,14 +576,15 @@ window.addEventListener('DOMContentLoaded', () => filterCategory('all'));
                 <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20 mt-1 mb-3">Co Fondateur & Dev SysAdmin</span>
                 <p class="text-gray-500 text-xs leading-relaxed max-w-xs">Conçoit l'interface utilisateur pour la rendre fluide et accessible à tous.</p>
                 <div class="flex gap-3 mt-4 text-gray-400 text-sm">
-                    <a href="#" class="hover:text-white transition"><i class="fab fa-github"></i></a>
-                    <a href="#" class="hover:text-purple-400 transition"><i class="fab fa-discord"></i></a>
+                    <a href="#" class="hover:text-white transition hover:scale-110"><i class="fab fa-github"></i></a>
+                    <a href="#" class="hover:text-purple-400 transition hover:scale-110"><i class="fab fa-discord"></i></a>
                 </div>
             </div>
 
-            <div class="glass p-6 rounded-2xl border border-white/[0.05] text-center flex flex-col items-center sm:col-span-2 lg:col-span-1">
+            <!-- Nexium -->
+            <div class="glass p-6 rounded-2xl border border-white/[0.05] text-center flex flex-col items-center sm:col-span-2 lg:col-span-1 group hover:border-amber-500/30 transition">
                 <div class="relative mb-4">
-                    <div class="w-20 h-20 bg-gradient-to-tr from-amber-400 to-orange-500 rounded-full p-0.5 shadow-xl">
+                    <div class="w-20 h-20 bg-gradient-to-tr from-amber-400 to-orange-500 rounded-full p-0.5 shadow-xl group-hover:scale-105 transition">
                         <img src="/img/staff/Nexium.webp" alt="Avatar" class="w-full h-full object-cover rounded-full bg-[#060911]">
                     </div>
                     <span class="absolute bottom-0 right-1 h-3 w-3 rounded-full bg-green-400 border-2 border-[#060911]"></span>
@@ -547,7 +593,7 @@ window.addEventListener('DOMContentLoaded', () => filterCategory('all'));
                 <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 mt-1 mb-3">Responsable Support</span>
                 <p class="text-gray-500 text-xs leading-relaxed max-w-xs">Supervise la communauté sur Discord et s'assure de l'aide technique 24/7.</p>
                 <div class="flex gap-3 mt-4 text-gray-400 text-sm">
-                    <a href="#" class="hover:text-amber-400 transition"><i class="fab fa-discord"></i></a>
+                    <a href="#" class="hover:text-amber-400 transition hover:scale-110"><i class="fab fa-discord"></i></a>
                 </div>
             </div>
         </div>
@@ -560,23 +606,31 @@ window.addEventListener('DOMContentLoaded', () => filterCategory('all'));
             <p class="text-gray-500 max-w-lg mx-auto text-sm">Une infrastructure pensée pour la performance, la simplicité et la fiabilité.</p>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div class="glass card-hover p-6 rounded-2xl border border-white/[0.05]">
-                <div class="w-10 h-10 bg-sky-500/10 rounded-xl flex items-center justify-center mb-4"><i class="fas fa-microchip text-sky-400"></i></div>
+            <div class="glass card-hover p-6 rounded-2xl border border-white/[0.05] group">
+                <div class="w-12 h-12 bg-sky-500/10 rounded-xl flex items-center justify-center mb-4 group-hover:bg-sky-500/20 transition">
+                    <i class="fas fa-microchip text-sky-400 text-xl"></i>
+                </div>
                 <h4 class="font-bold text-white mb-2">CPU Ryzen HF</h4>
                 <p class="text-gray-500 text-xs leading-relaxed">Processeurs Ryzen haute fréquence et stockage SSD NVMe ultra-rapide.</p>
             </div>
-            <div class="glass card-hover p-6 rounded-2xl border border-white/[0.05]">
-                <div class="w-10 h-10 bg-purple-500/10 rounded-xl flex items-center justify-center mb-4"><i class="fas fa-layer-group text-purple-400"></i></div>
+            <div class="glass card-hover p-6 rounded-2xl border border-white/[0.05] group">
+                <div class="w-12 h-12 bg-purple-500/10 rounded-xl flex items-center justify-center mb-4 group-hover:bg-purple-500/20 transition">
+                    <i class="fas fa-layer-group text-purple-400 text-xl"></i>
+                </div>
                 <h4 class="font-bold text-white mb-2">Multi-environnements</h4>
                 <p class="text-gray-500 text-xs leading-relaxed">Minecraft, PHP, Node.js, Python, Java — tout en un seul endroit.</p>
             </div>
-            <div class="glass card-hover p-6 rounded-2xl border border-white/[0.05]">
-                <div class="w-10 h-10 bg-green-500/10 rounded-xl flex items-center justify-center mb-4"><i class="fas fa-hand-holding-dollar text-green-400"></i></div>
+            <div class="glass card-hover p-6 rounded-2xl border border-white/[0.05] group">
+                <div class="w-12 h-12 bg-green-500/10 rounded-xl flex items-center justify-center mb-4 group-hover:bg-green-500/20 transition">
+                    <i class="fas fa-hand-holding-dollar text-green-400 text-xl"></i>
+                </div>
                 <h4 class="font-bold text-white mb-2">Gratuit & Abordable</h4>
                 <p class="text-gray-500 text-xs leading-relaxed">Commencez gratuitement, évoluez selon vos besoins avec des tarifs compétitifs.</p>
             </div>
-            <div class="glass card-hover p-6 rounded-2xl border border-white/[0.05]">
-                <div class="w-10 h-10 bg-amber-500/10 rounded-xl flex items-center justify-center mb-4"><i class="fas fa-shield-halved text-amber-400"></i></div>
+            <div class="glass card-hover p-6 rounded-2xl border border-white/[0.05] group">
+                <div class="w-12 h-12 bg-amber-500/10 rounded-xl flex items-center justify-center mb-4 group-hover:bg-amber-500/20 transition">
+                    <i class="fas fa-shield-halved text-amber-400 text-xl"></i>
+                </div>
                 <h4 class="font-bold text-white mb-2">Protection DDoS</h4>
                 <p class="text-gray-500 text-xs leading-relaxed">Anti-DDoS inclus sur toutes les offres, même gratuites.</p>
             </div>
@@ -592,7 +646,7 @@ window.addEventListener('DOMContentLoaded', () => filterCategory('all'));
         <div class="space-y-4">
             <details class="glass p-5 rounded-xl border border-white/[0.05] group transition-all duration-300">
                 <summary class="font-bold text-white text-sm flex justify-between items-center cursor-pointer list-none select-none">
-                    <span>Comment l'offre gratuite fonctionne-t-elle ?</span>
+                    <span class="flex items-center gap-2"><i class="fas fa-question-circle text-sky-400"></i> Comment l'offre gratuite fonctionne-t-elle ?</span>
                     <span class="transition group-open:rotate-180"><i class="fas fa-chevron-down text-gray-500 text-xs"></i></span>
                 </summary>
                 <p class="text-gray-400 text-xs leading-relaxed mt-3 pt-3 border-t border-white/[0.03]">
@@ -602,7 +656,7 @@ window.addEventListener('DOMContentLoaded', () => filterCategory('all'));
 
             <details class="glass p-5 rounded-xl border border-white/[0.05] group transition-all duration-300">
                 <summary class="font-bold text-white text-sm flex justify-between items-center cursor-pointer list-none select-none">
-                    <span>Puis-je changer d'offre ou migrer plus tard ?</span>
+                    <span class="flex items-center gap-2"><i class="fas fa-exchange-alt text-sky-400"></i> Puis-je changer d'offre ou migrer plus tard ?</span>
                     <span class="transition group-open:rotate-180"><i class="fas fa-chevron-down text-gray-500 text-xs"></i></span>
                 </summary>
                 <p class="text-gray-400 text-xs leading-relaxed mt-3 pt-3 border-t border-white/[0.03]">
@@ -612,7 +666,7 @@ window.addEventListener('DOMContentLoaded', () => filterCategory('all'));
 
             <details class="glass p-5 rounded-xl border border-white/[0.05] group transition-all duration-300">
                 <summary class="font-bold text-white text-sm flex justify-between items-center cursor-pointer list-none select-none">
-                    <span>Où sont situés vos serveurs ?</span>
+                    <span class="flex items-center gap-2"><i class="fas fa-map-marker-alt text-sky-400"></i> Où sont situés vos serveurs ?</span>
                     <span class="transition group-open:rotate-180"><i class="fas fa-chevron-down text-gray-500 text-xs"></i></span>
                 </summary>
                 <p class="text-gray-400 text-xs leading-relaxed mt-3 pt-3 border-t border-white/[0.03]">
@@ -632,6 +686,50 @@ window.addEventListener('DOMContentLoaded', () => filterCategory('all'));
         <span class="hidden sm:inline text-sm"><?php echo t('discord.help'); ?></span>
     </a>
 </div>
+
+<!-- BANNIÈRE RGPD -->
+<div id="cookie-banner" class="fixed bottom-0 left-0 right-0 bg-[#0f121d] border-t border-white/10 p-4 z-[100] shadow-2xl">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="flex items-start gap-3">
+            <i class="fas fa-cookie-bite text-yellow-400 text-xl mt-1"></i>
+            <div class="text-sm text-gray-300">
+                <p class="font-bold text-white mb-1">Respect de votre vie privée</p>
+                <p>Nous utilisons des cookies pour améliorer votre expérience et analyser notre trafic. Conformément au RGPD, vous avez le choix d'accepter ou de refuser les cookies non essentiels.</p>
+                <a href="/privacy-policy" class="text-sky-400 hover:underline text-xs mt-1 inline-block">Lire notre politique de confidentialité</a>
+            </div>
+        </div>
+        <div class="flex gap-3 shrink-0">
+            <button onclick="rejectCookies()" class="px-4 py-2 rounded-lg border border-white/10 text-gray-400 hover:bg-white/5 text-sm font-medium transition">
+                Refuser
+            </button>
+            <button onclick="acceptCookies()" class="px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-sm font-bold shadow-lg shadow-sky-900/20 transition">
+                Accepter
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function acceptCookies() {
+        localStorage.setItem('cookie_consent', 'accepted');
+        document.getElementById('cookie-banner').classList.remove('show');
+        loadAnalytics(); // Charge les scripts de tracking
+    }
+
+    function rejectCookies() {
+        localStorage.setItem('cookie_consent', 'rejected');
+        document.getElementById('cookie-banner').classList.remove('show');
+    }
+
+    // Afficher la bannière si aucun choix n'a été fait
+    window.addEventListener('load', function() {
+        if (!localStorage.getItem('cookie_consent')) {
+            setTimeout(() => {
+                document.getElementById('cookie-banner').classList.add('show');
+            }, 1000);
+        }
+    });
+</script>
 
 <?php include $_SERVER['DOCUMENT_ROOT'] . '/inc/cookie.php'; ?>
 </body>
