@@ -102,12 +102,12 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
 
     <div class="max-w-7xl mx-auto flex items-center gap-4 p-5">
 
-        <h1 class="text-3xl font-black text-white tracking-tight shrink-0">
-          <a href="/" class="flex items-center gap-2">
-    <img src="favicon.png" alt="OrinHeberge Logo" class="w-5 h-5 object-contain">
-    <span class="text-sm font-bold text-white">Orin<span class="text-sky-500">Heberge</span></span>
-</a>
-        </h1>
+ <h1 class="font-black text-white tracking-tight shrink-0">
+    <a href="/" class="flex items-center gap-2.5 group">
+        <img src="https://heberge.orinstone.deepstone.fr/favicon.png" alt="OrinHeberge Logo" class="w-8 h-8 object-contain">
+        <span class="text-2xl font-black text-white">Orin<span class="text-sky-500">Heberge</span></span>
+    </a>
+</h1>
 
         <div class="hidden md:flex items-center gap-2 lg:gap-3 flex-1 justify-end flex-wrap">
             <a href="/" class="<?php echo $active_nav === 'home' ? 'bg-sky-600/30 text-sky-400 border-sky-500/50 font-bold' : 'bg-sky-600/5 text-sky-400/70 hover:text-sky-300 border-sky-500/10 hover:bg-sky-600/20'; ?> px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium shadow-md border whitespace-nowrap">
