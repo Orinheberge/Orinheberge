@@ -6,14 +6,11 @@
 ?>
 <footer class="w-full bg-[#05070d] text-gray-400 border-t border-white/5 font-sans relative overflow-hidden mt-auto">
     
-    <!-- Effet de gradient lumineux en haut -->
     <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-sky-500/50 to-transparent shadow-[0_0_15px_rgba(56,189,248,0.5)]"></div>
     
-    <!-- Section principale -->
     <div class="max-w-7xl mx-auto px-6 py-12">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 mb-10">
 
-            <!-- Colonne 1 : À propos & Marque -->
             <div class="lg:col-span-2 flex flex-col gap-4">
                 <div class="flex items-center gap-3 group cursor-default">
                     <div class="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center group-hover:bg-sky-500/20 transition duration-300">
@@ -29,13 +26,14 @@
                     Infrastructure française fiable, sécurisée et optimisée.
                 </p>
                 
-                <!-- Réseaux sociaux -->
                 <div class="flex items-center gap-3 mt-2">
                     <a href="/discord/" target="_blank" class="w-9 h-9 rounded-lg bg-[#5865F2]/10 border border-[#5865F2]/20 flex items-center justify-center text-[#5865F2] hover:bg-[#5865F2] hover:text-white hover:border-[#5865F2] transition-all duration-300" title="Rejoindre le Discord">
                         <i class="fab fa-discord"></i>
                     </a>
-                    <a href="https://x.com/orinheberge" target="_blank" class="w-9 h-9 rounded-lg bg-black/20 border border-white/10 flex items-center justify-center text-white hover:bg-white hover:text-black hover:border-white transition-all duration-300" title="Suivre sur X">
-                        <i class="fab fa-x-twitter"></i>
+                    <a href="https://x.com/orinheberge" target="_blank" class="w-9 h-9 rounded-lg bg-black/40 border border-white/10 flex items-center justify-center text-white hover:bg-white hover:text-black hover:border-white transition-all duration-300 group" title="Suivre sur X">
+                        <svg class="w-4 h-4 fill-current transition-colors" viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                        </svg>
                     </a>
                     <a href="https://www.tiktok.com/@orinheberge5" target="_blank" class="w-9 h-9 rounded-lg bg-black/20 border border-white/10 flex items-center justify-center text-white hover:bg-[#fe2c55] hover:border-[#fe2c55] transition-all duration-300" title="TikTok">
                         <i class="fab fa-tiktok"></i>
@@ -49,7 +47,6 @@
                 </div>
             </div>
 
-            <!-- Colonne 2 : Navigation -->
             <div class="flex flex-col gap-4">
                 <h3 class="text-white font-bold text-sm tracking-wide flex items-center gap-2">
                     <i class="fas fa-compass text-sky-400 text-xs"></i>
@@ -79,7 +76,6 @@
                 </div>
             </div>
 
-            <!-- Colonne 3 : Ressources & Liens Externes -->
             <div class="flex flex-col gap-4">
                 <h3 class="text-white font-bold text-sm tracking-wide flex items-center gap-2">
                     <i class="fas fa-link text-sky-400 text-xs"></i>
@@ -107,7 +103,6 @@
                 </div>
             </div>
 
-            <!-- Colonne 4 : Légal -->
             <div class="flex flex-col gap-4">
                 <h3 class="text-white font-bold text-sm tracking-wide flex items-center gap-2">
                     <i class="fas fa-gavel text-sky-400 text-xs"></i>
@@ -126,6 +121,10 @@
                         <i class="fas fa-shield-alt w-4 text-center text-gray-600 group-hover:text-white transition"></i>
                         Confidentialité
                     </a>
+                    <a href="/politique-paiement/" class="hover:text-sky-400 transition flex items-center gap-3 group">
+                        <i class="fas fa-credit-card w-4 text-center text-gray-600 group-hover:text-white transition"></i>
+                        Politique de paiement
+                    </a>
                     <a href="/cookies/" class="hover:text-sky-400 transition flex items-center gap-3 group">
                         <i class="fas fa-cookie-bite w-4 text-center text-gray-600 group-hover:text-white transition"></i>
                         Politique cookies
@@ -135,17 +134,14 @@
 
         </div>
 
-        <!-- Section paiements & Badges -->
         <div class="border-t border-white/5 pt-8 mt-8">
             <div class="flex flex-col xl:flex-row items-center justify-between gap-8">
                 
-                <!-- Moyens de paiement -->
                 <div class="flex flex-col items-center xl:items-start gap-3 w-full xl:w-auto">
                     <span class="text-xs text-gray-500 font-semibold tracking-wider uppercase">
                         Paiements sécurisés
                     </span>
                     <div class="flex flex-wrap items-center justify-center xl:justify-start gap-3">
-                        <!-- Fonction helper pour éviter la répétition de code HTML -->
                         <?php
                         $payment_methods = [
                             ['src' => 'https://azurhosts.com/assets/images/logos/psrl/card-icons/card_cb.svg', 'alt' => 'CB'],
@@ -164,7 +160,6 @@
                     </div>
                 </div>
 
-                <!-- Badges de confiance -->
                 <div class="flex items-center gap-6">
                     <div class="flex flex-col items-center gap-1 group cursor-default">
                         <div class="w-10 h-10 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center group-hover:scale-110 transition duration-300">
@@ -189,7 +184,6 @@
         </div>
     </div>
 
-    <!-- Barre de copyright -->
     <div class="border-t border-white/5 bg-black/40 backdrop-blur-sm">
         <div class="max-w-7xl mx-auto px-6 py-4">
             <div class="flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-gray-500">
