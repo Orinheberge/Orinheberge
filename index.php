@@ -472,11 +472,11 @@ window.addEventListener('DOMContentLoaded', () => filterCategory('all'));
        
     </section>
 
-    <!-- Section Technologies Supportées (Nouvelle section avec icônes) -->
+    <!-- Section Technologies Supportées (Mise à jour avec FiveM, Terraria, Hytale) -->
     <section class="py-10 px-6 border-b border-white/[0.03]">
         <div class="max-w-7xl mx-auto">
             <p class="text-center text-gray-500 text-xs font-bold uppercase tracking-widest mb-6">Environnements Supportés</p>
-            <div class="flex flex-wrap justify-center gap-8 md:gap-16 opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
+            <div class="flex flex-wrap justify-center gap-8 md:gap-12 opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
                 <div class="flex flex-col items-center gap-2 group cursor-default">
                     <i class="fab fa-java text-4xl text-orange-500 group-hover:scale-110 transition"></i>
                     <span class="text-xs font-bold text-gray-400">Java</span>
@@ -497,6 +497,20 @@ window.addEventListener('DOMContentLoaded', () => filterCategory('all'));
                     <i class="fas fa-cube text-4xl text-gray-300 group-hover:scale-110 transition"></i>
                     <span class="text-xs font-bold text-gray-400">Minecraft</span>
                 </div>
+                <!-- NOUVEAUX AJOUTS -->
+                <div class="flex flex-col items-center gap-2 group cursor-default">
+                    <i class="fas fa-car text-4xl text-red-500 group-hover:scale-110 transition"></i>
+                    <span class="text-xs font-bold text-gray-400">FiveM</span>
+                </div>
+                <div class="flex flex-col items-center gap-2 group cursor-default">
+                    <i class="fas fa-dragon text-4xl text-emerald-500 group-hover:scale-110 transition"></i>
+                    <span class="text-xs font-bold text-gray-400">Terraria</span>
+                </div>
+                <div class="flex flex-col items-center gap-2 group cursor-default">
+                    <i class="fas fa-cloud text-4xl text-sky-300 group-hover:scale-110 transition"></i>
+                    <span class="text-xs font-bold text-gray-400">Hytale</span>
+                </div>
+                <!-- FIN NOUVEAUX AJOUTS -->
                 <div class="flex flex-col items-center gap-2 group cursor-default">
                     <i class="fab fa-linux text-4xl text-yellow-500 group-hover:scale-110 transition"></i>
                     <span class="text-xs font-bold text-gray-400">Linux</span>
@@ -634,6 +648,84 @@ window.addEventListener('DOMContentLoaded', () => filterCategory('all'));
                 <h4 class="font-bold text-white mb-2">Protection DDoS</h4>
                 <p class="text-gray-500 text-xs leading-relaxed">Anti-DDoS inclus sur toutes les offres, même gratuites.</p>
             </div>
+        </div>
+    </section>
+
+    <!-- NOUVELLE SECTION: AVIS CLIENTS -->
+    <section class="py-20 px-6 max-w-5xl mx-auto border-t border-white/[0.03]">
+        <div class="text-center mb-12">
+            <div class="inline-flex items-center gap-2 bg-pink-500/10 text-pink-400 border border-pink-500/20 px-4 py-1.5 rounded-full text-xs font-semibold mb-4">
+                <i class="fas fa-star"></i> Témoignages
+            </div>
+            <h2 class="text-3xl font-black mb-3">Ce que disent nos <span class="gradient-text">Clients</span></h2>
+            <p class="text-gray-500 text-sm">Votre satisfaction est notre meilleure récompense.</p>
+        </div>
+
+        <!-- Grille des avis existants (Simulée) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-12">
+            <div class="glass p-5 rounded-xl border border-white/[0.05]">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold">T</div>
+                    <div>
+                        <h4 class="font-bold text-white text-sm">Thomas D.</h4>
+                        <div class="text-yellow-400 text-xs">
+                            <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
+                        </div>
+                    </div>
+                </div>
+                <p class="text-gray-400 text-xs italic">"Service incroyable pour mon serveur FiveM. Zéro lag et le support m'a aidé à installer mes scripts en 10 minutes."</p>
+            </div>
+            <div class="glass p-5 rounded-xl border border-white/[0.05]">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center text-white font-bold">S</div>
+                    <div>
+                        <h4 class="font-bold text-white text-sm">Sarah L.</h4>
+                        <div class="text-yellow-400 text-xs">
+                            <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star-half-alt"></i>
+                        </div>
+                    </div>
+                </div>
+                <p class="text-gray-400 text-xs italic">"J'ai commencé avec l'offre gratuite pour tester, puis je suis passée au Premium. La migration a été instantanée."</p>
+            </div>
+        </div>
+
+        <!-- Formulaire pour laisser un avis -->
+        <div class="glass rounded-2xl p-6 md:p-8 border border-white/[0.08] relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-32 h-32 bg-pink-500/10 blur-3xl rounded-full pointer-events-none"></div>
+            
+            <h3 class="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                <i class="fas fa-pen-fancy text-pink-400"></i> Laissez votre avis
+            </h3>
+
+            <form action="/api/reviews" method="POST" class="space-y-4 relative z-10">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 mb-1">Votre Nom</label>
+                        <input type="text" name="name" required class="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-sm text-white focus:border-pink-500 focus:outline-none transition" placeholder="Ex: Alex">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 mb-1">Note</label>
+                        <select name="rating" class="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-sm text-white focus:border-pink-500 focus:outline-none transition">
+                            <option value="5">⭐⭐⭐⭐⭐ Excellent</option>
+                            <option value="4">⭐⭐⭐⭐ Très bien</option>
+                            <option value="3">⭐⭐⭐ Bien</option>
+                            <option value="2">⭐⭐ Moyen</option>
+                            <option value="1">⭐ Décevant</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 mb-1">Votre Commentaire</label>
+                    <textarea name="comment" rows="3" required class="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-sm text-white focus:border-pink-500 focus:outline-none transition" placeholder="Parlez-nous de votre expérience..."></textarea>
+                </div>
+
+                <div class="flex justify-end pt-2">
+                    <button type="submit" class="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-400 hover:to-purple-500 text-white font-bold py-2 px-6 rounded-lg text-sm transition shadow-lg shadow-pink-900/20 flex items-center gap-2">
+                        <i class="fas fa-paper-plane"></i> Envoyer l'avis
+                    </button>
+                </div>
+            </form>
         </div>
     </section>
 
