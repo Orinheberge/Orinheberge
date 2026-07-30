@@ -166,7 +166,7 @@
                 <div class="flex items-center gap-6">
                     <div class="flex flex-col items-center gap-1 group cursor-default">
                         <div class="w-10 h-10 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center group-hover:scale-110 transition duration-300">
-                            <i class="fas fa-shield-halved text-emerald-400"></i>
+                            <i class="fas fa-lock text-emerald-400"></i>
                         </div>
                         <span class="text-[10px] text-gray-500 font-semibold">SSL Sécurisé</span>
                     </div>
