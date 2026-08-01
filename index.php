@@ -20,78 +20,27 @@ try {
 } catch (PDOException $e) { $db_status = false; }
 
 $sections = [
-    'free'    => [
-        'title_key'    => 'tier.free.title',    
-        'subtitle_key' => 'tier.free.subtitle',    
-        'label_key'    => 'tier.free.label',    
-        'accent'       => 'bg-green-500',  
-        'bg'           => 'bg-white/[0.01] border-y border-white/5',
-        'offers'       => []
-    ],
-    'basic'   => [
-        'title_key'    => 'tier.basic.title',   
-        'subtitle_key' => 'tier.basic.subtitle',   
-        'label_key'    => 'tier.basic.label',   
-        'accent'       => 'bg-blue-500',   
-        'bg'           => 'bg-black/10',
-        'offers'       => []
-    ],
-    'medium'  => [
-        'title_key'    => 'tier.medium.title',  
-        'subtitle_key' => 'tier.medium.subtitle',  
-        'label_key'    => 'tier.medium.label',  
-        'accent'       => 'bg-purple-500', 
-        'bg'           => 'bg-white/[0.02] border-y border-white/5',
-        'offers'       => []
-    ],
-    'premium' => [
-        'title_key'    => 'tier.premium.title', 
-        'subtitle_key' => 'tier.premium.subtitle', 
-        'label_key'    => 'tier.premium.label', 
-        'accent'       => 'bg-yellow-500', 
-        'bg'           => 'bg-black/20',
-        'offers'       => []
-    ],
-    'mythic' => [
-        'title_key'    => 'tier.mythic.title', 
-        'subtitle_key' => 'tier.mythic.subtitle', 
-        'label_key'    => 'tier.mythic.label', 
-        'accent'       => 'bg-red-500', 
-        'bg'           => 'bg-black/30',
-        'offers'       => []
-    ],
+    'free'    => ['title_key' => 'tier.free.title', 'subtitle_key' => 'tier.free.subtitle', 'label_key' => 'tier.free.label', 'accent' => 'bg-green-500', 'bg' => 'bg-white/[0.01] border-y border-white/5', 'offers' => []],
+    'basic'   => ['title_key' => 'tier.basic.title', 'subtitle_key' => 'tier.basic.subtitle', 'label_key' => 'tier.basic.label', 'accent' => 'bg-blue-500', 'bg' => 'bg-black/10', 'offers' => []],
+    'medium'  => ['title_key' => 'tier.medium.title', 'subtitle_key' => 'tier.medium.subtitle', 'label_key' => 'tier.medium.label', 'accent' => 'bg-purple-500', 'bg' => 'bg-white/[0.02] border-y border-white/5', 'offers' => []],
+    'premium' => ['title_key' => 'tier.premium.title', 'subtitle_key' => 'tier.premium.subtitle', 'label_key' => 'tier.premium.label', 'accent' => 'bg-yellow-500', 'bg' => 'bg-black/20', 'offers' => []],
+    'mythic'  => ['title_key' => 'tier.mythic.title', 'subtitle_key' => 'tier.mythic.subtitle', 'label_key' => 'tier.mythic.label', 'accent' => 'bg-red-500', 'bg' => 'bg-black/30', 'offers' => []],
 ];
 
-// Conteneurs pour les données dynamiques des catégories
 $dynamic_categories = [];
 
-// ── 2. REMPLISSAGE DYNAMIQUE DEPUIS LA BASE DE DONNÉES ──
 if ($db_status) {
     try {
-        // A. Récupérer uniquement les catégories ACTIVES configurées par l'admin
         $cat_stmt = $pdo->query("SELECT category_slug, name_key, icon, image_url FROM categories_products WHERE is_active = 1 GROUP BY category_slug ORDER BY sort_order ASC");
         while ($c_row = $cat_stmt->fetch()) {
-            $dynamic_categories[$c_row['category_slug']] = [
-                'name_key'  => $c_row['name_key'],
-                'icon'      => $c_row['icon'],
-                'image_url' => $c_row['image_url']
-            ];
+            $dynamic_categories[$c_row['category_slug']] = ['name_key' => $c_row['name_key'], 'icon' => $c_row['icon'], 'image_url' => $c_row['image_url']];
         }
-        $stmt_lang = $pdo->query("SELECT translation_key, fr, en FROM lang_boutique ORDER BY translation_key");
 
-        // B. Récupérer uniquement les produits reliés à des catégories ACTIVES et dont le produit lui-même est actif
-        $stmt = $pdo->query("
-            SELECT p.*, cp.category_slug, cp.name_key AS cat_name_key, cp.icon AS cat_icon, cp.image_url AS cat_image
-            FROM categories_products cp
-            LEFT JOIN products p ON p.id = cp.product_id
-            WHERE cp.is_active = 1 AND (p.is_active = 1 OR p.id IS NULL)
-            ORDER BY p.sort_order ASC, p.id ASC
-        ");
+        $stmt = $pdo->query("SELECT p.*, cp.category_slug, cp.name_key AS cat_name_key, cp.icon AS cat_icon, cp.image_url AS cat_image FROM categories_products cp LEFT JOIN products p ON p.id = cp.product_id WHERE cp.is_active = 1 AND (p.is_active = 1 OR p.id IS NULL) ORDER BY p.sort_order ASC, p.id ASC");
         $all_rows = $stmt->fetchAll();
 
         foreach ($all_rows as $product) {
             if (empty($product['id'])) continue;
-
             $slug = $product['slug'];
             $category = strtolower($product['category_slug']); 
 
@@ -102,49 +51,41 @@ if ($db_status) {
             elseif (strpos($slug, 'mythic') !== false) $tier_found = 'mythic';
 
             $short_cat = ($category === 'minecraft') ? 'mc' : (($category === 'python') ? 'py' : (($category === 'nodejs') ? 'node' : $category));
-            $name_key = "offer.{$short_cat}_{$tier_found}.name";
-            $desc_key = "offer.{$short_cat}_{$tier_found}.desc";
-
+            
             $ram_text = ($product['ram'] >= 1024) ? number_format($product['ram'] / 1024, 0) . ' GB' : $product['ram'] . ' MB';
             $disk_text = ($product['disk'] >= 1024) ? number_format($product['disk'] / 1024, 0) . ' GB' : $product['disk'] . ' MB';
 
             $sections[$tier_found]['offers'][] = [
                 'category'   => $category,
                 'slug'       => $slug,
-                'name_key'   => $name_key,
-                'desc_key'   => $desc_key,
+                'name_key'   => "offer.{$short_cat}_{$tier_found}.name",
+                'desc_key'   => "offer.{$short_cat}_{$tier_found}.desc",
                 'price'      => ($product['type'] === 'free') ? '0€' : number_format($product['price'], 2, ',', '') . '€',
                 'price_value'=> ($product['type'] === 'free') ? 0.0 : (float)$product['price'],
                 'period_key' => ($product['type'] === 'free') ? 'offers.period.free' : 'offers.period.month',
-                'plan'       => $slug,
                 'free'       => ($product['type'] === 'free'),
                 'icon'       => $product['cat_icon'] ?: 'fas fa-server',
                 'image_url'  => $product['cat_image'] ?: 'https://www.4netplayers.com/images/minecraft/blog/teaser-image.jpg',
                 'features'   => [
-                    ['icon' => 'fas fa-memory',     'text' => $ram_text . ' RAM'],
+                    ['icon' => 'fas fa-memory', 'text' => $ram_text . ' RAM'],
                     ['icon' => 'fas fa-hard-drive', 'text' => $disk_text . ' SSD NVMe'],
-                    ['icon' => 'fas fa-microchip',  'text' => $product['cpu'] . '% CPU'],
-                    ['icon' => 'fas fa-database',   'text' => $product['databases'] . ' Database(s)']
+                    ['icon' => 'fas fa-microchip', 'text' => $product['cpu'] . '% CPU'],
+                    ['icon' => 'fas fa-database', 'text' => $product['databases'] . ' Database(s)']
                 ]
             ];
         }
-    } catch (PDOException $e) {
-        // Fallback
-    }
+    } catch (PDOException $e) { /* Fallback silencieux */ }
 }
 
 function getCardStyle($tier_key) {
-    if ($tier_key === 'free') {
-        return ['label' => 'Offre Gratuite', 'badge_bg'=>'bg-green-500/20', 'badge_text'=>'text-green-400', 'badge_border'=>'border-green-500/30', 'icon_color'=>'text-green-400', 'card_border'=>'border-white/10', 'btn'=>'bg-green-500 hover:bg-green-400'];
-    } elseif ($tier_key === 'basic') {
-        return ['label' => 'Offre Basic', 'badge_bg'=>'bg-blue-500/20', 'badge_text'=>'text-blue-400', 'badge_border'=>'border-blue-500/30', 'icon_color'=>'text-blue-400', 'card_border'=>'border-blue-400/20', 'btn'=>'bg-blue-500 hover:bg-blue-400'];
-    } elseif ($tier_key === 'medium') {
-        return ['label' => 'Offre Medium', 'badge_bg'=>'bg-purple-500/20', 'badge_text'=>'text-purple-400', 'badge_border'=>'border-purple-500/30', 'icon_color'=>'text-purple-400', 'card_border'=>'border-purple-400/20', 'btn'=>'bg-purple-500 hover:bg-purple-400'];
-    } elseif ($tier_key === 'premium') {
-        return ['label' => 'Offre Premium', 'badge_bg'=>'bg-yellow-500/20', 'badge_text'=>'text-yellow-400', 'badge_border'=>'border-yellow-500/30', 'icon_color'=>'text-yellow-400', 'card_border'=>'border-yellow-400/20', 'btn'=>'bg-yellow-500 hover:bg-yellow-400'];
-    } else {
-        return ['label' => 'Offre Mythic', 'badge_bg'=>'bg-red-500/20', 'badge_text'=>'text-red-400', 'badge_border'=>'border-red-500/30', 'icon_color'=>'text-red-400', 'card_border'=>'border-red-400/20', 'btn'=>'bg-red-500 hover:bg-red-400'];
-    }
+    $styles = [
+        'free'    => ['label' => 'Offre Gratuite', 'badge_bg'=>'bg-green-500/20', 'badge_text'=>'text-green-400', 'badge_border'=>'border-green-500/30', 'icon_color'=>'text-green-400', 'card_border'=>'border-white/10', 'btn'=>'bg-green-500 hover:bg-green-400'],
+        'basic'   => ['label' => 'Offre Basic', 'badge_bg'=>'bg-blue-500/20', 'badge_text'=>'text-blue-400', 'badge_border'=>'border-blue-500/30', 'icon_color'=>'text-blue-400', 'card_border'=>'border-blue-400/20', 'btn'=>'bg-blue-500 hover:bg-blue-400'],
+        'medium'  => ['label' => 'Offre Medium', 'badge_bg'=>'bg-purple-500/20', 'badge_text'=>'text-purple-400', 'badge_border'=>'border-purple-500/30', 'icon_color'=>'text-purple-400', 'card_border'=>'border-purple-400/20', 'btn'=>'bg-purple-500 hover:bg-purple-400'],
+        'premium' => ['label' => 'Offre Premium', 'badge_bg'=>'bg-yellow-500/20', 'badge_text'=>'text-yellow-400', 'badge_border'=>'border-yellow-500/30', 'icon_color'=>'text-yellow-400', 'card_border'=>'border-yellow-400/20', 'btn'=>'bg-yellow-500 hover:bg-yellow-400'],
+        'mythic'  => ['label' => 'Offre Mythic', 'badge_bg'=>'bg-red-500/20', 'badge_text'=>'text-red-400', 'badge_border'=>'border-red-500/30', 'icon_color'=>'text-red-400', 'card_border'=>'border-red-400/20', 'btn'=>'bg-red-500 hover:bg-red-400']
+    ];
+    return $styles[$tier_key] ?? $styles['premium'];
 }
 ?>
 <!DOCTYPE html>
@@ -152,170 +93,122 @@ function getCardStyle($tier_key) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OrinHeberge | Hébergeur</title>
-    <link rel="icon" type="image/png" href="/favicon.ico">
-   
-    <!-- Balises de base -->
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OrinHeberge - Hébergeur VPS, Minecraft, PHP et Node.js | Gratuit & Premium</title>
-    <meta name="description" content="OrinHeberge - Hébergement VPS, Minecraft, PHP et Node.js ultra rapide, gratuit et premium. Des serveurs rapides, sécurisés et performants pour tous vos projets.">
-    <meta name="keywords" content="hébergement VPS, serveur Minecraft, hébergement PHP, Node.js, VPS gratuit, serveur dédié, hosting, cloud, hébergeur français">
+    <meta name="description" content="OrinHeberge - Hébergement VPS, Minecraft, PHP et Node.js ultra rapide, gratuit et premium. Des serveurs rapides, sécurisés et performants.">
+    <meta name="keywords" content="hébergement VPS, serveur Minecraft, hébergement PHP, Node.js, VPS gratuit, hosting, cloud, hébergeur français">
     <meta name="author" content="OrinHeberge">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://heberge.orinstone.deepstone.fr/">
 
-    <!-- Open Graph / Facebook -->
+    <!-- Open Graph -->
     <meta property="og:locale" content="fr_FR">
     <meta property="og:type" content="website">
-    <meta name="google-site-verification" content="7I4REPHa8OsIdsgZo-tsFss8OluBCaGcbB8mbmibQUI" />
     <meta property="og:title" content="OrinHeberge - Hébergeur VPS, Minecraft, PHP et Node.js">
-    <meta property="og:description" content="Hébergement VPS, Minecraft, PHP et Node.js ultra rapide, gratuit et premium. Serveurs rapides, sécurisés et performants.">
+    <meta property="og:description" content="Hébergement VPS, Minecraft, PHP et Node.js ultra rapide, gratuit et premium.">
     <meta property="og:url" content="https://heberge.orinstone.deepstone.fr/">
     <meta property="og:site_name" content="OrinHeberge">
     <meta property="og:image" content="https://heberge.orinstone.deepstone.fr/favicon.png">
-    <meta property="og:image:width" content="1200">
-    <meta property="og:image:height" content="630">
-    <meta property="og:image:alt" content="OrinHeberge - Hébergement VPS, Minecraft, PHP et Node.js">
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:site" content="@OrinHeberge">
-    <meta name="twitter:creator" content="@OrinHeberge">
     <meta name="twitter:title" content="OrinHeberge - Hébergeur VPS, Minecraft, PHP et Node.js">
-    <meta name="twitter:description" content="Hébergement VPS, Minecraft, PHP et Node.js ultra rapide, gratuit et premium. Serveurs rapides, sécurisés et performants.">
     <meta name="twitter:image" content="https://heberge.orinstone.deepstone.fr/favicon.png">
-    <meta name="twitter:image:alt" content="OrinHeberge - Hébergement VPS, Minecraft, PHP et Node.js">
 
-    <!-- Autres balises SEO -->
     <meta name="theme-color" content="#6366f1">
-    <meta name="msapplication-TileColor" content="#6366f1">
     <link rel="icon" type="image/png" href="https://heberge.orinstone.deepstone.fr/favicon.png">
     <link rel="apple-touch-icon" href="https://heberge.orinstone.deepstone.fr/favicon.png">
 
-<!-- Google Tag Manager (Chargement conditionnel via JS ci-dessous pour RGPD) -->
-<script>
-    // Fonction pour charger GTM et GA4 seulement si accepté
-    function loadAnalytics() {
-        // Google Tag Manager
-        (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-        new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-        j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-        'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-        })(window,document,'script','dataLayer','GTM-W5ZSVXHK');
+    <!-- Script de gestion Analytics conditionnel (RGPD) -->
+    <script>
+        window.loadAnalytics = function() {
+            (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start': new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+            j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+            })(window,document,'script','dataLayer','GTM-W5ZSVXHK');
 
-        // Google Analytics 4
-        var gaScript = document.createElement('script');
-        gaScript.async = true;
-        gaScript.src = "https://www.googletagmanager.com/gtag/js?id=G-YKZCE0SNDG";
-        document.head.appendChild(gaScript);
-        
-        gaScript.onload = function() {
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'G-YKZCE0SNDG');
+            var gaScript = document.createElement('script');
+            gaScript.async = true;
+            gaScript.src = "https://www.googletagmanager.com/gtag/js?id=G-YKZCE0SNDG";
+            document.head.appendChild(gaScript);
+            gaScript.onload = function() {
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', 'G-YKZCE0SNDG');
+            };
         };
-    }
 
-    // Vérification au chargement
-    document.addEventListener('DOMContentLoaded', function() {
-        const consent = localStorage.getItem('cookie_consent');
-        if (consent === 'accepted') {
-            loadAnalytics();
-        }
-    });
-</script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Vérifie le cookie défini par inc/cookie.php
+            const cookies = document.cookie.split('; ');
+            const hasConsent = cookies.find(row => row.startsWith('orinheberge_cookies=accepted'));
+            if (hasConsent) {
+                window.loadAnalytics();
+            }
+        });
+    </script>
 
-    <!-- Schema.org JSON-LD (SEO avancé) -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "WebSite",
       "name": "OrinHeberge",
       "url": "https://heberge.orinstone.deepstone.fr/",
-      "description": "Hébergement VPS, Minecraft, PHP et Node.js ultra rapide, gratuit et premium.",
-      "potentialAction": {
-        "@type": "SearchAction",
-        "target": "https://heberge.orinstone.deepstone.fr/search?q={search_term_string}",
-        "query-input": "required name=search_term_string"
-      }
+      "potentialAction": { "@type": "SearchAction", "target": "https://heberge.orinstone.deepstone.fr/search?q={search_term_string}", "query-input": "required name=search_term_string" }
     }
     </script>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="manifest" href="/manifest.json">
+    
     <style>
         *{box-sizing:border-box;}
         body{background:#060911;scroll-behavior:smooth;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;}
         .glass{background:rgba(255,255,255,0.03);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.06);}
-        .glass-heavy{background:rgba(255,255,255,0.05);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.08);}
         .gradient-text{background:linear-gradient(135deg,#38bdf8 0%,#a78bfa 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
-        .gradient-bg{background:linear-gradient(135deg,#38bdf8,#a78bfa);}
         .card-hover{transition:transform .3s cubic-bezier(.4,0,.2,1),box-shadow .3s,border-color .3s;}
         .card-hover:hover{transform:translateY(-6px);box-shadow:0 32px 64px rgba(0,0,0,.4);}
-        .tab-btn{padding:.5rem 1.25rem;border-radius:9999px;font-size:.78rem;font-weight:700;transition:all .2s;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.025);color:#6b7280;cursor:pointer;white-space:nowrap;letter-spacing:.02em;}
+        .tab-btn{padding:.5rem 1.25rem;border-radius:9999px;font-size:.78rem;font-weight:700;transition:all .2s;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.025);color:#6b7280;cursor:pointer;}
         .tab-btn:hover{background:rgba(255,255,255,.06);color:#d1d5db;}
         .tab-btn.active{background:rgba(56,189,248,.1);border-color:rgba(56,189,248,.3);color:#38bdf8;}
         #cat-view { display: none; }
         #cat-view .cat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; }
         .hero-glow {position:absolute;border-radius:50%;filter:blur(140px);pointer-events:none;animation:pulse-orb 8s ease-in-out infinite;z-index: 1;}
         @keyframes pulse-orb{0%,100%{opacity:.4;transform:translate(-50%, -50%) scale(1);}50%{opacity:.7;transform:translate(-50%, -50%) scale(1.1);}}
-        
-        .offer-badge{position:absolute;top:.875rem;right:.875rem;z-index:10;padding:.2rem .7rem;border-radius:9999px;font-size:.65rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;}
-        
-        /* Styles pour la bannière RGPD */
-        #cookie-banner {
-            transform: translateY(100%);
-            transition: transform 0.5s ease-in-out;
-        }
-        #cookie-banner.show {
-            transform: translateY(0);
-        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.4s ease-out; }
     </style>
-    <script>
-        if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('/sw.js').catch(()=>{});});}
-    </script>
 </head>
 <body class="text-gray-200 font-sans min-h-screen flex flex-col antialiased">
 <?php $active_nav = 'home'; include __DIR__ . '/inc/navbar.php'; ?>
 
 <main class="flex-grow">
-
+    <!-- HERO -->
     <section class="relative text-center py-28 md:py-40 px-6 overflow-hidden flex items-center justify-center">
         <div class="hero-glow w-[500px] h-[500px] bg-sky-500/10 top-1/2 left-1/2"></div>
         <div class="hero-glow w-[300px] h-[300px] bg-purple-500/10 top-1/3 left-1/3"></div>
-
         <div class="relative z-10 max-w-4xl mx-auto">
             <div class="inline-flex items-center gap-2 bg-sky-500/10 text-sky-400 border border-sky-500/20 px-4 py-1.5 rounded-full text-xs font-semibold mb-8 tracking-wide">
                 <span class="h-2 w-2 rounded-full <?php echo $db_status ? 'bg-green-400 animate-pulse' : 'bg-red-400'; ?>"></span>
                 <?php echo $db_status ? 'Tous les systèmes opérationnels' : 'Connexion BDD indisponible'; ?>
             </div>
-
-            <h1 class="text-6xl md:text-8xl font-black tracking-tight leading-[1.1] mb-6">
-                <span class="gradient-text">Orin</span>Heberge
-            </h1>
+            <h1 class="text-6xl md:text-8xl font-black tracking-tight leading-[1.1] mb-6"><span class="gradient-text">Orin</span>Heberge</h1>
             <p class="text-gray-400 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed mb-10">
                 Hébergement nouvelle génération — Minecraft, PHP, Node.js, Python.<br>
                 <span class="text-gray-500 text-base">Gratuit pour démarrer. Premium pour aller plus loin.</span>
             </p>
-
             <div class="flex flex-col sm:flex-row justify-center items-center gap-4">
                 <a href="#offres" class="bg-sky-600 hover:bg-sky-500 text-white px-8 py-4 rounded-2xl font-bold transition shadow-xl shadow-sky-900/30 text-sm flex items-center gap-2">
                     <i class="fas fa-rocket"></i> Voir les offres
                 </a>
                 <a href="<?php echo $is_logged_in ? '/client/servers/' : '/register/'; ?>" class="glass hover:bg-white/[0.07] px-8 py-4 rounded-2xl font-bold transition text-sm flex items-center gap-2">
-                    <?php if ($is_logged_in): ?>
-                        <i class="fas fa-server text-sky-400"></i> Mon espace client
-                    <?php else: ?>
-                        <i class="fas fa-user-plus text-sky-400"></i> Créer un compte gratuit
-                    <?php endif; ?>
+                    <?php if ($is_logged_in): ?><i class="fas fa-server text-sky-400"></i> Mon espace client<?php else: ?><i class="fas fa-user-plus text-sky-400"></i> Créer un compte gratuit<?php endif; ?>
                 </a>
             </div>
         </div>
     </section>
 
+    <!-- STATS RAPIDES -->
     <section class="py-8 px-6 border-y border-white/[0.04]">
         <div class="max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
             <div><p class="text-3xl font-black gradient-text"><i class="fas fa-bolt text-2xl mb-1 block"></i>100%</p><p class="text-gray-500 text-xs mt-1">SSD NVMe</p></div>
@@ -325,387 +218,220 @@ function getCardStyle($tier_key) {
         </div>
     </section>
 
+    <!-- OFFRES -->
     <section id="offres" class="py-20 px-6 max-w-7xl mx-auto scroll-mt-10">
         <script>
-const categoryLabels = <?php echo json_encode(array_map(fn($cat) => t($cat['name_key']), $dynamic_categories), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
-
-function filterCategory(catId) {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    if(document.getElementById('tab-' + catId)) {
-        document.getElementById('tab-' + catId).classList.add('active');
-    }
-    
-    const catView = document.getElementById('cat-view');
-    const catTitle = document.getElementById('cat-view-title');
-    const catGrid = document.getElementById('cat-view-grid');
-    const allSections = document.getElementById('all-sections');
-    
-    if (catId === 'all') { 
-        catView.style.display = 'none'; 
-        allSections.style.display = 'block'; 
-        return; 
-    }
-    
-    allSections.style.display = 'none'; 
-    catView.style.display = 'block';
-    
-    catTitle.textContent = categoryLabels[catId] || catId.toUpperCase();
-    
-    const cards = Array.from(document.querySelectorAll('#all-sections .offer-card[data-category="' + catId + '"]'));
-    
-    catGrid.innerHTML = '';
-    if (cards.length === 0) {
-        catGrid.innerHTML = '<div class="col-span-full py-12 text-center text-gray-500 text-sm"><i class="fas fa-box-open text-4xl mb-3 opacity-50"></i><br>Aucune offre disponible pour le moment.</div>';
-    } else {
-        cards.forEach(card => { 
-            const clone = card.cloneNode(true); 
-            clone.style.display = 'flex'; 
-            catGrid.appendChild(clone); 
-        });
-    }
-}
-window.addEventListener('DOMContentLoaded', () => filterCategory('all'));
-</script>
-  <header class="text-center py-16 px-6 relative overflow-hidden">
-    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-sky-500/10 rounded-full blur-[120px] pointer-events-none"></div>
-    <div class="inline-flex items-center gap-2 bg-sky-500/10 text-sky-400 border border-sky-500/20 px-4 py-1.5 rounded-full text-xs font-semibold mb-5">
-      <i class="fas fa-tags"></i> Nos offres
-    </div>
-    <h1 class="text-5xl md:text-7xl font-black tracking-tight leading-none gradient-text mb-4"><?php echo t('offers.title'); ?></h1>
-    <p class="text-gray-400 max-w-xl mx-auto text-lg"><?php echo t('offers.subtitle'); ?></p>
-    <div class="max-w-5xl mx-auto flex flex-wrap justify-center gap-2.5 px-4 mt-10">
-      <button onclick="filterCategory('all')" id="tab-all" class="tab-btn active">
-        <i class="fas fa-th-large text-xs"></i> <?php echo t('offers.tab.all'); ?>
-      </button>
-      <?php foreach($dynamic_categories as $slug => $ci): ?>
-      <button onclick="filterCategory('<?php echo htmlspecialchars($slug); ?>')" id="tab-<?php echo htmlspecialchars($slug); ?>" class="tab-btn">
-        <i class="<?php echo htmlspecialchars($ci['icon']); ?> text-xs"></i> <?php echo t($ci['name_key']); ?>
-      </button>
-      <?php endforeach; ?>
-    </div>
-  </header>
-
-    <section id="cat-view" class="py-20 px-6">
-        <div class="text-center mb-12">
-            <h2 class="text-4xl md:text-5xl font-black uppercase tracking-wider mb-3 gradient-text" id="cat-view-title"></h2>
-            <div class="h-1 w-20 bg-sky-500 mx-auto rounded-full"></div>
-        </div>
-        <div class="max-w-7xl mx-auto cat-grid" id="cat-view-grid"></div>
-    </section>
-
-    <div id="all-sections">
-    <?php foreach ($sections as $tier_key => $tier_data): ?>
-        <?php if (empty($tier_data['offers'])) continue; ?>
-        <section class="offers-section py-20 px-6 <?php echo $tier_data['bg']; ?>">
-            <div class="text-center mb-16">
-                <h2 class="text-4xl md:text-5xl font-black uppercase tracking-wider mb-3"><?php echo t($tier_data['title_key']); ?></h2>
-                <div class="h-1 w-20 <?php echo $tier_data['accent']; ?> mx-auto rounded-full"></div>
+        const categoryLabels = <?php echo json_encode(array_map(fn($cat) => t($cat['name_key']), $dynamic_categories), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+        function filterCategory(catId) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            if(document.getElementById('tab-' + catId)) document.getElementById('tab-' + catId).classList.add('active');
+            const catView = document.getElementById('cat-view'), catTitle = document.getElementById('cat-view-title'), catGrid = document.getElementById('cat-view-grid'), allSections = document.getElementById('all-sections');
+            if (catId === 'all') { catView.style.display = 'none'; allSections.style.display = 'block'; return; }
+            allSections.style.display = 'none'; catView.style.display = 'block';
+            catTitle.textContent = categoryLabels[catId] || catId.toUpperCase();
+            const cards = Array.from(document.querySelectorAll('#all-sections .offer-card[data-category="' + catId + '"]'));
+            catGrid.innerHTML = '';
+            if (cards.length === 0) {
+                catGrid.innerHTML = '<div class="col-span-full py-12 text-center text-gray-500 text-sm"><i class="fas fa-box-open text-4xl mb-3 opacity-50"></i><br>Aucune offre disponible.</div>';
+            } else {
+                cards.forEach(card => { const clone = card.cloneNode(true); clone.style.display = 'flex'; catGrid.appendChild(clone); });
+            }
+        }
+        window.addEventListener('DOMContentLoaded', () => filterCategory('all'));
+        </script>
+        
+        <header class="text-center py-16 px-6 relative overflow-hidden">
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-sky-500/10 rounded-full blur-[120px] pointer-events-none"></div>
+            <div class="inline-flex items-center gap-2 bg-sky-500/10 text-sky-400 border border-sky-500/20 px-4 py-1.5 rounded-full text-xs font-semibold mb-5"><i class="fas fa-tags"></i> Nos offres</div>
+            <h1 class="text-5xl md:text-7xl font-black tracking-tight leading-none gradient-text mb-4"><?php echo t('offers.title'); ?></h1>
+            <p class="text-gray-400 max-w-xl mx-auto text-lg"><?php echo t('offers.subtitle'); ?></p>
+            <div class="max-w-5xl mx-auto flex flex-wrap justify-center gap-2.5 px-4 mt-10">
+                <button onclick="filterCategory('all')" id="tab-all" class="tab-btn active"><i class="fas fa-th-large text-xs"></i> <?php echo t('offers.tab.all'); ?></button>
+                <?php foreach($dynamic_categories as $slug => $ci): ?>
+                <button onclick="filterCategory('<?php echo htmlspecialchars($slug); ?>')" id="tab-<?php echo htmlspecialchars($slug); ?>" class="tab-btn"><i class="<?php echo htmlspecialchars($ci['icon']); ?> text-xs"></i> <?php echo t($ci['name_key']); ?></button>
+                <?php endforeach; ?>
             </div>
-            
-            <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-            <?php foreach ($tier_data['offers'] as $offer): ?>
-            <?php
-                $cat = $offer['category'];
-                $style = getCardStyle($tier_key);
-                $price_num = $offer['free'] ? 0 : $offer['price_value'];
+        </header>
 
-                $cart_route = '/shop/cart/';
-                if ($offer['free']) {
-                    $btn_text = $is_logged_in ? t('btn.deploy') : t('btn.login_to_buy');
-                } else {
-                    $btn_text = $is_logged_in ? t('btn.buy') : t('btn.login_to_buy');
-                }
-                $link = $is_logged_in ? $cart_route : '/login/';
-            ?>
-            <div data-category="<?php echo htmlspecialchars($cat); ?>" data-price="<?php echo $price_num; ?>"
-                 class="offer-card glass rounded-2xl border <?php echo $style['card_border']; ?> flex flex-col card-hover overflow-hidden relative group">
-
-                <div class="h-36 w-full bg-cover bg-center relative transition-transform duration-500 group-hover:scale-105" style="background-image:url('<?php echo htmlspecialchars($offer['image_url']); ?>')">
-                    <div class="absolute inset-0 bg-gradient-to-t from-[#070a13] via-transparent to-transparent"></div>
-                    <div class="absolute top-3 left-3 right-3 flex justify-between items-center">
-                        <span class="<?php echo $style['badge_bg'].' '.$style['badge_text'].' '.$style['badge_border']; ?> px-2.5 py-0.5 rounded-full text-[11px] font-bold border uppercase tracking-wide backdrop-blur-md">
-                            <?php echo t($tier_data['label_key']); ?>
-                        </span>
-                        <i class="<?php echo htmlspecialchars($offer['icon']).' '.$style['icon_color']; ?> text-2xl drop-shadow-lg transform group-hover:rotate-12 transition-transform"></i>
-                    </div>
-                </div>
-
-                <div class="p-5 flex flex-col flex-grow">
-                    <h3 class="text-base font-bold text-white mb-1"><?php echo t($offer['name_key']); ?></h3>
-                    <p class="text-gray-400 text-xs flex-grow mb-4 leading-relaxed"><?php echo t($offer['desc_key']); ?></p>
-
-                    <div class="flex items-baseline mb-4">
-                        <span class="text-2xl font-black text-white"><?php echo $offer['price']; ?></span>
-                        <span class="text-gray-500 text-xs ml-1"><?php echo t($offer['period_key']); ?></span>
-                    </div>
-
-                    <ul class="space-y-2 text-xs text-gray-300 border-t border-white/5 pt-3 mb-4">
-                        <?php foreach ($offer['features'] as $feat): ?>
-                        <li class="flex items-center gap-2"><i class="<?php echo $feat['icon'].' '.$style['icon_color']; ?> w-4 text-center"></i><?php echo $feat['text']; ?></li>
-                        <?php endforeach; ?>
-                    </ul>
-
-                    <?php if ($is_logged_in): ?>
-                        <form method="post" action="/shop/cart/">
-                            <input type="hidden" name="action" value="add_item">
-                            <input type="hidden" name="slug" value="<?php echo htmlspecialchars($offer['slug']); ?>">
-                            <input type="hidden" name="name" value="<?php echo htmlspecialchars(t($offer['name_key'])); ?>">
-                            <input type="hidden" name="price" value="<?php echo htmlspecialchars((string)$offer['price_value']); ?>">
-                            <input type="hidden" name="period" value="<?php echo htmlspecialchars(t($offer['period_key'])); ?>">
-                            <button type="submit" class="w-full <?php echo $style['btn']; ?> text-slate-950 font-bold py-2.5 rounded-xl text-sm flex items-center justify-center gap-2 transition-all hover:shadow-lg hover:shadow-current/20">
-                                <i class="fas fa-shopping-cart"></i> <?php echo $btn_text; ?>
-                            </button>
-                        </form>
-                    <?php else: ?>
-                        <a href="<?php echo $link; ?>" class="w-full <?php echo $style['btn']; ?> text-slate-950 font-bold py-2.5 rounded-xl text-sm text-center block flex items-center justify-center gap-2 transition-all hover:shadow-lg hover:shadow-current/20">
-                            <i class="fas fa-lock"></i> <?php echo $btn_text; ?>
-                        </a>
-                    <?php endif; ?>
-                </div>
-            </div>
-            <?php endforeach; ?>
-            </div>
+        <section id="cat-view" class="py-20 px-6">
+            <div class="text-center mb-12"><h2 class="text-4xl md:text-5xl font-black uppercase tracking-wider mb-3 gradient-text" id="cat-view-title"></h2><div class="h-1 w-20 bg-sky-500 mx-auto rounded-full"></div></div>
+            <div class="max-w-7xl mx-auto cat-grid" id="cat-view-grid"></div>
         </section>
-    <?php endforeach; ?>
-    </div>
 
-       
+        <div id="all-sections">
+        <?php foreach ($sections as $tier_key => $tier_data): ?>
+            <?php if (empty($tier_data['offers'])) continue; ?>
+            <section class="offers-section py-20 px-6 <?php echo $tier_data['bg']; ?>">
+                <div class="text-center mb-16"><h2 class="text-4xl md:text-5xl font-black uppercase tracking-wider mb-3"><?php echo t($tier_data['title_key']); ?></h2><div class="h-1 w-20 <?php echo $tier_data['accent']; ?> mx-auto rounded-full"></div></div>
+                <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                <?php foreach ($tier_data['offers'] as $offer): ?>
+                <?php
+                    $style = getCardStyle($tier_key);
+                    $price_num = $offer['free'] ? 0 : $offer['price_value'];
+                    $btn_text = $is_logged_in ? ($offer['free'] ? t('btn.deploy') : t('btn.buy')) : t('btn.login_to_buy');
+                    $link = $is_logged_in ? '/shop/cart/' : '/login/';
+                ?>
+                <div data-category="<?php echo htmlspecialchars($offer['category']); ?>" data-price="<?php echo $price_num; ?>" class="offer-card glass rounded-2xl border <?php echo $style['card_border']; ?> flex flex-col card-hover overflow-hidden relative group">
+                    <div class="h-36 w-full bg-cover bg-center relative transition-transform duration-500 group-hover:scale-105" style="background-image:url('<?php echo htmlspecialchars($offer['image_url']); ?>')">
+                        <div class="absolute inset-0 bg-gradient-to-t from-[#070a13] via-transparent to-transparent"></div>
+                        <div class="absolute top-3 left-3 right-3 flex justify-between items-center">
+                            <span class="<?php echo $style['badge_bg'].' '.$style['badge_text'].' '.$style['badge_border']; ?> px-2.5 py-0.5 rounded-full text-[11px] font-bold border uppercase tracking-wide backdrop-blur-md"><?php echo t($tier_data['label_key']); ?></span>
+                            <i class="<?php echo htmlspecialchars($offer['icon']).' '.$style['icon_color']; ?> text-2xl drop-shadow-lg transform group-hover:rotate-12 transition-transform"></i>
+                        </div>
+                    </div>
+                    <div class="p-5 flex flex-col flex-grow">
+                        <h3 class="text-base font-bold text-white mb-1"><?php echo t($offer['name_key']); ?></h3>
+                        <p class="text-gray-400 text-xs flex-grow mb-4 leading-relaxed"><?php echo t($offer['desc_key']); ?></p>
+                        <div class="flex items-baseline mb-4"><span class="text-2xl font-black text-white"><?php echo $offer['price']; ?></span><span class="text-gray-500 text-xs ml-1"><?php echo t($offer['period_key']); ?></span></div>
+                        <ul class="space-y-2 text-xs text-gray-300 border-t border-white/5 pt-3 mb-4">
+                            <?php foreach ($offer['features'] as $feat): ?><li class="flex items-center gap-2"><i class="<?php echo $feat['icon'].' '.$style['icon_color']; ?> w-4 text-center"></i><?php echo $feat['text']; ?></li><?php endforeach; ?>
+                        </ul>
+                        <?php if ($is_logged_in): ?>
+                            <form method="post" action="/shop/cart/">
+                                <input type="hidden" name="action" value="add_item">
+                                <input type="hidden" name="slug" value="<?php echo htmlspecialchars($offer['slug']); ?>">
+                                <input type="hidden" name="name" value="<?php echo htmlspecialchars(t($offer['name_key'])); ?>">
+                                <input type="hidden" name="price" value="<?php echo htmlspecialchars((string)$offer['price_value']); ?>">
+                                <button type="submit" class="w-full <?php echo $style['btn']; ?> text-slate-950 font-bold py-2.5 rounded-xl text-sm flex items-center justify-center gap-2 transition-all hover:shadow-lg hover:shadow-current/20"><i class="fas fa-shopping-cart"></i> <?php echo $btn_text; ?></button>
+                            </form>
+                        <?php else: ?>
+                            <a href="<?php echo $link; ?>" class="w-full <?php echo $style['btn']; ?> text-slate-950 font-bold py-2.5 rounded-xl text-sm text-center block flex items-center justify-center gap-2 transition-all hover:shadow-lg hover:shadow-current/20"><i class="fas fa-lock"></i> <?php echo $btn_text; ?></a>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+                </div>
+            </section>
+        <?php endforeach; ?>
+        </div>
     </section>
 
-    <!-- Section Technologies Supportées (Mise à jour avec FiveM, Terraria, Hytale) -->
+    <!-- ENVIRONNEMENTS SUPPORTÉS -->
     <section class="py-10 px-6 border-b border-white/[0.03]">
         <div class="max-w-7xl mx-auto">
             <p class="text-center text-gray-500 text-xs font-bold uppercase tracking-widest mb-6">Environnements Supportés</p>
             <div class="flex flex-wrap justify-center gap-8 md:gap-12 opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
-                <div class="flex flex-col items-center gap-2 group cursor-default">
-                    <i class="fab fa-java text-4xl text-orange-500 group-hover:scale-110 transition"></i>
-                    <span class="text-xs font-bold text-gray-400">Java</span>
-                </div>
-                <div class="flex flex-col items-center gap-2 group cursor-default">
-                    <i class="fab fa-node-js text-4xl text-green-500 group-hover:scale-110 transition"></i>
-                    <span class="text-xs font-bold text-gray-400">Node.js</span>
-                </div>
-                <div class="flex flex-col items-center gap-2 group cursor-default">
-                    <i class="fab fa-python text-4xl text-blue-400 group-hover:scale-110 transition"></i>
-                    <span class="text-xs font-bold text-gray-400">Python</span>
-                </div>
-                <div class="flex flex-col items-center gap-2 group cursor-default">
-                    <i class="fab fa-php text-4xl text-indigo-400 group-hover:scale-110 transition"></i>
-                    <span class="text-xs font-bold text-gray-400">PHP</span>
-                </div>
-                <div class="flex flex-col items-center gap-2 group cursor-default">
-                    <i class="fas fa-cube text-4xl text-gray-300 group-hover:scale-110 transition"></i>
-                    <span class="text-xs font-bold text-gray-400">Minecraft</span>
-                </div>
-                <!-- NOUVEAUX AJOUTS -->
-                <div class="flex flex-col items-center gap-2 group cursor-default">
-                    <i class="fas fa-car text-4xl text-red-500 group-hover:scale-110 transition"></i>
-                    <span class="text-xs font-bold text-gray-400">FiveM</span>
-                </div>
-                <div class="flex flex-col items-center gap-2 group cursor-default">
-                    <i class="fas fa-dragon text-4xl text-emerald-500 group-hover:scale-110 transition"></i>
-                    <span class="text-xs font-bold text-gray-400">Terraria</span>
-                </div>
-                <div class="flex flex-col items-center gap-2 group cursor-default">
-                    <i class="fas fa-cloud text-4xl text-sky-300 group-hover:scale-110 transition"></i>
-                    <span class="text-xs font-bold text-gray-400">Hytale</span>
-                </div>
-                <!-- FIN NOUVEAUX AJOUTS -->
-                <div class="flex flex-col items-center gap-2 group cursor-default">
-                    <i class="fab fa-linux text-4xl text-yellow-500 group-hover:scale-110 transition"></i>
-                    <span class="text-xs font-bold text-gray-400">Linux</span>
-                </div>
+                <div class="flex flex-col items-center gap-2 group cursor-default"><i class="fab fa-java text-4xl text-orange-500 group-hover:scale-110 transition"></i><span class="text-xs font-bold text-gray-400">Java</span></div>
+                <div class="flex flex-col items-center gap-2 group cursor-default"><i class="fab fa-node-js text-4xl text-green-500 group-hover:scale-110 transition"></i><span class="text-xs font-bold text-gray-400">Node.js</span></div>
+                <div class="flex flex-col items-center gap-2 group cursor-default"><i class="fab fa-python text-4xl text-blue-400 group-hover:scale-110 transition"></i><span class="text-xs font-bold text-gray-400">Python</span></div>
+                <div class="flex flex-col items-center gap-2 group cursor-default"><i class="fab fa-php text-4xl text-indigo-400 group-hover:scale-110 transition"></i><span class="text-xs font-bold text-gray-400">PHP</span></div>
+                <div class="flex flex-col items-center gap-2 group cursor-default"><i class="fas fa-cube text-4xl text-gray-300 group-hover:scale-110 transition"></i><span class="text-xs font-bold text-gray-400">Minecraft</span></div>
+                <div class="flex flex-col items-center gap-2 group cursor-default"><i class="fas fa-car text-4xl text-red-500 group-hover:scale-110 transition"></i><span class="text-xs font-bold text-gray-400">FiveM</span></div>
+                <div class="flex flex-col items-center gap-2 group cursor-default"><i class="fas fa-dragon text-4xl text-emerald-500 group-hover:scale-110 transition"></i><span class="text-xs font-bold text-gray-400">Terraria</span></div>
+                <div class="flex flex-col items-center gap-2 group cursor-default"><i class="fas fa-cloud text-4xl text-sky-300 group-hover:scale-110 transition"></i><span class="text-xs font-bold text-gray-400">Hytale</span></div>
+                <div class="flex flex-col items-center gap-2 group cursor-default"><i class="fab fa-linux text-4xl text-yellow-500 group-hover:scale-110 transition"></i><span class="text-xs font-bold text-gray-400">Linux</span></div>
             </div>
         </div>
     </section>
 
+    <!-- PERFORMANCES -->
     <section class="py-16 px-6 bg-white/[0.01] border-y border-white/[0.03]">
         <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
                 <span class="text-xs font-bold text-sky-400 tracking-widest uppercase mb-2 block"><i class="fas fa-tachometer-alt mr-1"></i> Performances Brutes</span>
                 <h3 class="text-3xl md:text-4xl font-black mb-6 leading-tight">Une infrastructure optimisée pour le <span class="gradient-text">zéro-lenteur</span>.</h3>
-                <p class="text-gray-400 text-sm leading-relaxed mb-6">
-                    Nous n'hébergeons pas vos projets sur du matériel obsolète. Nos machines physiques exploitent la puissance des coeurs AMD Ryzen couplée à une architecture réseau ultra redondante pour garantir stabilité et vitesse de traitement.
-                </p>
+                <p class="text-gray-400 text-sm leading-relaxed mb-6">Nous n'hébergeons pas vos projets sur du matériel obsolète. Nos machines physiques exploitent la puissance des coeurs AMD Ryzen couplée à une architecture réseau ultra redondante.</p>
                 <div class="grid grid-cols-2 gap-4">
-                    <div class="p-4 rounded-xl border border-white/[0.03] bg-white/[0.01] hover:border-sky-500/30 transition">
-                        <div class="text-white font-bold text-sm mb-1"><i class="fas fa-network-wired text-sky-400 mr-1.5"></i> Réseau 10 Gbps</div>
-                        <p class="text-gray-500 text-xs">Uplink haut débit pour une latence minimale en Europe.</p>
-                    </div>
-                    <div class="p-4 rounded-xl border border-white/[0.03] bg-white/[0.01] hover:border-purple-500/30 transition">
-                        <div class="text-white font-bold text-sm mb-1"><i class="fas fa-memory text-purple-400 mr-1.5"></i> RAM DDR5 ECC</div>
-                        <p class="text-gray-500 text-xs">Correction d'erreurs intégrée pour éviter tout crash applicatif.</p>
-                    </div>
+                    <div class="p-4 rounded-xl border border-white/[0.03] bg-white/[0.01] hover:border-sky-500/30 transition"><div class="text-white font-bold text-sm mb-1"><i class="fas fa-network-wired text-sky-400 mr-1.5"></i> Réseau 10 Gbps</div><p class="text-gray-500 text-xs">Uplink haut débit pour une latence minimale en Europe.</p></div>
+                    <div class="p-4 rounded-xl border border-white/[0.03] bg-white/[0.01] hover:border-purple-500/30 transition"><div class="text-white font-bold text-sm mb-1"><i class="fas fa-memory text-purple-400 mr-1.5"></i> RAM DDR5 ECC</div><p class="text-gray-500 text-xs">Correction d'erreurs intégrée pour éviter tout crash.</p></div>
                 </div>
             </div>
             <div class="relative flex justify-center">
                 <div class="absolute w-72 h-72 bg-indigo-500/5 filter blur-3xl rounded-full top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
                 <div class="glass p-8 rounded-2xl border border-white/[0.06] max-w-md w-full font-mono text-xs text-gray-400 space-y-3 shadow-2xl">
-                    <div class="flex items-center justify-between border-b border-white/[0.05] pb-2">
-                        <span class="text-gray-500"><i class="fas fa-terminal mr-2"></i>Node Status</span>
-                        <span class="text-green-400 flex items-center gap-1"><span class="h-1.5 w-1.5 rounded-full bg-green-400 animate-ping"></span> ONLINE</span>
-                    </div>
+                    <div class="flex items-center justify-between border-b border-white/[0.05] pb-2"><span class="text-gray-500"><i class="fas fa-terminal mr-2"></i>Node Status</span><span class="text-green-400 flex items-center gap-1"><span class="h-1.5 w-1.5 rounded-full bg-green-400 animate-ping"></span> ONLINE</span></div>
                     <p><span class="text-purple-400">~ $</span> screen -r orin-node-01</p>
-                    <p class="text-gray-500">[OS]: Ubuntu 24.04 LTS (Noble Numbat)</p>
+                    <p class="text-gray-500">[OS]: Ubuntu 24.04 LTS</p>
                     <p class="text-gray-500">[CPU]: AMD Ryzen 9 7950X @ 4.5 GHz</p>
                     <p class="text-gray-500">[Disk]: NVMe PCIe Gen4 x4 Read: 7000MB/s</p>
-                    <p class="text-sky-400">>> Anti-DDoS Mitigation Layers ACTIVE (Game-Shield)</p>
+                    <p class="text-sky-400">>> Anti-DDoS Mitigation Layers ACTIVE</p>
                 </div>
             </div>
         </div>
     </section>
 
+    <!-- ÉQUIPE -->
     <section class="py-20 px-6 max-w-7xl mx-auto">
-        <div class="text-center mb-12">
-            <h2 class="text-3xl md:text-4xl font-black mb-3">L'<span class="gradient-text">Équipe</span> OrinHeberge</h2>
-            <p class="text-gray-500 max-w-lg mx-auto text-sm">Les passionnés qui travaillent chaque jour pour maintenir vos serveurs en ligne.</p>
-        </div>
+        <div class="text-center mb-12"><h2 class="text-3xl md:text-4xl font-black mb-3">L'<span class="gradient-text">Équipe</span> OrinHeberge</h2><p class="text-gray-500 max-w-lg mx-auto text-sm">Les passionnés qui travaillent chaque jour pour maintenir vos serveurs en ligne.</p></div>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            <!-- Mathéo -->
             <div class="glass p-6 rounded-2xl border border-white/[0.05] text-center flex flex-col items-center group hover:border-sky-500/30 transition">
-                <div class="relative mb-4">
-                    <div class="w-20 h-20 bg-gradient-to-tr from-sky-400 to-purple-500 rounded-full p-0.5 shadow-xl group-hover:scale-105 transition">
-                        <img src="/img/staff/Mathéo-Favier.jpg" alt="Avatar" class="w-full h-full object-cover rounded-full bg-[#060911]">
-                    </div>
-                    <span class="absolute bottom-0 right-1 h-3 w-3 rounded-full bg-green-400 border-2 border-[#060911]"></span>
-                </div>
-                <h4 class="font-bold text-white text-lg">Mathéo Favier</h4>
-                <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/20 mt-1 mb-3">Fondateur & Dev SysAdmin</span>
+                <div class="relative mb-4"><div class="w-20 h-20 bg-gradient-to-tr from-sky-400 to-purple-500 rounded-full p-0.5 shadow-xl group-hover:scale-105 transition"><img src="/img/staff/Mathéo-Favier.jpg" alt="Avatar" class="w-full h-full object-cover rounded-full bg-[#060911]"></div><span class="absolute bottom-0 right-1 h-3 w-3 rounded-full bg-green-400 border-2 border-[#060911]"></span></div>
+                <h4 class="font-bold text-white text-lg">Mathéo Favier</h4><span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/20 mt-1 mb-3">Fondateur & Dev SysAdmin</span>
                 <p class="text-gray-500 text-xs leading-relaxed max-w-xs">Garant de l'architecture serveur et du développement global du panel.</p>
-                <div class="flex gap-3 mt-4 text-gray-400 text-sm">
-                    <a href="https://github.com/metal54400" class="hover:text-white transition hover:scale-110"><i class="fab fa-github"></i></a>
-                    <a href="https://portfolio.deepstone.fr" class="hover:text-sky-400 transition hover:scale-110"><i class="fas fa-globe"></i></a>
-                </div>
+                <div class="flex gap-3 mt-4 text-gray-400 text-sm"><a href="https://github.com/metal54400" class="hover:text-white transition hover:scale-110"><i class="fab fa-github"></i></a><a href="https://portfolio.deepstone.fr" class="hover:text-sky-400 transition hover:scale-110"><i class="fas fa-globe"></i></a></div>
             </div>
-
-             <!-- WixyMc -->
             <div class="glass p-6 rounded-2xl border border-white/[0.05] text-center flex flex-col items-center group hover:border-purple-500/30 transition">
-                <div class="relative mb-4">
-                    <div class="w-20 h-20 bg-gradient-to-tr from-purple-500 to-pink-500 rounded-full p-0.5 shadow-xl group-hover:scale-105 transition">
-                        <img src="/img/staff/WixyMc.png" alt="Avatar" class="w-full h-full object-cover rounded-full bg-[#060911]">
-                    </div>
-                    <span class="absolute bottom-0 right-1 h-3 w-3 rounded-full bg-green-400 border-2 border-[#060911]"></span>
-                </div>
-                <h4 class="font-bold text-white text-lg">WixyMc</h4>
-                <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20 mt-1 mb-3">Co Fondateur & Dev SysAdmin</span>
+                <div class="relative mb-4"><div class="w-20 h-20 bg-gradient-to-tr from-purple-500 to-pink-500 rounded-full p-0.5 shadow-xl group-hover:scale-105 transition"><img src="/img/staff/WixyMc.png" alt="Avatar" class="w-full h-full object-cover rounded-full bg-[#060911]"></div><span class="absolute bottom-0 right-1 h-3 w-3 rounded-full bg-green-400 border-2 border-[#060911]"></span></div>
+                <h4 class="font-bold text-white text-lg">WixyMc</h4><span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20 mt-1 mb-3">Co Fondateur & Dev SysAdmin</span>
                 <p class="text-gray-500 text-xs leading-relaxed max-w-xs">Conçoit l'interface utilisateur pour la rendre fluide et accessible à tous.</p>
-                <div class="flex gap-3 mt-4 text-gray-400 text-sm">
-                    <a href="#" class="hover:text-white transition hover:scale-110"><i class="fab fa-github"></i></a>
-                    <a href="#" class="hover:text-purple-400 transition hover:scale-110"><i class="fab fa-discord"></i></a>
-                </div>
+                <div class="flex gap-3 mt-4 text-gray-400 text-sm"><a href="#" class="hover:text-white transition hover:scale-110"><i class="fab fa-github"></i></a><a href="#" class="hover:text-purple-400 transition hover:scale-110"><i class="fab fa-discord"></i></a></div>
             </div>
-
-            <!-- Nexium -->
             <div class="glass p-6 rounded-2xl border border-white/[0.05] text-center flex flex-col items-center sm:col-span-2 lg:col-span-1 group hover:border-amber-500/30 transition">
-                <div class="relative mb-4">
-                    <div class="w-20 h-20 bg-gradient-to-tr from-amber-400 to-orange-500 rounded-full p-0.5 shadow-xl group-hover:scale-105 transition">
-                        <img src="/img/staff/Nexium.webp" alt="Avatar" class="w-full h-full object-cover rounded-full bg-[#060911]">
-                    </div>
-                    <span class="absolute bottom-0 right-1 h-3 w-3 rounded-full bg-green-400 border-2 border-[#060911]"></span>
-                </div>
-                <h4 class="font-bold text-white text-lg">Nexium</h4>
-                <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 mt-1 mb-3">Responsable Support</span>
+                <div class="relative mb-4"><div class="w-20 h-20 bg-gradient-to-tr from-amber-400 to-orange-500 rounded-full p-0.5 shadow-xl group-hover:scale-105 transition"><img src="/img/staff/Nexium.webp" alt="Avatar" class="w-full h-full object-cover rounded-full bg-[#060911]"></div><span class="absolute bottom-0 right-1 h-3 w-3 rounded-full bg-green-400 border-2 border-[#060911]"></span></div>
+                <h4 class="font-bold text-white text-lg">Nexium</h4><span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 mt-1 mb-3">Responsable Support</span>
                 <p class="text-gray-500 text-xs leading-relaxed max-w-xs">Supervise la communauté sur Discord et s'assure de l'aide technique 24/7.</p>
-                <div class="flex gap-3 mt-4 text-gray-400 text-sm">
-                    <a href="#" class="hover:text-amber-400 transition hover:scale-110"><i class="fab fa-discord"></i></a>
-                </div>
+                <div class="flex gap-3 mt-4 text-gray-400 text-sm"><a href="#" class="hover:text-amber-400 transition hover:scale-110"><i class="fab fa-discord"></i></a></div>
             </div>
         </div>
     </section>
 
-
+    <!-- POURQUOI NOUS -->
     <section class="py-20 px-6 max-w-7xl mx-auto">
-        <div class="text-center mb-12">
-            <h2 class="text-3xl md:text-4xl font-black mb-3">Pourquoi <span class="gradient-text">OrinHeberge</span> ?</h2>
-            <p class="text-gray-500 max-w-lg mx-auto text-sm">Une infrastructure pensée pour la performance, la simplicité et la fiabilité.</p>
-        </div>
+        <div class="text-center mb-12"><h2 class="text-3xl md:text-4xl font-black mb-3">Pourquoi <span class="gradient-text">OrinHeberge</span> ?</h2><p class="text-gray-500 max-w-lg mx-auto text-sm">Une infrastructure pensée pour la performance, la simplicité et la fiabilité.</p></div>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div class="glass card-hover p-6 rounded-2xl border border-white/[0.05] group">
-                <div class="w-12 h-12 bg-sky-500/10 rounded-xl flex items-center justify-center mb-4 group-hover:bg-sky-500/20 transition">
-                    <i class="fas fa-microchip text-sky-400 text-xl"></i>
-                </div>
-                <h4 class="font-bold text-white mb-2">CPU Ryzen HF</h4>
-                <p class="text-gray-500 text-xs leading-relaxed">Processeurs Ryzen haute fréquence et stockage SSD NVMe ultra-rapide.</p>
-            </div>
-            <div class="glass card-hover p-6 rounded-2xl border border-white/[0.05] group">
-                <div class="w-12 h-12 bg-purple-500/10 rounded-xl flex items-center justify-center mb-4 group-hover:bg-purple-500/20 transition">
-                    <i class="fas fa-layer-group text-purple-400 text-xl"></i>
-                </div>
-                <h4 class="font-bold text-white mb-2">Multi-environnements</h4>
-                <p class="text-gray-500 text-xs leading-relaxed">Minecraft, PHP, Node.js, Python, Java — tout en un seul endroit.</p>
-            </div>
-            <div class="glass card-hover p-6 rounded-2xl border border-white/[0.05] group">
-                <div class="w-12 h-12 bg-green-500/10 rounded-xl flex items-center justify-center mb-4 group-hover:bg-green-500/20 transition">
-                    <i class="fas fa-hand-holding-dollar text-green-400 text-xl"></i>
-                </div>
-                <h4 class="font-bold text-white mb-2">Gratuit & Abordable</h4>
-                <p class="text-gray-500 text-xs leading-relaxed">Commencez gratuitement, évoluez selon vos besoins avec des tarifs compétitifs.</p>
-            </div>
-            <div class="glass card-hover p-6 rounded-2xl border border-white/[0.05] group">
-                <div class="w-12 h-12 bg-amber-500/10 rounded-xl flex items-center justify-center mb-4 group-hover:bg-amber-500/20 transition">
-                    <i class="fas fa-shield-halved text-amber-400 text-xl"></i>
-                </div>
-                <h4 class="font-bold text-white mb-2">Protection DDoS</h4>
-                <p class="text-gray-500 text-xs leading-relaxed">Anti-DDoS inclus sur toutes les offres, même gratuites.</p>
-            </div>
+            <div class="glass card-hover p-6 rounded-2xl border border-white/[0.05] group"><div class="w-12 h-12 bg-sky-500/10 rounded-xl flex items-center justify-center mb-4 group-hover:bg-sky-500/20 transition"><i class="fas fa-microchip text-sky-400 text-xl"></i></div><h4 class="font-bold text-white mb-2">CPU Ryzen HF</h4><p class="text-gray-500 text-xs leading-relaxed">Processeurs Ryzen haute fréquence et stockage SSD NVMe ultra-rapide.</p></div>
+            <div class="glass card-hover p-6 rounded-2xl border border-white/[0.05] group"><div class="w-12 h-12 bg-purple-500/10 rounded-xl flex items-center justify-center mb-4 group-hover:bg-purple-500/20 transition"><i class="fas fa-layer-group text-purple-400 text-xl"></i></div><h4 class="font-bold text-white mb-2">Multi-environnements</h4><p class="text-gray-500 text-xs leading-relaxed">Minecraft, PHP, Node.js, Python, Java — tout en un seul endroit.</p></div>
+            <div class="glass card-hover p-6 rounded-2xl border border-white/[0.05] group"><div class="w-12 h-12 bg-green-500/10 rounded-xl flex items-center justify-center mb-4 group-hover:bg-green-500/20 transition"><i class="fas fa-hand-holding-dollar text-green-400 text-xl"></i></div><h4 class="font-bold text-white mb-2">Gratuit & Abordable</h4><p class="text-gray-500 text-xs leading-relaxed">Commencez gratuitement, évoluez selon vos besoins avec des tarifs compétitifs.</p></div>
+            <div class="glass card-hover p-6 rounded-2xl border border-white/[0.05] group"><div class="w-12 h-12 bg-amber-500/10 rounded-xl flex items-center justify-center mb-4 group-hover:bg-amber-500/20 transition"><i class="fas fa-shield-halved text-amber-400 text-xl"></i></div><h4 class="font-bold text-white mb-2">Protection DDoS</h4><p class="text-gray-500 text-xs leading-relaxed">Anti-DDoS inclus sur toutes les offres, même gratuites.</p></div>
         </div>
     </section>
 
-    <!-- NOUVELLE SECTION: AVIS CLIENTS -->
+    <!-- SECTION AVIS CLIENTS (DYNAMIQUE) -->
     <section class="py-20 px-6 max-w-5xl mx-auto border-t border-white/[0.03]">
         <div class="text-center mb-12">
-            <div class="inline-flex items-center gap-2 bg-pink-500/10 text-pink-400 border border-pink-500/20 px-4 py-1.5 rounded-full text-xs font-semibold mb-4">
-                <i class="fas fa-star"></i> Témoignages
-            </div>
+            <div class="inline-flex items-center gap-2 bg-pink-500/10 text-pink-400 border border-pink-500/20 px-4 py-1.5 rounded-full text-xs font-semibold mb-4"><i class="fas fa-star"></i> Témoignages</div>
             <h2 class="text-3xl font-black mb-3">Ce que disent nos <span class="gradient-text">Clients</span></h2>
             <p class="text-gray-500 text-sm">Votre satisfaction est notre meilleure récompense.</p>
+            
+            <!-- Statistiques dynamiques -->
+            <div id="review-stats" class="hidden mt-6 flex items-center justify-center gap-6">
+                <div class="flex items-center gap-2">
+                    <span id="avg-rating" class="text-3xl font-black gradient-text">0</span>
+                    <div class="text-left">
+                        <div id="avg-stars" class="text-yellow-400 text-sm"></div>
+                        <span id="total-count" class="text-gray-500 text-xs">0 avis</span>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <!-- Grille des avis existants (Simulée) -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-12">
-            <div class="glass p-5 rounded-xl border border-white/[0.05]">
-                <div class="flex items-center gap-3 mb-3">
-                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold">T</div>
-                    <div>
-                        <h4 class="font-bold text-white text-sm">Thomas D.</h4>
-                        <div class="text-yellow-400 text-xs">
-                            <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
-                        </div>
-                    </div>
-                </div>
-                <p class="text-gray-400 text-xs italic">"Service incroyable pour mon serveur FiveM. Zéro lag et le support m'a aidé à installer mes scripts en 10 minutes."</p>
-            </div>
-            <div class="glass p-5 rounded-xl border border-white/[0.05]">
-                <div class="flex items-center gap-3 mb-3">
-                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center text-white font-bold">S</div>
-                    <div>
-                        <h4 class="font-bold text-white text-sm">Sarah L.</h4>
-                        <div class="text-yellow-400 text-xs">
-                            <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star-half-alt"></i>
-                        </div>
-                    </div>
-                </div>
-                <p class="text-gray-400 text-xs italic">"J'ai commencé avec l'offre gratuite pour tester, puis je suis passée au Premium. La migration a été instantanée."</p>
-            </div>
+        <!-- Grille des avis (chargée dynamiquement) -->
+        <div id="reviews-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+            <!-- Skeleton loading -->
+            <div class="glass p-5 rounded-xl border border-white/[0.05] animate-pulse"><div class="flex items-center gap-3 mb-3"><div class="w-10 h-10 rounded-full bg-white/10"></div><div class="flex-1 space-y-2"><div class="h-3 bg-white/10 rounded w-24"></div><div class="h-2 bg-white/10 rounded w-16"></div></div></div><div class="h-2 bg-white/10 rounded w-full mb-1"></div><div class="h-2 bg-white/10 rounded w-3/4"></div></div>
+            <div class="glass p-5 rounded-xl border border-white/[0.05] animate-pulse"><div class="flex items-center gap-3 mb-3"><div class="w-10 h-10 rounded-full bg-white/10"></div><div class="flex-1 space-y-2"><div class="h-3 bg-white/10 rounded w-20"></div><div class="h-2 bg-white/10 rounded w-14"></div></div></div><div class="h-2 bg-white/10 rounded w-full mb-1"></div><div class="h-2 bg-white/10 rounded w-2/3"></div></div>
+        </div>
+
+        <div id="no-reviews" class="hidden text-center py-8 text-gray-500 text-sm"><i class="fas fa-comment-slash text-3xl mb-3 opacity-30"></i><p>Aucun avis pour le moment. Soyez le premier !</p></div>
+
+        <div id="load-more-wrap" class="hidden text-center mb-12">
+            <button onclick="loadMoreReviews()" id="load-more-btn" class="glass hover:bg-white/[0.07] border border-white/10 text-gray-300 hover:text-white px-6 py-2.5 rounded-xl text-sm font-bold transition flex items-center gap-2 mx-auto"><i class="fas fa-chevron-down"></i> Voir plus d'avis</button>
         </div>
 
         <!-- Formulaire pour laisser un avis -->
         <div class="glass rounded-2xl p-6 md:p-8 border border-white/[0.08] relative overflow-hidden">
             <div class="absolute top-0 right-0 w-32 h-32 bg-pink-500/10 blur-3xl rounded-full pointer-events-none"></div>
-            
-            <h3 class="text-xl font-bold text-white mb-6 flex items-center gap-2">
-                <i class="fas fa-pen-fancy text-pink-400"></i> Laissez votre avis
-            </h3>
+            <h3 class="text-xl font-bold text-white mb-6 flex items-center gap-2"><i class="fas fa-pen-fancy text-pink-400"></i> Laissez votre avis</h3>
 
-            <form action="/api/reviews" method="POST" class="space-y-4 relative z-10">
+            <form id="review-form" class="space-y-4 relative z-10">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-xs font-bold text-gray-400 mb-1">Votre Nom</label>
-                        <input type="text" name="name" required class="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-sm text-white focus:border-pink-500 focus:outline-none transition" placeholder="Ex: Alex">
+                        <label class="block text-xs font-bold text-gray-400 mb-1">Votre Pseudo</label>
+                        <input type="text" id="review-name" required maxlength="50" class="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-sm text-white focus:border-pink-500 focus:outline-none transition" placeholder="Ex: Alex">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-400 mb-1">Note</label>
-                        <select name="rating" class="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-sm text-white focus:border-pink-500 focus:outline-none transition">
+                        <select id="review-rating" class="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-sm text-white focus:border-pink-500 focus:outline-none transition">
                             <option value="5">⭐⭐⭐⭐⭐ Excellent</option>
                             <option value="4">⭐⭐⭐⭐ Très bien</option>
                             <option value="3">⭐⭐⭐ Bien</option>
@@ -714,115 +440,230 @@ window.addEventListener('DOMContentLoaded', () => filterCategory('all'));
                         </select>
                     </div>
                 </div>
-                
                 <div>
                     <label class="block text-xs font-bold text-gray-400 mb-1">Votre Commentaire</label>
-                    <textarea name="comment" rows="3" required class="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-sm text-white focus:border-pink-500 focus:outline-none transition" placeholder="Parlez-nous de votre expérience..."></textarea>
+                    <textarea id="review-comment" rows="3" required minlength="10" maxlength="500" class="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-sm text-white focus:border-pink-500 focus:outline-none transition" placeholder="Parlez-nous de votre expérience (min. 10 caractères)..."></textarea>
+                    <p class="text-xs text-gray-600 mt-1 text-right"><span id="char-count">0</span>/500</p>
                 </div>
 
+                <div id="review-success" class="hidden bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-3 rounded-lg text-sm flex items-center gap-2"><i class="fas fa-check-circle"></i> Merci ! Votre avis a été envoyé avec succès.</div>
+                <div id="review-error" class="hidden bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-lg text-sm flex items-center gap-2"><i class="fas fa-exclamation-circle"></i> <span id="review-error-text"></span></div>
+
                 <div class="flex justify-end pt-2">
-                    <button type="submit" class="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-400 hover:to-purple-500 text-white font-bold py-2 px-6 rounded-lg text-sm transition shadow-lg shadow-pink-900/20 flex items-center gap-2">
-                        <i class="fas fa-paper-plane"></i> Envoyer l'avis
+                    <button type="submit" id="review-submit-btn" class="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-400 hover:to-purple-500 text-white font-bold py-2 px-6 rounded-lg text-sm transition shadow-lg shadow-pink-900/20 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <i class="fas fa-paper-plane"></i> <span>Envoyer l'avis</span>
                     </button>
                 </div>
             </form>
         </div>
     </section>
 
+    <!-- FAQ -->
     <section class="py-20 px-6 max-w-4xl mx-auto border-t border-white/[0.03]">
-        <div class="text-center mb-12">
-            <h2 class="text-3xl font-black mb-3">Questions <span class="gradient-text">Fréquentes</span></h2>
-            <p class="text-gray-500 text-sm">Tout ce que vous devez savoir pour démarrer sereinement.</p>
-        </div>
-
+        <div class="text-center mb-12"><h2 class="text-3xl font-black mb-3">Questions <span class="gradient-text">Fréquentes</span></h2><p class="text-gray-500 text-sm">Tout ce que vous devez savoir pour démarrer sereinement.</p></div>
         <div class="space-y-4">
             <details class="glass p-5 rounded-xl border border-white/[0.05] group transition-all duration-300">
-                <summary class="font-bold text-white text-sm flex justify-between items-center cursor-pointer list-none select-none">
-                    <span class="flex items-center gap-2"><i class="fas fa-question-circle text-sky-400"></i> Comment l'offre gratuite fonctionne-t-elle ?</span>
-                    <span class="transition group-open:rotate-180"><i class="fas fa-chevron-down text-gray-500 text-xs"></i></span>
-                </summary>
-                <p class="text-gray-400 text-xs leading-relaxed mt-3 pt-3 border-t border-white/[0.03]">
-                    Notre offre gratuite est financée par nos utilisateurs Premium. Elle vous permet de concevoir, tester et faire tourner de petits projets ou serveurs de jeux entre amis sans aucune limite de temps ni coûts cachés.
-                </p>
+                <summary class="font-bold text-white text-sm flex justify-between items-center cursor-pointer list-none select-none"><span class="flex items-center gap-2"><i class="fas fa-question-circle text-sky-400"></i> Comment l'offre gratuite fonctionne-t-elle ?</span><span class="transition group-open:rotate-180"><i class="fas fa-chevron-down text-gray-500 text-xs"></i></span></summary>
+                <p class="text-gray-400 text-xs leading-relaxed mt-3 pt-3 border-t border-white/[0.03]">Notre offre gratuite est financée par nos utilisateurs Premium. Elle vous permet de concevoir, tester et faire tourner de petits projets sans aucune limite de temps ni coûts cachés.</p>
             </details>
-
             <details class="glass p-5 rounded-xl border border-white/[0.05] group transition-all duration-300">
-                <summary class="font-bold text-white text-sm flex justify-between items-center cursor-pointer list-none select-none">
-                    <span class="flex items-center gap-2"><i class="fas fa-exchange-alt text-sky-400"></i> Puis-je changer d'offre ou migrer plus tard ?</span>
-                    <span class="transition group-open:rotate-180"><i class="fas fa-chevron-down text-gray-500 text-xs"></i></span>
-                </summary>
-                <p class="text-gray-400 text-xs leading-relaxed mt-3 pt-3 border-t border-white/[0.03]">
-                    Tout à fait ! Vous pouvez passer d'une formule gratuite à une version Premium ou modifier vos ressources à tout moment depuis votre console de gestion client sans aucune perte de vos données existantes.
-                </p>
+                <summary class="font-bold text-white text-sm flex justify-between items-center cursor-pointer list-none select-none"><span class="flex items-center gap-2"><i class="fas fa-exchange-alt text-sky-400"></i> Puis-je changer d'offre ou migrer plus tard ?</span><span class="transition group-open:rotate-180"><i class="fas fa-chevron-down text-gray-500 text-xs"></i></span></summary>
+                <p class="text-gray-400 text-xs leading-relaxed mt-3 pt-3 border-t border-white/[0.03]">Tout à fait ! Vous pouvez passer d'une formule gratuite à une version Premium à tout moment depuis votre console de gestion client sans perte de données.</p>
             </details>
-
             <details class="glass p-5 rounded-xl border border-white/[0.05] group transition-all duration-300">
-                <summary class="font-bold text-white text-sm flex justify-between items-center cursor-pointer list-none select-none">
-                    <span class="flex items-center gap-2"><i class="fas fa-map-marker-alt text-sky-400"></i> Où sont situés vos serveurs ?</span>
-                    <span class="transition group-open:rotate-180"><i class="fas fa-chevron-down text-gray-500 text-xs"></i></span>
-                </summary>
-                <p class="text-gray-400 text-xs leading-relaxed mt-3 pt-3 border-t border-white/[0.03]">
-                    Nos infrastructures physiques principales sont hébergées dans des centres de données hautement sécurisés situés en Europe (notamment en France et en Allemagne), assurant des temps de réponse ultra courts.
-                </p>
+                <summary class="font-bold text-white text-sm flex justify-between items-center cursor-pointer list-none select-none"><span class="flex items-center gap-2"><i class="fas fa-map-marker-alt text-sky-400"></i> Où sont situés vos serveurs ?</span><span class="transition group-open:rotate-180"><i class="fas fa-chevron-down text-gray-500 text-xs"></i></span></summary>
+                <p class="text-gray-400 text-xs leading-relaxed mt-3 pt-3 border-t border-white/[0.03]">Nos infrastructures physiques sont hébergées dans des centres de données hautement sécurisés situés en Europe (France et Allemagne).</p>
             </details>
         </div>
     </section>
-
 </main>
 
 <?php include __DIR__ . '/inc/footer.php'; ?>
 
-<div class="fixed bottom-6 right-6 z-50">
+<!-- Bouton Discord Flottant -->
+<div class="fixed bottom-6 right-6 z-40">
     <a href="/discord/" target="_blank" class="bg-[#5865F2] hover:bg-[#4752C4] transition text-white px-5 py-4 rounded-full font-bold flex items-center gap-2 shadow-2xl hover:scale-105 transform duration-200">
         <i class="fab fa-discord text-xl"></i>
         <span class="hidden sm:inline text-sm"><?php echo t('discord.help'); ?></span>
     </a>
 </div>
 
-<!-- BANNIÈRE RGPD -->
-<div id="cookie-banner" class="fixed bottom-0 left-0 right-0 bg-[#0f121d] border-t border-white/10 p-4 z-[100] shadow-2xl">
-    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div class="flex items-start gap-3">
-            <i class="fas fa-cookie-bite text-yellow-400 text-xl mt-1"></i>
-            <div class="text-sm text-gray-300">
-                <p class="font-bold text-white mb-1">Respect de votre vie privée</p>
-                <p>Nous utilisons des cookies pour améliorer votre expérience et analyser notre trafic. Conformément au RGPD, vous avez le choix d'accepter ou de refuser les cookies non essentiels.</p>
-                <a href="/privacy-policy" class="text-sky-400 hover:underline text-xs mt-1 inline-block">Lire notre politique de confidentialité</a>
-            </div>
-        </div>
-        <div class="flex gap-3 shrink-0">
-            <button onclick="rejectCookies()" class="px-4 py-2 rounded-lg border border-white/10 text-gray-400 hover:bg-white/5 text-sm font-medium transition">
-                Refuser
-            </button>
-            <button onclick="acceptCookies()" class="px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-sm font-bold shadow-lg shadow-sky-900/20 transition">
-                Accepter
-            </button>
-        </div>
-    </div>
-</div>
+<!-- Inclusion du bandeau RGPD (Gère l'affichage et la logique cookie) -->
+<?php include $_SERVER['DOCUMENT_ROOT'] . '/inc/cookie.php'; ?>
 
+<!-- SCRIPT SYSTÈME D'AVIS CLIENTS -->
 <script>
-    function acceptCookies() {
-        localStorage.setItem('cookie_consent', 'accepted');
-        document.getElementById('cookie-banner').classList.remove('show');
-        loadAnalytics(); // Charge les scripts de tracking
-    }
+    let currentPage = 1;
+    const reviewsPerPage = 6;
+    const avatarColors = ['from-sky-400 to-blue-600', 'from-purple-400 to-pink-600', 'from-emerald-400 to-teal-600', 'from-amber-400 to-orange-600', 'from-red-400 to-rose-600', 'from-indigo-400 to-violet-600'];
 
-    function rejectCookies() {
-        localStorage.setItem('cookie_consent', 'rejected');
-        document.getElementById('cookie-banner').classList.remove('show');
-    }
+    function loadReviews(page = 1, append = false) {
+        const grid = document.getElementById('reviews-grid');
+        const noReviews = document.getElementById('no-reviews');
+        const loadMoreWrap = document.getElementById('load-more-wrap');
 
-    // Afficher la bannière si aucun choix n'a été fait
-    window.addEventListener('load', function() {
-        if (!localStorage.getItem('cookie_consent')) {
-            setTimeout(() => {
-                document.getElementById('cookie-banner').classList.add('show');
-            }, 1000);
+        if (!append) {
+            grid.innerHTML = `<div class="glass p-5 rounded-xl border border-white/[0.05] animate-pulse"><div class="flex items-center gap-3 mb-3"><div class="w-10 h-10 rounded-full bg-white/10"></div><div class="flex-1 space-y-2"><div class="h-3 bg-white/10 rounded w-24"></div></div></div></div>`;
         }
+
+        fetch(`/api/reviews/get.php?limit=${reviewsPerPage}&page=${page}`)
+            .then(res => res.json())
+            .then(data => {
+                if (!data.success) throw new Error('Erreur API');
+                const reviews = data.data;
+                const stats = data.stats;
+                const pagination = data.pagination;
+
+                // Stats
+                if (stats.total_reviews > 0) {
+                    document.getElementById('review-stats').classList.remove('hidden');
+                    document.getElementById('review-stats').classList.add('flex');
+                    document.getElementById('avg-rating').textContent = stats.average_rating;
+                    document.getElementById('avg-stars').innerHTML = generateStars(Math.round(stats.average_rating));
+                    document.getElementById('total-count').textContent = stats.total_reviews + ' avis';
+                }
+
+                if (reviews.length === 0 && !append) {
+                    grid.innerHTML = '';
+                    noReviews.classList.remove('hidden');
+                    loadMoreWrap.classList.add('hidden');
+                    return;
+                }
+                noReviews.classList.add('hidden');
+
+                let html = '';
+                reviews.forEach((review, index) => {
+                    const colorClass = avatarColors[(review.name.charCodeAt(0) + index) % avatarColors.length];
+                    const initial = review.name.charAt(0).toUpperCase();
+                    const stars = generateStars(review.rating);
+                    const date = formatDate(review.created_at);
+
+                    html += `<div class="glass p-5 rounded-xl border border-white/[0.05] hover:border-white/[0.1] transition ${append ? 'animate-fade-in' : ''}">
+                        <div class="flex items-center gap-3 mb-3">
+                            <div class="w-10 h-10 rounded-full bg-gradient-to-br ${colorClass} flex items-center justify-center text-white font-bold text-sm shrink-0">${initial}</div>
+                            <div class="flex-1 min-w-0">
+                                <h4 class="font-bold text-white text-sm truncate">${review.name}</h4>
+                                <div class="flex items-center gap-2"><div class="text-yellow-400 text-xs">${stars}</div><span class="text-gray-600 text-[10px]">${date}</span></div>
+                            </div>
+                        </div>
+                        <p class="text-gray-400 text-xs italic leading-relaxed">"${review.comment}"</p>
+                    </div>`;
+                });
+
+                if (append) grid.insertAdjacentHTML('beforeend', html);
+                else grid.innerHTML = html;
+
+                if (pagination.has_next) {
+                    loadMoreWrap.classList.remove('hidden');
+                } else {
+                    loadMoreWrap.classList.add('hidden');
+                }
+            })
+            .catch(err => {
+                console.error('Erreur chargement avis:', err);
+                if (!append) grid.innerHTML = '<div class="col-span-full text-center text-gray-500 text-sm py-8"><i class="fas fa-exclamation-triangle mr-2"></i>Impossible de charger les avis.</div>';
+            });
+    }
+
+    function generateStars(rating) {
+        let html = '';
+        for (let i = 1; i <= 5; i++) {
+            if (i <= rating) html += '<i class="fas fa-star"></i>';
+            else if (i - 0.5 <= rating) html += '<i class="fas fa-star-half-alt"></i>';
+            else html += '<i class="far fa-star text-gray-600"></i>';
+        }
+        return html;
+    }
+
+    function formatDate(dateStr) {
+        if (!dateStr) return '';
+        const date = new Date(dateStr);
+        const diff = Math.floor((new Date() - date) / 1000);
+        if (diff < 60) return 'À l\'instant';
+        if (diff < 3600) return Math.floor(diff / 60) + ' min';
+        if (diff < 86400) return Math.floor(diff / 3600) + 'h';
+        if (diff < 604800) return Math.floor(diff / 86400) + 'j';
+        return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+    }
+
+    function loadMoreReviews() {
+        const btn = document.getElementById('load-more-btn');
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Chargement...';
+        btn.disabled = true;
+        currentPage++;
+        loadReviews(currentPage, true);
+        setTimeout(() => {
+            btn.innerHTML = '<i class="fas fa-chevron-down"></i> Voir plus d\'avis';
+            btn.disabled = false;
+        }, 1000);
+    }
+
+    // Compteur de caractères
+    document.getElementById('review-comment').addEventListener('input', function() {
+        document.getElementById('char-count').textContent = this.value.length;
+    });
+
+    // Envoi du formulaire
+    document.getElementById('review-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const name = document.getElementById('review-name').value.trim();
+        const rating = parseInt(document.getElementById('review-rating').value);
+        const comment = document.getElementById('review-comment').value.trim();
+        const submitBtn = document.getElementById('review-submit-btn');
+        const successMsg = document.getElementById('review-success');
+        const errorMsg = document.getElementById('review-error');
+        const errorText = document.getElementById('review-error-text');
+
+        successMsg.classList.add('hidden');
+        errorMsg.classList.add('hidden');
+
+        if (comment.length < 10) {
+            errorText.textContent = 'Le commentaire doit faire au moins 10 caractères.';
+            errorMsg.classList.remove('hidden');
+            return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Envoi...</span>';
+
+        fetch('/api/reviews/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, rating, comment })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('review-form').reset();
+                document.getElementById('char-count').textContent = '0';
+                successMsg.classList.remove('hidden');
+                submitBtn.innerHTML = '<i class="fas fa-check"></i> <span>Envoyé !</span>';
+                currentPage = 1;
+                loadReviews(1, false); // Recharge pour afficher le nouveau
+                setTimeout(() => {
+                    successMsg.classList.add('hidden');
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> <span>Envoyer l\'avis</span>';
+                }, 5000);
+            } else {
+                errorText.textContent = data.error || (data.errors ? data.errors.join(', ') : 'Erreur inconnue');
+                errorMsg.classList.remove('hidden');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> <span>Envoyer l\'avis</span>';
+            }
+        })
+        .catch(err => {
+            errorText.textContent = 'Erreur de connexion. Veuillez réessayer.';
+            errorMsg.classList.remove('hidden');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> <span>Envoyer l\'avis</span>';
+        });
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        loadReviews(1, false);
     });
 </script>
 
-<?php include $_SERVER['DOCUMENT_ROOT'] . '/inc/cookie.php'; ?>
 </body>
 </html>
