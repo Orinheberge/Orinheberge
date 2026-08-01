@@ -45,4 +45,4 @@ $_oh_current = $_oh_langs[$lang ?? 'fr'];
     </div>
 </div>
 
-<script src="/inc/lang_switcher.js"></script> <!-- Adapte le chemin selon ton dossier -
+<script src="/inc/lang_switcher.js"></script> 
