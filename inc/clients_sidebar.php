@@ -259,3 +259,4 @@ $open_tickets = $open_tickets ?? 0;
 </aside>
 
 <script src="/inc/clients_sidebar.js" defer></script>
+<script src="/inc/lang_switcher.js"></script> 

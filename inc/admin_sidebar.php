@@ -277,3 +277,4 @@ $_critical_maintenance = $pdo->query("
 </aside>
 <!-- Inclusion du script -->
 <script src="/inc/admin_sidebar.js"></script>
+<script src="/inc/lang_switcher.js"></script> 

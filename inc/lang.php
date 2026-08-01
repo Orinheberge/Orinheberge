@@ -36,19 +36,31 @@ function loadDbTranslations(array &$translations): void {
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
         ]);
 
-        // AJOUT DE LA COLONNE 'de' DANS LA REQUÊTE SQL
-        $stmt = $pdo->query('SELECT translation_key, fr, en, de FROM lang_boutique');
+        // On vérifie d'abord si la colonne 'de' existe pour adapter la requête
+        // C'est plus sûr que de planter si la colonne manque
+        $columns = $pdo->query("SHOW COLUMNS FROM lang_boutique LIKE 'de'")->fetchAll();
+        $hasDeColumn = !empty($columns);
+
+        if ($hasDeColumn) {
+            $stmt = $pdo->query('SELECT translation_key, fr, en, de FROM lang_boutique');
+        } else {
+            // Fallback si la colonne n'existe pas encore en BDD
+            $stmt = $pdo->query('SELECT translation_key, fr, en FROM lang_boutique');
+        }
+
         while ($row = $stmt->fetch()) {
             if (!empty($row['translation_key'])) {
                 $translations[$row['translation_key']] = [
                     'fr' => (string)($row['fr'] ?? ''),
                     'en' => (string)($row['en'] ?? ''),
-                    'de' => (string)($row['de'] ?? ''), // COLONNE ALLEMAND ACTIVÉE
+                    // On ajoute 'de' seulement si la colonne existe, sinon on met une chaîne vide
+                    'de' => $hasDeColumn ? (string)($row['de'] ?? '') : '', 
                 ];
             }
         }
     } catch (PDOException $e) {
-        // Fallback silencieux si la table n'existe pas ou si la base est inaccessible.
+        // En cas d'erreur DB, on loggue l'erreur pour le débogage mais on ne plante pas la page
+        error_log("OrinHeberge Lang Error: " . $e->getMessage());
     }
 }
 
@@ -426,7 +438,7 @@ $translations['status.today']              = ['fr' => 'Aujourd\'hui',           
 
 // ── Maintenances ─────────────────────────────────────────────
 $translations['status.ongoing_maintenance']  = ['fr' => 'Maintenance en cours',                               'en' => 'Ongoing maintenance', 'de' => 'Laufende Wartung'];
-scm-history-item:c%3A%5CUsers%5CEleve%5CDesktop%5Cgit%5COrinheberge?%7B%22repositoryId%22%3A%22scm0%22%2C%22historyItemId%22%3A%22b4012796e0887a0233436906a88d61cb1f9750ff%22%2C%22historyItemParentId%22%3A%226375a06c65bbe7a0869c4d742e4562f3f6af374b%22%2C%22historyItemDisplayId%22%3A%22b401279%22%7D$translations['status.upcoming_maintenance'] = ['fr' => 'Maintenances planifiées',                            'en' => 'Scheduled maintenance', 'de' => 'Geplante Wartung'];
+$translations['status.upcoming_maintenance'] = ['fr' => 'Maintenances planifiées',                            'en' => 'Scheduled maintenance', 'de' => 'Geplante Wartung'];
 $translations['status.recent_maintenance']   = ['fr' => 'Maintenances récentes',                              'en' => 'Recent maintenance', 'de' => 'Kürzliche Wartung'];
 
 // ── Sections ─────────────────────────────────────────────────
