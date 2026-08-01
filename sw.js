@@ -14,6 +14,7 @@ const ASSETS_TO_CACHE = [
   './inc/navbar.js',
   './inc/admin_sidebar.js',
   './inc/notifications.js',
+  './inc/lang_switcher.js',
 ];
 
 // Installation : Mise en cache initiale des composants indispensables
