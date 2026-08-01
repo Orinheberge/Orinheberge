@@ -6,7 +6,9 @@ CREATE TABLE IF NOT EXISTS `lang_boutique` (
   `translation_key` VARCHAR(255) NOT NULL COMMENT 'Clé de traduction, ex: offer.mc_free.name',
   `fr` TEXT NOT NULL COMMENT 'Texte traduit en français',
   `en` TEXT NOT NULL COMMENT 'Texte traduit en anglais',
+  `de` TEXT NOT NULL COMMENT 'Texte traduit en allemand',
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE KEY `uniq_lang_boutique_key` (`translation_key`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+

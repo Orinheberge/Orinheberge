@@ -8,6 +8,7 @@
 $_oh_langs = [
     'fr' => ['label' => 'FR', 'flag' => 'fr', 'name' => 'Français'],
     'en' => ['label' => 'EN', 'flag' => 'gb', 'name' => 'English'],
+    'de' => ['label' => 'DE', 'flag' => 'de', 'name' => 'Deutsch'],
 ];
 $_oh_current = $_oh_langs[$lang ?? 'fr'];
 ?>
