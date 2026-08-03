@@ -138,6 +138,10 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
                 <i class="fas fa-headset"></i> <?php echo t('nav.support'); ?>
             </a>
 
+            <a href="/partenaires/" class="<?php echo $active_nav === 'partners' ? 'bg-indigo-600/30 text-indigo-400 border-indigo-500/50 font-bold' : 'bg-indigo-600/5 text-indigo-400/70 hover:text-indigo-300 border-indigo-500/10 hover:bg-indigo-600/20'; ?> px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium shadow-md border whitespace-nowrap">
+                <i class="fas fa-handshake"></i> Partenaires
+            </a>
+
             <?php if (isset($_SESSION['user_id'])): ?>
                 <?php if ($notif_count > 0): ?>
                 <a href="/client/notifications/" class="relative bg-rose-600/10 hover:bg-rose-600/20 border border-rose-500/20 text-rose-400 px-3 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium whitespace-nowrap">
@@ -248,6 +252,10 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
 
             <a href="/support/" class="block py-2.5 px-4 rounded-xl flex items-center gap-3 text-sm font-medium border <?php echo $active_nav === 'support' ? 'bg-purple-600/20 border-purple-500/40 text-purple-400' : 'bg-white/[0.02] border-white/5 text-gray-300'; ?>">
                 <i class="fas fa-headset w-5 text-center"></i> <?php echo t('nav.support'); ?>
+            </a>
+
+            <a href="/partenaires/" class="block py-2.5 px-4 rounded-xl flex items-center gap-3 text-sm font-medium border <?php echo $active_nav === 'partners' ? 'bg-indigo-600/20 border-indigo-500/40 text-indigo-400' : 'bg-white/[0.02] border-white/5 text-gray-300'; ?>">
+                <i class="fas fa-handshake w-5 text-center"></i> Partenaires
             </a>
 
             <a href="/status/" class="block py-2.5 px-4 rounded-xl flex items-center gap-3 text-sm font-medium border bg-emerald-600/10 border-emerald-500/30 text-emerald-400">
