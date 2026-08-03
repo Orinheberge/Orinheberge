@@ -30,6 +30,7 @@ function apiGet($url, $headers, $endpoint) {
         CURLOPT_SSL_VERIFYPEER => false,
         CURLOPT_SSL_VERIFYHOST => false,
     ]);
+    
     $res = curl_exec($ch);
     curl_close($ch);
     return json_decode($res, true);
