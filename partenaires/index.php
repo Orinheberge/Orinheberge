@@ -263,29 +263,58 @@ $partners = [
 
         <!-- Section Devenir Partenaire -->
         <section class="py-20 px-6">
-            <div class="max-w-4xl mx-auto">
-                <div class="glass rounded-3xl p-10 md:p-12 text-center">
-                    <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-sky-500 to-purple-500 flex items-center justify-center mx-auto mb-6">
-                        <i class="fas fa-rocket text-white text-2xl"></i>
+            <div class="max-w-5xl mx-auto">
+                <div class="relative overflow-hidden rounded-3xl p-12 md:p-16 text-center" 
+                     style="background: linear-gradient(135deg, rgba(14,165,233,.12), rgba(99,102,241,.12)); border: 2px solid rgba(56,189,248,.3);">
+                    <!-- Background pattern -->
+                    <div class="absolute inset-0 opacity-10">
+                        <div class="absolute top-10 left-10 w-32 h-32 bg-sky-400 rounded-full blur-3xl"></div>
+                        <div class="absolute bottom-10 right-10 w-40 h-40 bg-purple-400 rounded-full blur-3xl"></div>
                     </div>
-                    <h2 class="text-3xl md:text-4xl font-black text-white mb-4">
-                        Vous souhaitez devenir partenaire ?
-                    </h2>
-                    <p class="text-gray-400 text-lg mb-8 max-w-2xl mx-auto">
-                        Rejoignez notre réseau de partenaires et développons ensemble des synergies pour offrir le meilleur à nos clients.
-                    </p>
-                    <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                        <a href="https://heberge.orinstone.deepstone.fr/discord/" 
-                           target="_blank"
-                           class="bg-[#5865F2] hover:bg-[#4752C4] text-white font-bold py-4 px-8 rounded-xl transition shadow-lg shadow-[#5865F2]/20 flex items-center justify-center gap-3">
-                            <i class="fab fa-discord text-xl"></i>
-                            <span>Contactez-nous sur Discord</span>
-                        </a>
-                        <a href="/support/" 
-                           class="bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold py-4 px-8 rounded-xl transition flex items-center justify-center gap-3">
-                            <i class="fas fa-envelope"></i>
-                            <span>Ouvrir un ticket</span>
-                        </a>
+                    
+                    <div class="relative z-10">
+                        <div class="w-24 h-24 rounded-3xl bg-gradient-to-br from-sky-500 via-blue-500 to-purple-500 flex items-center justify-center mx-auto mb-8 shadow-2xl" style="animation: float 3s ease-in-out infinite;">
+                            <i class="fas fa-rocket text-white text-4xl"></i>
+                        </div>
+                        <h2 class="text-4xl md:text-5xl font-black text-white mb-6 leading-tight">
+                            Devenez notre<br>prochain partenaire
+                        </h2>
+                        <p class="text-gray-300 text-xl mb-10 max-w-2xl mx-auto leading-relaxed">
+                            Rejoignez notre écosystème et développons ensemble des <strong class="text-sky-400">synergies gagnantes</strong> pour offrir le meilleur à nos communautés respectives.
+                        </p>
+                        
+                        <!-- Avantages -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12 max-w-3xl mx-auto">
+                            <div class="bg-white/5 backdrop-blur rounded-2xl p-6 border border-white/10">
+                                <i class="fas fa-users text-3xl text-sky-400 mb-3"></i>
+                                <div class="text-white font-bold mb-1">Visibilité accrue</div>
+                                <div class="text-gray-400 text-sm">Exposition à notre communauté</div>
+                            </div>
+                            <div class="bg-white/5 backdrop-blur rounded-2xl p-6 border border-white/10">
+                                <i class="fas fa-handshake text-3xl text-purple-400 mb-3"></i>
+                                <div class="text-white font-bold mb-1">Collaboration</div>
+                                <div class="text-gray-400 text-sm">Projets communs et synergies</div>
+                            </div>
+                            <div class="bg-white/5 backdrop-blur rounded-2xl p-6 border border-white/10">
+                                <i class="fas fa-chart-line text-3xl text-green-400 mb-3"></i>
+                                <div class="text-white font-bold mb-1">Croissance</div>
+                                <div class="text-gray-400 text-sm">Développement mutuel</div>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                            <a href="https://heberge.orinstone.deepstone.fr/discord/" 
+                               target="_blank"
+                               class="bg-[#5865F2] hover:bg-[#4752C4] text-white font-black py-5 px-10 rounded-2xl transition shadow-2xl flex items-center justify-center gap-3 text-lg group">
+                                <i class="fab fa-discord text-2xl group-hover:scale-110 transition-transform"></i>
+                                <span>Contactez-nous sur Discord</span>
+                            </a>
+                            <a href="/support/" 
+                               class="bg-white/10 hover:bg-white/20 border-2 border-white/20 hover:border-white/40 text-white font-black py-5 px-10 rounded-2xl transition flex items-center justify-center gap-3 text-lg backdrop-blur">
+                                <i class="fas fa-ticket-alt"></i>
+                                <span>Ouvrir un ticket</span>
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
