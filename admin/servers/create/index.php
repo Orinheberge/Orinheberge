@@ -36,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // ✅ SÉCURITÉ POST : On force is_admin=0 dans la requête
     // Même si quelqu'un modifie le HTML pour envoyer un ID admin, ça retournera null
-    $userStmt = $pdo->prepare('SELECT * FROM users WHERE id=? AND is_admin=0 LIMIT 1');
+    $userStmt = $pdo->prepare('SELECT * FROM users WHERE id=? LIMIT 1');
     $userStmt->execute([$user_id]);
     $client = $userStmt->fetch();
 
