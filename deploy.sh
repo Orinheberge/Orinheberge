@@ -30,6 +30,7 @@ sshpass -p "$SERVER_PASS" rsync -avz --delete \
     --exclude='inc/uploads/avatars/*.webp' \
     --exclude='inc/uploads/avatars/*.png' \
     --exclude='inc/uploads/avatars/*.jpg' \
+    --exclude='api/reviews/*.json' \
     -e "ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10" \
     "$LOCAL_PATH/" \
     "$SERVER_USER@$SERVER_IP:$REMOTE_PATH/"
