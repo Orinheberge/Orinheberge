@@ -15,7 +15,7 @@ La présente Politique de Paiement complète les Conditions Générales d'Utilis
 OrinHeberge propose les moyens de paiement suivants, via des prestataires de paiement tiers agréés :
 
 - Carte bancaire (Visa, Mastercard, CB)
-- PayPal
+- PayPal (désactivé pour le moment)
 - Apple Pay
 - Google Pay
 - Revolut Pay

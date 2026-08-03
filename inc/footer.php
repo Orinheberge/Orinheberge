@@ -150,7 +150,7 @@
                             ['src' => 'https://azurhosts.com/assets/images/logos/psrl/card-icons/card_cb.svg', 'alt' => 'CB'],
                             ['src' => 'https://azurhosts.com/assets/images/logos/psrl/card-icons/card_visa.svg', 'alt' => 'Visa'],
                             ['src' => 'https://azurhosts.com/assets/images/logos/psrl/card-icons/card_mastercard.svg', 'alt' => 'Mastercard'],
-                            ['src' => 'https://azurhosts.com/assets/images/logos/psrl/card-icons/card_paypal.svg', 'alt' => 'PayPal'],
+                          //  ['src' => 'https://azurhosts.com/assets/images/logos/psrl/card-icons/card_paypal.svg', 'alt' => 'PayPal'],
                             ['src' => 'https://heberge.orinstone.deepstone.fr/img/moyen_pay/google_pay.png', 'alt' => 'Google Pay'],
                             ['src' => 'https://heberge.orinstone.deepstone.fr/img/moyen_pay/apple_pay.png', 'alt' => 'Apple Pay'],
                             ['src' => 'https://heberge.orinstone.deepstone.fr/img/moyen_pay/revolut_pay.png', 'alt' => 'Revolut']
