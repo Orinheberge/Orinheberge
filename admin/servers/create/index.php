@@ -20,8 +20,8 @@ if (!$admin || !$admin['is_admin']) {
 $_SESSION['username'] = !empty($admin['pseudo']) ? $admin['pseudo'] : $admin['firstname'];
 
 // ── Listes pour le formulaire ──────────────────────────────────────────────────
-// ✅ EXCLUSION DES ADMINS : Seuls les clients (is_admin=0) apparaissent
-$all_users    = $pdo->query('SELECT id, pseudo, firstname, lastname, email FROM users WHERE is_admin=0 ORDER BY email ASC')->fetchAll();
+// ✅ PATCH 1 : On inclut TOUS les utilisateurs (admins y compris) + is_admin pour l'affichage
+$all_users    = $pdo->query('SELECT id, pseudo, firstname, lastname, email, is_admin FROM users ORDER BY email ASC')->fetchAll();
 $all_products = $pdo->query('SELECT p.*, e.name AS egg_name, n.name AS node_name FROM products p JOIN eggs e ON e.id=p.egg_id JOIN nodes n ON n.id=p.node_id WHERE p.is_active=1 ORDER BY p.sort_order ASC')->fetchAll();
 
 $flash = '';
@@ -34,8 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $price      = (float)($_POST['price']    ?? 0);
     $note       = trim($_POST['note'] ?? '');
 
-    // ✅ SÉCURITÉ POST : On force is_admin=0 dans la requête
-    // Même si quelqu'un modifie le HTML pour envoyer un ID admin, ça retournera null
+    // ✅ On accepte n'importe quel utilisateur (admin ou client)
     $userStmt = $pdo->prepare('SELECT * FROM users WHERE id=? LIMIT 1');
     $userStmt->execute([$user_id]);
     $client = $userStmt->fetch();
@@ -52,8 +51,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $product = $prod_stmt->fetch();
 
     if (!$client || !$product) {
-        // Message d'erreur clair si on tente de cibler un admin
-        $flash = 'err:Impossible de créer un serveur pour un administrateur ou client/produit introuvable.';
+        // ✅ PATCH 3 : Message d'erreur mis à jour
+        $flash = 'err:Client ou produit introuvable.';
     } else {
         // 1. Créer ou récupérer le compte panel
         $api_key_admin = $cfg['api_key_admin'] ?? '';
@@ -236,7 +235,7 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_sidebar.php';
         function openEmail(email){document.getElementById('modal-email').classList.remove('hidden');document.getElementById('email-to').value=email;}
         function closeEmail(){document.getElementById('modal-email').classList.add('hidden');}
     </script>
-<!-- ══ MAIN ══ -->
+<!-- ══ MAIN ═ -->
 <div class="main-content">
     <div class="sticky top-0 z-30 flex items-center justify-between border-b border-white/[.06] bg-[#111318] px-7 py-3.5">
         <div class="flex items-center gap-3">
@@ -273,7 +272,11 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_sidebar.php';
                         <select name="user_id" required class="w-full rounded-lg border border-white/[.08] bg-[#1e2330] px-3.5 py-2.5 text-[.83rem] text-slate-200">
                             <option value="">— Sélectionner un client —</option>
                             <?php foreach ($all_users as $u): ?>
-                            <option value="<?= $u['id'] ?>"><?= htmlspecialchars($u['email']) ?> (<?= htmlspecialchars($u['pseudo'] ?: $u['firstname'].' '.$u['lastname']) ?>)</option>
+                            <option value="<?= $u['id'] ?>">
+                                <?= htmlspecialchars($u['email']) ?> 
+                                (<?= htmlspecialchars($u['pseudo'] ?: $u['firstname'].' '.$u['lastname']) ?>)
+                                <?php if ($u['is_admin']): ?> [ADMIN]<?php endif; ?>
+                            </option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -283,13 +286,13 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_sidebar.php';
                         <label class="mb-1.5 block text-[.7rem] font-bold uppercase tracking-wider text-gray-500">Offre / Produit *</label>
                         <select name="product_id" required id="productSelect" onchange="updatePrice()" class="w-full rounded-lg border border-white/[.08] bg-[#1e2330] px-3.5 py-2.5 text-[.83rem] text-slate-200">
                             <option value="">— Sélectionner une offre —</option>
-                           <?php foreach ($all_users as $u): ?>
-                            <option value="<?= $u['id'] ?>">
-                                <?= htmlspecialchars($u['email']) ?> 
-                                (<?= htmlspecialchars($u['pseudo'] ?: $u['firstname'].' '.$u['lastname']) ?>)
-                                <?php if ($u['is_admin']): ?> [ADMIN]<?php endif; ?>
+                            <!-- ✅ PATCH 2 : Correction de la boucle (c'était $all_users avant !) -->
+                            <?php foreach ($all_products as $p): ?>
+                            <option value="<?= $p['id'] ?>" data-price="<?= $p['price'] ?>">
+                                <?= htmlspecialchars($p['name']) ?> — <?= number_format($p['price'],2,',','') ?>€/mois
+                                (<?= htmlspecialchars($p['egg_name']) ?> · <?= htmlspecialchars($p['node_name']) ?>)
                             </option>
-                            <?php endforeach; ?>                  
+                            <?php endforeach; ?>
                         </select>
                     </div>
 
