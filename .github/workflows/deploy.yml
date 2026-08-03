@@ -43,6 +43,7 @@ jobs:
             --exclude='inc/uploads/avatars/*.webp' \
             --exclude='inc/uploads/avatars/*.png' \
             --exclude='inc/uploads/avatars/*.jpg' \
+            --exclude='api/reviews/*.json' \
             -e "ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10" \
             ./ \
             root@5.48.143.126:/var/www/orinheberge/
