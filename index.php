@@ -99,7 +99,7 @@ function getCardStyle($tier_key) {
     <meta name="author" content="OrinHeberge">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://heberge.orinstone.deepstone.fr/">
-    <meta name="google-site-verification" content="7I4REPHa8OsIdsgZo-tsFss8OluBCaGcbB8mbmibQUI" />
+    <meta name="google-site-verification" content="eGHkY8THEtUW1G4XSC6tcuVZi_-bE86haj-kSCD0RuE" />
 
     <!-- Open Graph -->
     <meta property="og:locale" content="fr_FR">
