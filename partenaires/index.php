@@ -33,30 +33,100 @@ $partners = [
         .glass { background: rgba(255,255,255,0.03); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
         .gradient-text { background: linear-gradient(90deg, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .partner-card {
-            background: linear-gradient(135deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
-            border: 1px solid rgba(255,255,255,.08);
-            transition: all .3s ease;
+            background: linear-gradient(135deg, rgba(15,23,42,.8), rgba(30,41,59,.6));
+            border: 1px solid rgba(56,189,248,.15);
+            transition: all .4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        .partner-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #38bdf8, #818cf8, #c084fc);
+            opacity: 0;
+            transition: opacity .4s;
         }
         .partner-card:hover {
-            transform: translateY(-4px);
-            border-color: rgba(56, 189, 248, .3);
-            box-shadow: 0 20px 40px rgba(56, 189, 248, .1);
+            transform: translateY(-8px) scale(1.02);
+            border-color: rgba(56, 189, 248, .5);
+            box-shadow: 0 30px 60px rgba(56, 189, 248, .2), 0 0 80px rgba(129, 140, 248, .15);
+            background: linear-gradient(135deg, rgba(15,23,42,.95), rgba(30,41,59,.8));
+        }
+        .partner-card:hover::before {
+            opacity: 1;
+        }
+        .partner-logo-area {
+            min-height: 180px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, rgba(56,189,248,.08), rgba(129,140,248,.05));
+            border-radius: 20px;
+            border: 1px solid rgba(56,189,248,.1);
+            transition: all .3s;
+        }
+        .partner-card:hover .partner-logo-area {
+            background: linear-gradient(135deg, rgba(56,189,248,.15), rgba(129,140,248,.1));
+            border-color: rgba(56,189,248,.25);
+            transform: scale(1.05);
         }
         .badge-service {
-            background: rgba(56, 189, 248, .1);
-            border: 1px solid rgba(56, 189, 248, .2);
+            background: rgba(56, 189, 248, .12);
+            border: 1px solid rgba(56, 189, 248, .25);
             color: #38bdf8;
-            font-size: 11px;
-            padding: 4px 10px;
+            font-size: 12px;
+            padding: 6px 14px;
             border-radius: 999px;
-            font-weight: 600;
+            font-weight: 700;
             display: inline-flex;
             align-items: center;
-            gap: 4px;
+            gap: 6px;
+            transition: all .2s;
+        }
+        .badge-service:hover {
+            background: rgba(56, 189, 248, .2);
+            border-color: rgba(56, 189, 248, .4);
+            transform: scale(1.05);
         }
         .hero-gradient {
-            background: linear-gradient(135deg, rgba(56, 189, 248, .1), rgba(129, 140, 248, .1));
-            border: 1px solid rgba(56, 189, 248, .2);
+            background: linear-gradient(135deg, rgba(56, 189, 248, .12), rgba(129, 140, 248, .12));
+            border: 1px solid rgba(56, 189, 248, .25);
+        }
+        .cta-button {
+            background: linear-gradient(135deg, #0ea5e9, #6366f1);
+            transition: all .3s;
+            position: relative;
+            overflow: hidden;
+        }
+        .cta-button::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, #38bdf8, #818cf8);
+            opacity: 0;
+            transition: opacity .3s;
+        }
+        .cta-button:hover::before {
+            opacity: 1;
+        }
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 40px rgba(14, 165, 233, .3);
+        }
+        .cta-button span {
+            position: relative;
+            z-index: 1;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        .partner-card:hover .partner-icon {
+            animation: float 2s ease-in-out infinite;
         }
     </style>
     <script>
