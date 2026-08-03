@@ -45,6 +45,10 @@ if (isset($pdo)) {
 $notif_count = 0;
 if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc/notifications.php')) {
     try {
+        // Vérifier que $pdo existe avant de l'utiliser
+        if (!isset($pdo)) {
+            require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/db.php';
+        }
         $notif_stmt = $pdo->prepare("SELECT COUNT(*) FROM notifications WHERE user_id = ? AND is_read = 0");
         $notif_stmt->execute([$_SESSION['user_id']]);
         $notif_count = (int)$notif_stmt->fetchColumn();
