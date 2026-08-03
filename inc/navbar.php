@@ -45,6 +45,10 @@ if (isset($pdo)) {
 $notif_count = 0;
 if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc/notifications.php')) {
     try {
+        // Vérifier que $pdo existe avant de l'utiliser
+        if (!isset($pdo)) {
+            require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/db.php';
+        }
         $notif_stmt = $pdo->prepare("SELECT COUNT(*) FROM notifications WHERE user_id = ? AND is_read = 0");
         $notif_stmt->execute([$_SESSION['user_id']]);
         $notif_count = (int)$notif_stmt->fetchColumn();
@@ -136,6 +140,10 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
 
             <a href="/support/" class="<?php echo $active_nav === 'support' ? 'bg-purple-600/30 text-purple-400 border-purple-500/50 font-bold' : 'bg-purple-600/5 text-purple-400/70 hover:text-purple-300 border-purple-500/10 hover:bg-purple-600/20'; ?> px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium shadow-md border whitespace-nowrap">
                 <i class="fas fa-headset"></i> <?php echo t('nav.support'); ?>
+            </a>
+
+            <a href="/partenaires/" class="<?php echo $active_nav === 'partners' ? 'bg-indigo-600/30 text-indigo-400 border-indigo-500/50 font-bold' : 'bg-indigo-600/5 text-indigo-400/70 hover:text-indigo-300 border-indigo-500/10 hover:bg-indigo-600/20'; ?> px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium shadow-md border whitespace-nowrap">
+                <i class="fas fa-handshake"></i> Partenaires
             </a>
 
             <?php if (isset($_SESSION['user_id'])): ?>
@@ -248,6 +256,10 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
 
             <a href="/support/" class="block py-2.5 px-4 rounded-xl flex items-center gap-3 text-sm font-medium border <?php echo $active_nav === 'support' ? 'bg-purple-600/20 border-purple-500/40 text-purple-400' : 'bg-white/[0.02] border-white/5 text-gray-300'; ?>">
                 <i class="fas fa-headset w-5 text-center"></i> <?php echo t('nav.support'); ?>
+            </a>
+
+            <a href="/partenaires/" class="block py-2.5 px-4 rounded-xl flex items-center gap-3 text-sm font-medium border <?php echo $active_nav === 'partners' ? 'bg-indigo-600/20 border-indigo-500/40 text-indigo-400' : 'bg-white/[0.02] border-white/5 text-gray-300'; ?>">
+                <i class="fas fa-handshake w-5 text-center"></i> Partenaires
             </a>
 
             <a href="/status/" class="block py-2.5 px-4 rounded-xl flex items-center gap-3 text-sm font-medium border bg-emerald-600/10 border-emerald-500/30 text-emerald-400">
