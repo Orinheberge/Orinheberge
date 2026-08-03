@@ -6,14 +6,24 @@ require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/db.php';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/api/Facture.php';
 
 if (!isset($_SESSION['user_id'])) { header('Location: /login/'); exit(); }
-$chk = $pdo->prepare('SELECT is_admin, pseudo, firstname, avatar FROM users WHERE id=? LIMIT 1');
+
+// ✅ 1. AUTORISATION ÉLARGIE : is_admin OU isadmin peuvent accéder à la page
+$chk = $pdo->prepare('SELECT is_admin, isadmin, pseudo, firstname, avatar FROM users WHERE id=? LIMIT 1');
 $chk->execute([$_SESSION['user_id']]);
-$admin = $chk->fetch();
-if (!$admin || !$admin['is_admin']) { http_response_code(403); die('403 — Accès refusé.'); }
+$currentUser = $chk->fetch();
+
+if (!$currentUser || (!$currentUser['is_admin'] && !$currentUser['isadmin'])) { 
+    http_response_code(403); 
+    die('403 — Accès refusé.'); 
+}
+
+// Compatibilité avec le reste du code qui utilise $admin
+$admin = $currentUser;
 $_SESSION['username'] = !empty($admin['pseudo']) ? $admin['pseudo'] : $admin['firstname'];
 
 // ── Listes pour le formulaire ──────────────────────────────────────────────────
-$all_users    = $pdo->query('SELECT id, pseudo, firstname, lastname, email FROM users WHERE is_admin=0 ORDER BY email ASC')->fetchAll();
+// ✅ La requête ci-dessous exclut déjà les admins de la liste déroulante
+$all_users    = $pdo->query('SELECT id, pseudo, firstname, lastname, email FROM users WHERE is_admin=0 AND isadmin=0 ORDER BY email ASC')->fetchAll();
 $all_products = $pdo->query('SELECT p.*, e.name AS egg_name, n.name AS node_name FROM products p JOIN eggs e ON e.id=p.egg_id JOIN nodes n ON n.id=p.node_id WHERE p.is_active=1 ORDER BY p.sort_order ASC')->fetchAll();
 
 $flash = '';
@@ -26,10 +36,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $price      = (float)($_POST['price']    ?? 0);
     $note       = trim($_POST['note'] ?? '');
 
-    // Charger le client et le produit
-    $user    = $pdo->prepare('SELECT * FROM users WHERE id=? LIMIT 1');
-    $user->execute([$user_id]);
-    $client  = $user->fetch();
+    // ✅ 2. SÉCURITÉ POST : Vérifier que le client cible n'est PAS un admin
+    $userStmt = $pdo->prepare('SELECT * FROM users WHERE id=? AND is_admin=0 AND isadmin=0 LIMIT 1');
+    $userStmt->execute([$user_id]);
+    $client = $userStmt->fetch();
 
     $prod_stmt = $pdo->prepare('
         SELECT p.*, n.panel_node_id, n.location_id, e.panel_egg_id, e.panel_nest_id,
@@ -43,19 +53,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $product = $prod_stmt->fetch();
 
     if (!$client || !$product) {
-        $flash = 'err:Client ou produit introuvable.';
+        $flash = 'err:Client non valide (admin exclu) ou produit introuvable.';
     } else {
+        // ... Le reste de votre code de création reste IDENTIQUE ...
         // 1. Créer ou récupérer le compte panel
         $api_key_admin = $cfg['api_key_admin'] ?? '';
         $panel_url     = $cfg['panel_url'] ?? '';
         $headers       = ["Authorization: Bearer $api_key_admin","Accept: application/vnd.pterodactyl.v1+json","Content-Type: application/json"];
 
-        // Chercher si le compte panel existe déjà
         $search = _adminApi($panel_url, $headers, 'users?filter[email]=' . urlencode($client['email']));
         if (!empty($search['data'][0]['attributes']['id'])) {
             $panel_user_id = $search['data'][0]['attributes']['id'];
         } else {
-            // Créer le compte panel
             $pass_gen = substr(str_shuffle('ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#'), 0, 14);
             $created  = _adminApi($panel_url, $headers, 'users', [
                 'email'      => $client['email'],
@@ -72,14 +81,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo->prepare('UPDATE users SET panel_password=? WHERE id=?')->execute([$pass_gen, $client['id']]);
         }
 
-        // 2. Fusionner env_vars
         $env = json_decode($product['egg_env_vars'] ?? '{}', true) ?: [];
         if (!empty($product['env_override'])) {
             $override = json_decode($product['env_override'], true) ?: [];
             $env = array_merge($env, $override);
         }
 
-        // 3. Créer le serveur sur le panel
         $server = _adminApi($panel_url, $headers, 'servers', [
             'name'         => $product['name'] . ' — ' . ($client['pseudo'] ?: $client['firstname']),
             'user'         => $panel_user_id,
@@ -106,7 +113,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $expires_at = date('Y-m-d H:i:s', strtotime("+{$days} days"));
         $next_pay   = date('Y-m-d', strtotime("+{$days} days"));
 
-        // 4. Enregistrer en BDD
         $pdo->prepare("
             INSERT INTO orders
                 (user_id, order_id, service_name, ram, disk, cpu,
@@ -122,7 +128,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $product['id']
         ]);
 
-        // 🔵 Création de la facture via createInvoice()
         $invoice_method = $price > 0 ? 'admin' : 'free';
         $created_invoice = createInvoice($pdo, [
             'user_id'        => $client['id'],
@@ -138,7 +143,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $invoice_id = $created_invoice['invoice_id'] ?? null;
 
-        // 🔵 REDIRECTION VERS LA PAGE DE SUCCÈS
         $success_params = http_build_query([
             'order'   => $order_id,
             'invoice' => $invoice_id ?? '',
