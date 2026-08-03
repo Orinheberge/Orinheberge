@@ -283,12 +283,13 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_sidebar.php';
                         <label class="mb-1.5 block text-[.7rem] font-bold uppercase tracking-wider text-gray-500">Offre / Produit *</label>
                         <select name="product_id" required id="productSelect" onchange="updatePrice()" class="w-full rounded-lg border border-white/[.08] bg-[#1e2330] px-3.5 py-2.5 text-[.83rem] text-slate-200">
                             <option value="">— Sélectionner une offre —</option>
-                            <?php foreach ($all_products as $p): ?>
-                            <option value="<?= $p['id'] ?>" data-price="<?= $p['price'] ?>">
-                                <?= htmlspecialchars($p['name']) ?> — <?= number_format($p['price'],2,',','') ?>€/mois
-                                (<?= htmlspecialchars($p['egg_name']) ?> · <?= htmlspecialchars($p['node_name']) ?>)
+                           <?php foreach ($all_users as $u): ?>
+                            <option value="<?= $u['id'] ?>">
+                                <?= htmlspecialchars($u['email']) ?> 
+                                (<?= htmlspecialchars($u['pseudo'] ?: $u['firstname'].' '.$u['lastname']) ?>)
+                                <?php if ($u['is_admin']): ?> [ADMIN]<?php endif; ?>
                             </option>
-                            <?php endforeach; ?>
+                            <?php endforeach; ?>                  
                         </select>
                     </div>
 
