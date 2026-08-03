@@ -156,60 +156,106 @@ $partners = [
 
         <!-- Partenaires Grid -->
         <section class="py-12 px-6">
-            <div class="max-w-6xl mx-auto">
+            <div class="max-w-7xl mx-auto">
                 <?php if (empty($partners)): ?>
                 <div class="text-center py-20">
                     <i class="fas fa-users text-6xl text-gray-700 mb-4"></i>
                     <p class="text-gray-500">Aucun partenaire pour le moment.</p>
                 </div>
                 <?php else: ?>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     <?php foreach ($partners as $p): ?>
-                    <div class="partner-card rounded-3xl p-8 flex flex-col">
-                        <!-- Logo/Nom -->
-                        <div class="mb-6">
+                    <div class="partner-card rounded-3xl overflow-hidden">
+                        <!-- Zone Logo/Nom (grande) -->
+                        <div class="partner-logo-area p-10">
                             <?php if (!empty($p['logo']) && file_exists($_SERVER['DOCUMENT_ROOT'] . $p['logo'])): ?>
                             <img src="<?php echo htmlspecialchars($p['logo']); ?>" 
                                  alt="<?php echo htmlspecialchars($p['name']); ?>" 
-                                 class="h-12 object-contain brightness-110">
+                                 class="max-h-32 object-contain brightness-110 drop-shadow-2xl partner-icon">
                             <?php else: ?>
-                            <div class="flex items-center gap-3">
-                                <div class="w-12 h-12 rounded-xl flex items-center justify-center text-2xl font-black text-white" 
-                                     style="background: linear-gradient(135deg, <?php echo $p['color'] ?? '#38bdf8'; ?>, <?php echo $p['color'] ?? '#818cf8'; ?>);">
+                            <div class="partner-icon">
+                                <div class="w-28 h-28 rounded-2xl flex items-center justify-center text-6xl font-black text-white shadow-2xl" 
+                                     style="background: linear-gradient(135deg, <?php echo $p['color'] ?? '#38bdf8'; ?>, <?php echo $p['color'] ?? '#818cf8'; ?>20);">
                                     <?php echo strtoupper(substr($p['name'], 0, 1)); ?>
                                 </div>
-                                <h3 class="text-xl font-black text-white"><?php echo htmlspecialchars($p['name']); ?></h3>
+                                <h3 class="text-3xl font-black text-white mt-6 tracking-tight"><?php echo htmlspecialchars($p['name']); ?></h3>
                             </div>
                             <?php endif; ?>
                         </div>
 
-                        <!-- Description -->
-                        <p class="text-gray-400 text-sm leading-relaxed mb-6 flex-grow">
-                            <?php echo htmlspecialchars($p['description']); ?>
-                        </p>
+                        <!-- Contenu -->
+                        <div class="p-10 space-y-6">
+                            <!-- Description -->
+                            <p class="text-gray-300 text-base leading-relaxed">
+                                <?php echo htmlspecialchars($p['description']); ?>
+                            </p>
 
-                        <!-- Services -->
-                        <?php if (!empty($p['services'])): ?>
-                        <div class="flex flex-wrap gap-2 mb-6">
-                            <?php foreach ($p['services'] as $service): ?>
-                            <span class="badge-service">
-                                <i class="fas fa-check-circle text-[10px]"></i>
-                                <?php echo htmlspecialchars($service); ?>
-                            </span>
-                            <?php endforeach; ?>
+                            <!-- Services avec icônes -->
+                            <?php if (!empty($p['services'])): ?>
+                            <div class="flex flex-wrap gap-3">
+                                <?php 
+                                $icons = [
+                                    'Hébergement Web' => 'fa-globe',
+                                    'Serveurs Cloud' => 'fa-cloud',
+                                    'VPS' => 'fa-server',
+                                    'Base de données' => 'fa-database',
+                                    'Email' => 'fa-envelope',
+                                ];
+                                foreach ($p['services'] as $service): 
+                                    $icon = $icons[$service] ?? 'fa-check-circle';
+                                ?>
+                                <span class="badge-service">
+                                    <i class="fas <?php echo $icon; ?>"></i>
+                                    <?php echo htmlspecialchars($service); ?>
+                                </span>
+                                <?php endforeach; ?>
+                            </div>
+                            <?php endif; ?>
+
+                            <!-- Séparateur -->
+                            <div class="border-t border-white/10"></div>
+
+                            <!-- CTA grand format -->
+                            <a href="<?php echo htmlspecialchars($p['url']); ?>" 
+                               target="_blank" 
+                               rel="noopener noreferrer"
+                               class="cta-button flex items-center justify-center gap-3 text-white font-black py-5 px-8 rounded-2xl shadow-2xl text-lg group">
+                                <span class="flex items-center gap-3">
+                                    <i class="fas fa-rocket text-xl group-hover:rotate-12 transition-transform"></i>
+                                    <span>Découvrir <?php echo htmlspecialchars($p['name']); ?></span>
+                                    <i class="fas fa-arrow-right text-sm group-hover:translate-x-2 transition-transform"></i>
+                                </span>
+                            </a>
+
+                            <!-- Infos complémentaires -->
+                            <div class="flex items-center justify-center gap-6 text-xs text-gray-500">
+                                <div class="flex items-center gap-2">
+                                    <i class="fas fa-shield-alt text-green-400"></i>
+                                    <span>Partenaire certifié</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <i class="fas fa-star text-yellow-400"></i>
+                                    <span>Recommandé</span>
+                                </div>
+                            </div>
                         </div>
-                        <?php endif; ?>
-
-                        <!-- CTA -->
-                        <a href="<?php echo htmlspecialchars($p['url']); ?>" 
-                           target="_blank" 
-                           rel="noopener noreferrer"
-                           class="flex items-center justify-center gap-2 bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 text-white font-bold py-3 px-6 rounded-xl transition shadow-lg shadow-sky-900/30 text-sm">
-                            <i class="fas fa-external-link-alt text-xs"></i>
-                            Visiter le site
-                        </a>
                     </div>
                     <?php endforeach; ?>
+                </div>
+                <?php endif; ?>
+
+                <!-- Message si 1 seul partenaire -->
+                <?php if (count($partners) === 1): ?>
+                <div class="mt-12 text-center">
+                    <div class="inline-flex items-center gap-3 px-6 py-4 rounded-2xl bg-white/5 border border-white/10">
+                        <i class="fas fa-info-circle text-sky-400 text-lg"></i>
+                        <span class="text-gray-400">
+                            D'autres partenaires arrivent bientôt ! 
+                            <a href="https://heberge.orinstone.deepstone.fr/discord/" target="_blank" class="text-sky-400 hover:text-sky-300 font-bold ml-1">
+                                Rejoignez notre Discord pour les découvrir en avant-première →
+                            </a>
+                        </span>
+                    </div>
                 </div>
                 <?php endif; ?>
             </div>
