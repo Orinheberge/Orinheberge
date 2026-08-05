@@ -193,7 +193,7 @@
                 <div class="flex items-center gap-2">
                     <span class="text-sm font-bold text-white">Orin<span class="text-sky-500">Heberge</span></span>
                     <span class="text-gray-600">·</span>
-                    <span>&copy; <?php echo date('Y'); ?> <?php echo t('footer.copyright'); ?></span>
+                    <span><?php echo t('footer.copyright'); ?></span>
                 </div>
                 <div class="flex items-center gap-4">
                     <span class="text-gray-600 hidden sm:inline">Propulsé par</span>
