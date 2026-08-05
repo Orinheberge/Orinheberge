@@ -459,149 +459,265 @@ function getCardStyle($tier_key) {
     </div>
 </section>
 
-<!-- SECTION AVIS TRUSTPILOT (LISTE HORIZONTALE) -->
-<section class="py-20 px-6 max-w-7xl mx-auto border-t border-white/[0.03]">
+<!-- SECTION AVIS CLIENTS (DYNAMIQUE) - EXISTANTE -->
+<section class="py-20 px-6 max-w-5xl mx-auto border-t border-white/[0.03]">
     <div class="text-center mb-12">
-        <div class="inline-flex items-center gap-2 bg-[#00B67A]/10 text-[#00B67A] border border-[#00B67A]/20 px-4 py-1.5 rounded-full text-xs font-semibold mb-4">
-            <i class="fas fa-award"></i> Avis Trustpilot
+        <div class="inline-flex items-center gap-2 bg-pink-500/10 text-pink-400 border border-pink-500/20 px-4 py-1.5 rounded-full text-xs font-semibold mb-4"><i class="fas fa-star"></i> Témoignages</div>
+        <h2 class="text-3xl font-black mb-3">Ce que disent nos <span class="gradient-text">Clients</span></h2>
+        <p class="text-gray-500 text-sm">Votre satisfaction est notre meilleure récompense.</p>
+        
+        <div id="review-stats" class="hidden mt-6 flex items-center justify-center gap-6">
+            <div class="flex items-center gap-2">
+                <span id="avg-rating" class="text-3xl font-black gradient-text">0</span>
+                <div class="text-left">
+                    <div id="avg-stars" class="text-yellow-400 text-sm"></div>
+                    <span id="total-count" class="text-gray-500 text-xs">0 avis</span>
+                </div>
+            </div>
         </div>
-        <h2 class="text-3xl md:text-4xl font-black mb-3">Nos avis sur <span class="gradient-text">Trustpilot</span></h2>
-        <p class="text-gray-400 max-w-2xl mx-auto text-sm">Découvrez ce que nos clients pensent de nous sur la plateforme d'avis la plus fiable.</p>
     </div>
 
-    <!-- Liste horizontale scrollable -->
-    <div class="relative group">
-        <!-- Bouton scroll gauche -->
-        <button onclick="document.getElementById('tp-scroll').scrollBy({left:-320,behavior:'smooth'})" class="absolute left-0 top-1/2 -translate-y-1/2 z-20 w-10 h-10 bg-[#060911]/90 border border-white/10 rounded-full flex items-center justify-center text-white hover:bg-[#00B67A] hover:border-[#00B67A] transition opacity-0 group-hover:opacity-100 backdrop-blur-md cursor-pointer">
-            <i class="fas fa-chevron-left text-xs"></i>
-        </button>
+    <div id="reviews-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+        <div class="glass p-5 rounded-xl border border-white/[0.05] animate-pulse"><div class="flex items-center gap-3 mb-3"><div class="w-10 h-10 rounded-full bg-white/10"></div><div class="flex-1 space-y-2"><div class="h-3 bg-white/10 rounded w-24"></div><div class="h-2 bg-white/10 rounded w-16"></div></div></div><div class="h-2 bg-white/10 rounded w-full mb-1"></div><div class="h-2 bg-white/10 rounded w-3/4"></div></div>
+        <div class="glass p-5 rounded-xl border border-white/[0.05] animate-pulse"><div class="flex items-center gap-3 mb-3"><div class="w-10 h-10 rounded-full bg-white/10"></div><div class="flex-1 space-y-2"><div class="h-3 bg-white/10 rounded w-20"></div><div class="h-2 bg-white/10 rounded w-14"></div></div></div><div class="h-2 bg-white/10 rounded w-full mb-1"></div><div class="h-2 bg-white/10 rounded w-2/3"></div></div>
+    </div>
 
-        <!-- Conteneur scroll horizontal -->
-        <div id="tp-scroll" class="flex gap-5 overflow-x-auto pb-6 pt-2 px-2 snap-x snap-mandatory scrollbar-hide" style="-ms-overflow-style:none;scrollbar-width:none;">
+    <div id="no-reviews" class="hidden text-center py-8 text-gray-500 text-sm"><i class="fas fa-comment-slash text-3xl mb-3 opacity-30"></i><p>Aucun avis pour le moment. Soyez le premier !</p></div>
 
-            <!-- Carte avis 1 -->
-            <div class="snap-center shrink-0 w-[300px] glass p-6 rounded-2xl border border-white/[0.06] hover:border-[#00B67A]/30 transition flex flex-col">
-                <div class="flex items-center gap-3 mb-4">
-                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-[#00B67A] to-emerald-600 flex items-center justify-center text-white font-bold text-sm shrink-0">T</div>
-                    <div class="min-w-0">
-                        <p class="font-bold text-white text-sm truncate">Thomas M.</p>
-                        <p class="text-gray-500 text-[10px]">Il y a 2 jours</p>
-                    </div>
+    <div id="load-more-wrap" class="hidden text-center mb-12">
+        <button onclick="loadMoreReviews()" id="load-more-btn" class="glass hover:bg-white/[0.07] border border-white/10 text-gray-300 hover:text-white px-6 py-2.5 rounded-xl text-sm font-bold transition flex items-center gap-2 mx-auto"><i class="fas fa-chevron-down"></i> Voir plus d'avis</button>
+    </div>
+
+    <div class="glass rounded-2xl p-6 md:p-8 border border-white/[0.08] relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-32 h-32 bg-pink-500/10 blur-3xl rounded-full pointer-events-none"></div>
+        <h3 class="text-xl font-bold text-white mb-6 flex items-center gap-2"><i class="fas fa-pen-fancy text-pink-400"></i> Laissez votre avis</h3>
+
+        <form id="review-form" class="space-y-4 relative z-10">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 mb-1">Votre Pseudo</label>
+                    <input type="text" id="review-name" required maxlength="50" class="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-sm text-white focus:border-pink-500 focus:outline-none transition" placeholder="Ex: Alex">
                 </div>
-                <div class="flex gap-0.5 text-[#00B67A] text-xs mb-3">
-                    <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
-                </div>
-                <p class="text-gray-400 text-xs leading-relaxed italic flex-grow">"Serveur Minecraft déployé en moins d'une minute. Performance incroyable pour le prix. Le support Discord est ultra réactif !"</p>
-                <div class="mt-4 pt-3 border-t border-white/[0.05] flex items-center gap-2">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="#00B67A"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15l-5-5 1.41-1.41L11 14.17l7.59-7.59L20 8l-9 9z"/></svg>
-                    <span class="text-[10px] text-gray-500 font-semibold">Avis vérifié Trustpilot</span>
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 mb-1">Note</label>
+                    <select id="review-rating" class="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-sm text-white focus:border-pink-500 focus:outline-none transition">
+                        <option value="5">⭐⭐⭐⭐⭐ Excellent</option>
+                        <option value="4">⭐⭐⭐⭐ Très bien</option>
+                        <option value="3">⭐⭐⭐ Bien</option>
+                        <option value="2">⭐⭐ Moyen</option>
+                        <option value="1">⭐ Décevant</option>
+                    </select>
                 </div>
             </div>
-
-            <!-- Carte avis 2 -->
-            <div class="snap-center shrink-0 w-[300px] glass p-6 rounded-2xl border border-white/[0.06] hover:border-[#00B67A]/30 transition flex flex-col">
-                <div class="flex items-center gap-3 mb-4">
-                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-sky-400 to-blue-600 flex items-center justify-center text-white font-bold text-sm shrink-0">L</div>
-                    <div class="min-w-0">
-                        <p class="font-bold text-white text-sm truncate">Lucas R.</p>
-                        <p class="text-gray-500 text-[10px]">Il y a 5 jours</p>
-                    </div>
-                </div>
-                <div class="flex gap-0.5 text-[#00B67A] text-xs mb-3">
-                    <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
-                </div>
-                <p class="text-gray-400 text-xs leading-relaxed italic flex-grow">"J'ai testé l'offre gratuite Node.js pour un projet scolaire. Zéro latence, panel intuitif. Je passe en premium le mois prochain."</p>
-                <div class="mt-4 pt-3 border-t border-white/[0.05] flex items-center gap-2">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="#00B67A"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15l-5-5 1.41-1.41L11 14.17l7.59-7.59L20 8l-9 9z"/></svg>
-                    <span class="text-[10px] text-gray-500 font-semibold">Avis vérifié Trustpilot</span>
-                </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-400 mb-1">Votre Commentaire</label>
+                <textarea id="review-comment" rows="3" required minlength="10" maxlength="500" class="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-sm text-white focus:border-pink-500 focus:outline-none transition" placeholder="Parlez-nous de votre expérience (min. 10 caractères)..."></textarea>
+                <p class="text-xs text-gray-600 mt-1 text-right"><span id="char-count">0</span>/500</p>
             </div>
 
-            <!-- Carte avis 3 -->
-            <div class="snap-center shrink-0 w-[300px] glass p-6 rounded-2xl border border-white/[0.06] hover:border-[#00B67A]/30 transition flex flex-col">
-                <div class="flex items-center gap-3 mb-4">
-                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-pink-600 flex items-center justify-center text-white font-bold text-sm shrink-0">E</div>
-                    <div class="min-w-0">
-                        <p class="font-bold text-white text-sm truncate">Emma D.</p>
-                        <p class="text-gray-500 text-[10px]">Il y a 1 semaine</p>
-                    </div>
-                </div>
-                <div class="flex gap-0.5 text-[#00B67A] text-xs mb-3">
-                    <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star-half-alt"></i>
-                </div>
-                <p class="text-gray-400 text-xs leading-relaxed italic flex-grow">"Hébergement PHP stable et rapide. Migration depuis mon ancien hébergeur sans aucune perte de données. Merci l'équipe !"</p>
-                <div class="mt-4 pt-3 border-t border-white/[0.05] flex items-center gap-2">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="#00B67A"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15l-5-5 1.41-1.41L11 14.17l7.59-7.59L20 8l-9 9z"/></svg>
-                    <span class="text-[10px] text-gray-500 font-semibold">Avis vérifié Trustpilot</span>
-                </div>
+            <div id="review-success" class="hidden bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-3 rounded-lg text-sm flex items-center gap-2"><i class="fas fa-check-circle"></i> Merci ! Votre avis a été envoyé avec succès.</div>
+            <div id="review-error" class="hidden bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-lg text-sm flex items-center gap-2"><i class="fas fa-exclamation-circle"></i> <span id="review-error-text"></span></div>
+
+            <div class="flex justify-end pt-2">
+                <button type="submit" id="review-submit-btn" class="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-400 hover:to-purple-500 text-white font-bold py-2 px-6 rounded-lg text-sm transition shadow-lg shadow-pink-900/20 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="fas fa-paper-plane"></i> <span>Envoyer l'avis</span>
+                </button>
             </div>
-
-            <!-- Carte avis 4 -->
-            <div class="snap-center shrink-0 w-[300px] glass p-6 rounded-2xl border border-white/[0.06] hover:border-[#00B67A]/30 transition flex flex-col">
-                <div class="flex items-center gap-3 mb-4">
-                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-orange-600 flex items-center justify-center text-white font-bold text-sm shrink-0">N</div>
-                    <div class="min-w-0">
-                        <p class="font-bold text-white text-sm truncate">Nathan B.</p>
-                        <p class="text-gray-500 text-[10px]">Il y a 2 semaines</p>
-                    </div>
-                </div>
-                <div class="flex gap-0.5 text-[#00B67A] text-xs mb-3">
-                    <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
-                </div>
-                <p class="text-gray-400 text-xs leading-relaxed italic flex-grow">"VPS performant pour mon serveur FiveM. Anti-DDoS efficace, on a subi une attaque sans aucun impact. Je recommande à 100%."</p>
-                <div class="mt-4 pt-3 border-t border-white/[0.05] flex items-center gap-2">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="#00B67A"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15l-5-5 1.41-1.41L11 14.17l7.59-7.59L20 8l-9 9z"/></svg>
-                    <span class="text-[10px] text-gray-500 font-semibold">Avis vérifié Trustpilot</span>
-                </div>
-            </div>
-
-            <!-- Carte CTA finale -->
-            <div class="snap-center shrink-0 w-[300px] glass p-6 rounded-2xl border border-[#00B67A]/20 bg-[#00B67A]/5 flex flex-col items-center justify-center text-center">
-                <div class="w-14 h-14 rounded-full bg-[#00B67A]/20 flex items-center justify-center mb-4">
-                    <i class="fas fa-pen-to-square text-[#00B67A] text-xl"></i>
-                </div>
-                <h4 class="font-bold text-white text-sm mb-2">Vous aussi, partagez votre expérience</h4>
-                <p class="text-gray-500 text-xs mb-5 leading-relaxed">Votre avis aide d'autres utilisateurs à faire le bon choix.</p>
-                <a href="https://fr.trustpilot.com/evaluate/heberge.orinstone.deepstone.fr" target="_blank" rel="noopener noreferrer" class="bg-[#00B67A] hover:bg-[#00A068] text-white font-bold py-2.5 px-6 rounded-xl text-xs transition shadow-lg shadow-emerald-900/30 flex items-center gap-2 hover:scale-105 transform duration-200">
-                    <i class="fas fa-star"></i> Laisser un avis
-                </a>
-                <a href="https://fr.trustpilot.com/review/heberge.orinstone.deepstone.fr" target="_blank" rel="noopener noreferrer" class="mt-3 text-gray-500 hover:text-[#00B67A] text-[11px] font-semibold transition flex items-center gap-1">
-                    Voir tous les avis <i class="fas fa-arrow-right text-[9px]"></i>
-                </a>
-            </div>
-
-        </div>
-
-        <!-- Bouton scroll droite -->
-        <button onclick="document.getElementById('tp-scroll').scrollBy({left:320,behavior:'smooth'})" class="absolute right-0 top-1/2 -translate-y-1/2 z-20 w-10 h-10 bg-[#060911]/90 border border-white/10 rounded-full flex items-center justify-center text-white hover:bg-[#00B67A] hover:border-[#00B67A] transition opacity-0 group-hover:opacity-100 backdrop-blur-md cursor-pointer">
-            <i class="fas fa-chevron-right text-xs"></i>
-        </button>
+        </form>
     </div>
 </section>
 
-<style>
-.scrollbar-hide::-webkit-scrollbar { display: none; }
-.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-</style>
-
-    <!-- FAQ -->
-    <section class="py-20 px-6 max-w-4xl mx-auto border-t border-white/[0.03]">
-        <div class="text-center mb-12"><h2 class="text-3xl font-black mb-3">Questions <span class="gradient-text">Fréquentes</span></h2><p class="text-gray-500 text-sm">Tout ce que vous devez savoir pour démarrer sereinement.</p></div>
-        <div class="space-y-4">
-            <details class="glass p-5 rounded-xl border border-white/[0.05] group transition-all duration-300">
-                <summary class="font-bold text-white text-sm flex justify-between items-center cursor-pointer list-none select-none"><span class="flex items-center gap-2"><i class="fas fa-question-circle text-sky-400"></i> Comment l'offre gratuite fonctionne-t-elle ?</span><span class="transition group-open:rotate-180"><i class="fas fa-chevron-down text-gray-500 text-xs"></i></span></summary>
-                <p class="text-gray-400 text-xs leading-relaxed mt-3 pt-3 border-t border-white/[0.03]">Notre offre gratuite est financée par nos utilisateurs Premium. Elle vous permet de concevoir, tester et faire tourner de petits projets sans aucune limite de temps ni coûts cachés.</p>
-            </details>
-            <details class="glass p-5 rounded-xl border border-white/[0.05] group transition-all duration-300">
-                <summary class="font-bold text-white text-sm flex justify-between items-center cursor-pointer list-none select-none"><span class="flex items-center gap-2"><i class="fas fa-exchange-alt text-sky-400"></i> Puis-je changer d'offre ou migrer plus tard ?</span><span class="transition group-open:rotate-180"><i class="fas fa-chevron-down text-gray-500 text-xs"></i></span></summary>
-                <p class="text-gray-400 text-xs leading-relaxed mt-3 pt-3 border-t border-white/[0.03]">Tout à fait ! Vous pouvez passer d'une formule gratuite à une version Premium à tout moment depuis votre console de gestion client sans perte de données.</p>
-            </details>
-            <details class="glass p-5 rounded-xl border border-white/[0.05] group transition-all duration-300">
-                <summary class="font-bold text-white text-sm flex justify-between items-center cursor-pointer list-none select-none"><span class="flex items-center gap-2"><i class="fas fa-map-marker-alt text-sky-400"></i> Où sont situés vos serveurs ?</span><span class="transition group-open:rotate-180"><i class="fas fa-chevron-down text-gray-500 text-xs"></i></span></summary>
-                <p class="text-gray-400 text-xs leading-relaxed mt-3 pt-3 border-t border-white/[0.03]">Nos infrastructures physiques sont hébergées dans des centres de données hautement sécurisés situés en Europe (France et Allemagne).</p>
-            </details>
+<!-- ============================================ -->
+<!-- SECTION TRUSTPILOT - VRAIS AVIS (WIDGET OFFICIEL CAROUSEL) -->
+<!-- ============================================ -->
+<section class="py-20 px-6 max-w-7xl mx-auto border-t border-white/[0.03]">
+    <div class="text-center mb-12">
+        <div class="inline-flex items-center gap-2 bg-[#00B67A]/10 text-[#00B67A] border border-[#00B67A]/20 px-4 py-1.5 rounded-full text-xs font-semibold mb-4">
+            <i class="fas fa-award"></i> Avis vérifiés Trustpilot
         </div>
-    </section>
+        <h2 class="text-3xl md:text-4xl font-black mb-3">Ils nous font confiance sur <span class="gradient-text">Trustpilot</span></h2>
+        <p class="text-gray-400 max-w-2xl mx-auto text-sm">Des avis 100% authentiques laissés par de vrais clients via la plateforme Trustpilot.</p>
+    </div>
+
+    <!-- Widget Carousel Trustpilot (liste horizontale de vrais avis) -->
+    <div class="glass rounded-2xl border border-white/[0.08] p-6 md:p-8 relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-40 h-40 bg-[#00B67A]/5 blur-3xl rounded-full pointer-events-none"></div>
+        
+        <!-- TrustBox widget - Carousel -->
+        <div class="trustpilot-widget" 
+             data-locale="fr-FR" 
+             data-template-id="5419b6ffb0d04a076446a9af" 
+             data-businessunit-id="688b3a7f4d3c2b1a0e9f8d7c" 
+             data-style-height="200px" 
+             data-style-width="100%" 
+             data-theme="dark" 
+             data-style-alignment="center"
+             data-stars="1,2,3,4,5"
+             style="min-height: 200px;">
+            <a href="https://fr.trustpilot.com/review/heberge.orinstone.deepstone.fr" target="_blank" rel="noopener noreferrer">Voir nos avis sur Trustpilot</a>
+        </div>
+        <!-- End TrustBox widget -->
+
+        <!-- Fallback si aucun avis ou widget non chargé -->
+        <div id="tp-fallback" class="hidden text-center py-12">
+            <div class="w-20 h-20 mx-auto mb-6 rounded-full bg-[#00B67A]/10 flex items-center justify-center">
+                <i class="fas fa-star text-[#00B67A] text-3xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-white mb-2">Soyez le premier à nous évaluer !</h3>
+            <p class="text-gray-400 text-sm max-w-md mx-auto mb-6">
+                Notre page Trustpilot est toute neuve. Partagez votre expérience pour aider d'autres utilisateurs à nous découvrir.
+            </p>
+            <a href="https://fr.trustpilot.com/evaluate/heberge.orinstone.deepstone.fr" 
+               target="_blank" 
+               rel="noopener noreferrer"
+               class="inline-flex items-center gap-2 bg-[#00B67A] hover:bg-[#00A068] text-white font-bold py-3 px-8 rounded-xl text-sm transition shadow-lg shadow-emerald-900/30 hover:scale-105 transform duration-200">
+                <i class="fas fa-pen-to-square"></i> Laisser le premier avis
+            </a>
+        </div>
+    </div>
+
+    <!-- Boutons d'action -->
+    <div class="flex flex-col sm:flex-row justify-center items-center gap-4 mt-8">
+        <a href="https://fr.trustpilot.com/evaluate/heberge.orinstone.deepstone.fr" 
+           target="_blank" 
+           rel="noopener noreferrer"
+           class="bg-[#00B67A] hover:bg-[#00A068] text-white font-bold py-3 px-8 rounded-xl text-sm transition shadow-lg shadow-emerald-900/30 flex items-center gap-2 hover:scale-105 transform duration-200">
+            <i class="fas fa-star"></i> Laisser un avis sur Trustpilot
+        </a>
+        <a href="https://fr.trustpilot.com/review/heberge.orinstone.deepstone.fr" 
+           target="_blank" 
+           rel="noopener noreferrer"
+           class="glass hover:bg-white/[0.07] border border-white/10 text-gray-300 hover:text-white font-bold py-3 px-8 rounded-xl text-sm transition flex items-center gap-2">
+            <i class="fas fa-external-link-alt"></i> Voir tous les avis Trustpilot
+        </a>
+    </div>
+</section>
+
+<!-- Script Trustpilot officiel (à charger une seule fois) -->
+<script type="text/javascript" src="//widget.trustpilot.com/bootstrap/v5/tp.widget.bootstrap.min.js" async></script>
+
+<script>
+// Vérifier si le widget Trustpilot a chargé des avis
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(function() {
+        const widget = document.querySelector('.trustpilot-widget');
+        const fallback = document.getElementById('tp-fallback');
+        
+        if (widget && fallback) {
+            // Vérifier si le widget a un iframe chargé (signe qu'il y a des avis)
+            const checkWidget = setInterval(function() {
+                const iframe = widget.querySelector('iframe');
+                if (iframe) {
+                    // Si l'iframe existe mais est vide ou affiche "no reviews", montrer le fallback
+                    setTimeout(function() {
+                        const widgetHeight = widget.offsetHeight;
+                        const hasContent = widget.innerHTML.trim().length > 200;
+                        
+                        if (!hasContent || widgetHeight < 100) {
+                            fallback.classList.remove('hidden');
+                        }
+                    }, 2000);
+                    clearInterval(checkWidget);
+                }
+            }, 500);
+            
+            // Timeout de sécurité : si rien après 5s, montrer le fallback
+            setTimeout(function() {
+                const hasIframe = widget.querySelector('iframe');
+                const hasContent = widget.innerHTML.trim().length > 200;
+                if (!hasIframe || !hasContent) {
+                    fallback.classList.remove('hidden');
+                }
+                clearInterval(checkWidget);
+            }, 5000);
+        }
+    }, 1000);
+});
+</script>
+
+<!-- FAQ -->
+<section class="py-20 px-6 max-w-4xl mx-auto border-t border-white/[0.03]">
+    <div class="text-center mb-12"><h2 class="text-3xl font-black mb-3">Questions <span class="gradient-text">Fréquentes</span></h2><p class="text-gray-500 text-sm">Tout ce que vous devez savoir pour démarrer sereinement.</p></div>
+    <div class="space-y-4">
+
+        <details class="glass p-5 rounded-xl border border-white/[0.05] group transition-all duration-300">
+            <summary class="font-bold text-white text-sm flex justify-between items-center cursor-pointer list-none select-none"><span class="flex items-center gap-2"><i class="fas fa-question-circle text-sky-400"></i> Comment l'offre gratuite fonctionne-t-elle ?</span><span class="transition group-open:rotate-180"><i class="fas fa-chevron-down text-gray-500 text-xs"></i></span></summary>
+            <p class="text-gray-400 text-xs leading-relaxed mt-3 pt-3 border-t border-white/[0.03]">Notre offre gratuite est financée par nos utilisateurs Premium. Elle vous permet de concevoir, tester et faire tourner de petits projets sans aucune limite de temps ni coûts cachés.</p>
+        </details>
+
+        <details class="glass p-5 rounded-xl border border-white/[0.05] group transition-all duration-300">
+            <summary class="font-bold text-white text-sm flex justify-between items-center cursor-pointer list-none select-none"><span class="flex items-center gap-2"><i class="fas fa-exchange-alt text-sky-400"></i> Puis-je changer d'offre ou migrer plus tard ?</span><span class="transition group-open:rotate-180"><i class="fas fa-chevron-down text-gray-500 text-xs"></i></span></summary>
+            <p class="text-gray-400 text-xs leading-relaxed mt-3 pt-3 border-t border-white/[0.03]">Tout à fait ! Vous pouvez passer d'une formule gratuite à une version Premium à tout moment depuis votre console de gestion client sans perte de données.</p>
+        </details>
+
+        <details class="glass p-5 rounded-xl border border-white/[0.05] group transition-all duration-300">
+            <summary class="font-bold text-white text-sm flex justify-between items-center cursor-pointer list-none select-none"><span class="flex items-center gap-2"><i class="fas fa-map-marker-alt text-sky-400"></i> Où sont situés vos serveurs ?</span><span class="transition group-open:rotate-180"><i class="fas fa-chevron-down text-gray-500 text-xs"></i></span></summary>
+            <p class="text-gray-400 text-xs leading-relaxed mt-3 pt-3 border-t border-white/[0.03]">Nos infrastructures physiques sont hébergées dans des centres de données hautement sécurisés situés en Europe (France et Allemagne).</p>
+        </details>
+
+        <details class="glass p-5 rounded-xl border border-white/[0.05] group transition-all duration-300">
+            <summary class="font-bold text-white text-sm flex justify-between items-center cursor-pointer list-none select-none"><span class="flex items-center gap-2"><i class="fas fa-shield-halved text-sky-400"></i> La protection DDoS est-elle vraiment incluse sur toutes les offres ?</span><span class="transition group-open:rotate-180"><i class="fas fa-chevron-down text-gray-500 text-xs"></i></span></summary>
+            <p class="text-gray-400 text-xs leading-relaxed mt-3 pt-3 border-t border-white/[0.03]">Oui, absolument. Notre protection anti-DDoS est activée par défaut et gratuitement sur l'ensemble de nos offres, y compris l'offre gratuite. Elle filtre les attaques en amont sans impacter les performances de votre serveur.</p>
+        </details>
+
+        <details class="glass p-5 rounded-xl border border-white/[0.05] group transition-all duration-300">
+            <summary class="font-bold text-white text-sm flex justify-between items-center cursor-pointer list-none select-none"><span class="flex items-center gap-2"><i class="fas fa-database text-sky-400"></i> Puis-je utiliser mes propres bases de données ?</span><span class="transition group-open:rotate-180"><i class="fas fa-chevron-down text-gray-500 text-xs"></i></span></summary>
+            <p class="text-gray-400 text-xs leading-relaxed mt-3 pt-3 border-t border-white/[0.03]">Bien sûr ! Chaque offre inclut un accès à des bases de données MySQL/MariaDB. Vous pouvez créer et gérer vos bases directement depuis le panel, et connecter vos applications en quelques clics.</p>
+        </details>
+
+        <details class="glass p-5 rounded-xl border border-white/[0.05] group transition-all duration-300">
+            <summary class="font-bold text-white text-sm flex justify-between items-center cursor-pointer list-none select-none"><span class="flex items-center gap-2"><i class="fas fa-cloud-arrow-up text-sky-400"></i> Mes données sont-elles sauvegardées ?</span><span class="transition group-open:rotate-180"><i class="fas fa-chevron-down text-gray-500 text-xs"></i></span></summary>
+            <p class="text-gray-400 text-xs leading-relaxed mt-3 pt-3 border-t border-white/[0.03]">Oui, nous effectuons des sauvegardes régulières de nos infrastructures. Nous vous recommandons toutefois de conserver une copie locale de vos fichiers importants. Les offres Premium bénéficient d'une fréquence de sauvegarde renforcée.</p>
+        </details>
+
+        <details class="glass p-5 rounded-xl border border-white/[0.05] group transition-all duration-300">
+            <summary class="font-bold text-white text-sm flex justify-between items-center cursor-pointer list-none select-none"><span class="flex items-center gap-2"><i class="fas fa-cube text-sky-400"></i> Puis-je installer des mods ou plugins sur mon serveur Minecraft ?</span><span class="transition group-open:rotate-180"><i class="fas fa-chevron-down text-gray-500 text-xs"></i></span></summary>
+            <p class="text-gray-400 text-xs leading-relaxed mt-3 pt-3 border-t border-white/[0.03]">Oui ! Vous avez un accès complet à vos fichiers via notre gestionnaire de fichiers intégré et le SFTP. Vous pouvez installer vos mods, plugins et packs personnalisés, et choisir parmi plusieurs versions du serveur (Paper, Spigot, Forge, Fabric, Vanilla...).</p>
+        </details>
+
+        <details class="glass p-5 rounded-xl border border-white/[0.05] group transition-all duration-300">
+            <summary class="font-bold text-white text-sm flex justify-between items-center cursor-pointer list-none select-none"><span class="flex items-center gap-2"><i class="fas fa-clock text-sky-400"></i> Quelle est votre garantie de disponibilité (uptime) ?</span><span class="transition group-open:rotate-180"><i class="fas fa-chevron-down text-gray-500 text-xs"></i></span></summary>
+            <p class="text-gray-400 text-xs leading-relaxed mt-3 pt-3 border-t border-white/[0.03]">Nous visons un uptime de 99,9% sur l'ensemble de nos infrastructures. Nos serveurs sont monitorés 24h/24 et 7j/7, et notre équipe intervient rapidement en cas d'incident pour minimiser toute interruption.</p>
+        </details>
+
+        <details class="glass p-5 rounded-xl border border-white/[0.05] group transition-all duration-300">
+            <summary class="font-bold text-white text-sm flex justify-between items-center cursor-pointer list-none select-none"><span class="flex items-center gap-2"><i class="fas fa-credit-card text-sky-400"></i> Quels moyens de paiement acceptez-vous ?</span><span class="transition group-open:rotate-180"><i class="fas fa-chevron-down text-gray-500 text-xs"></i></span></summary>
+            <p class="text-gray-400 text-xs leading-relaxed mt-3 pt-3 border-t border-white/[0.03]">Nous acceptons plusieurs moyens de paiement sécurisés. Toutes les transactions sont chiffrées et traitées via des prestataires de confiance. Consultez la page boutique pour voir la liste complète des méthodes disponibles.</p>
+        </details>
+
+        <details class="glass p-5 rounded-xl border border-white/[0.05] group transition-all duration-300">
+            <summary class="font-bold text-white text-sm flex justify-between items-center cursor-pointer list-none select-none"><span class="flex items-center gap-2"><i class="fas fa-rotate-left text-sky-400"></i> Puis-je être remboursé si je ne suis pas satisfait ?</span><span class="transition group-open:rotate-180"><i class="fas fa-chevron-down text-gray-500 text-xs"></i></span></summary>
+            <p class="text-gray-400 text-xs leading-relaxed mt-3 pt-3 border-t border-white/[0.03]">Nous étudions chaque demande au cas par cas. Si vous rencontrez un problème technique majeur que nous ne pouvons pas résoudre, contactez notre support via Discord pour trouver une solution adaptée, y compris un éventuel remboursement.</p>
+        </details>
+
+        <details class="glass p-5 rounded-xl border border-white/[0.05] group transition-all duration-300">
+            <summary class="font-bold text-white text-sm flex justify-between items-center cursor-pointer list-none select-none"><span class="flex items-center gap-2"><i class="fab fa-discord text-sky-400"></i> Comment obtenir de l'aide en cas de problème ?</span><span class="transition group-open:rotate-180"><i class="fas fa-chevron-down text-gray-500 text-xs"></i></span></summary>
+            <p class="text-gray-400 text-xs leading-relaxed mt-3 pt-3 border-t border-white/[0.03]">Notre équipe de support est disponible 24/7 sur Discord. Vous pouvez également ouvrir un ticket depuis votre espace client. Notre communauté et notre staff vous répondent rapidement pour résoudre vos problèmes.</p>
+        </details>
+
+        <details class="glass p-5 rounded-xl border border-white/[0.05] group transition-all duration-300">
+            <summary class="font-bold text-white text-sm flex justify-between items-center cursor-pointer list-none select-none"><span class="flex items-center gap-2"><i class="fas fa-house-laptop text-sky-400"></i> Puis-je utiliser mon propre nom de domaine ?</span><span class="transition group-open:rotate-180"><i class="fas fa-chevron-down text-gray-500 text-xs"></i></span></summary>
+            <p class="text-gray-400 text-xs leading-relaxed mt-3 pt-3 border-t border-white/[0.03]">Oui, vous pouvez tout à fait connecter votre propre nom de domaine à votre hébergement. Il vous suffit de configurer les enregistrements DNS (A ou CNAME) avec l'adresse IP ou le domaine fourni dans votre panel.</p>
+        </details>
+
+        <details class="glass p-5 rounded-xl border border-white/[0.05] group transition-all duration-300">
+            <summary class="font-bold text-white text-sm flex justify-between items-center cursor-pointer list-none select-none"><span class="flex items-center gap-2"><i class="fas fa-code text-sky-400"></i> Puis-je exécuter des tâches planifiées (cron jobs) ?</span><span class="transition group-open:rotate-180"><i class="fas fa-chevron-down text-gray-500 text-xs"></i></span></summary>
+            <p class="text-gray-400 text-xs leading-relaxed mt-3 pt-3 border-t border-white/[0.03]">Oui, nos hébergements permettent la mise en place de tâches planifiées pour automatiser vos scripts et commandes récurrentes. Cette fonctionnalité est accessible depuis le panel de gestion selon l'offre choisie.</p>
+        </details>
+
+    </div>
+
+    <!-- CTA : une autre question ? -->
+    <div class="mt-10 text-center">
+        <p class="text-gray-500 text-xs mb-4">Vous ne trouvez pas réponse à votre question ?</p>
+        <a href="/discord/" target="_blank" class="inline-flex items-center gap-2 glass hover:bg-white/[0.07] border border-white/10 text-gray-300 hover:text-white px-6 py-3 rounded-xl text-sm font-bold transition">
+            <i class="fab fa-discord text-[#5865F2]"></i> Posez-la sur notre Discord
+        </a>
+         <a href="/support/" target="_blank" class="inline-flex items-center gap-2 glass hover:bg-white/[0.07] border border-white/10 text-gray-300 hover:text-white px-6 py-3 rounded-xl text-sm font-bold transition">
+            <i class="fas fa-headset text-sky-400"></i> Ouvrir un ticket support
+        </a>
+    </div>
+</section>
 </main>
 
 <?php include __DIR__ . '/inc/footer.php'; ?>
