@@ -304,7 +304,7 @@ function getCardStyle($tier_key) {
         </div>
     </section>
 
-    <!-- ÉQUIPE -->
+   
  <!-- ÉQUIPE -->
 <section class="py-20 px-6 max-w-7xl mx-auto">
     <div class="text-center mb-12">
@@ -348,57 +348,55 @@ function getCardStyle($tier_key) {
             </div>
         </div>
 
-        <!-- Nexium + NitroHebergeur -->
-        <div class="glass p-6 rounded-2xl border border-white/[0.05] flex flex-col group hover:border-amber-500/30 transition sm:col-span-2 lg:col-span-1 relative overflow-hidden">
-            
-            <!-- Profil Nexium -->
-            <div class="text-center flex flex-col items-center">
-                <div class="relative mb-4">
-                    <div class="w-20 h-20 bg-gradient-to-tr from-amber-400 to-orange-500 rounded-full p-0.5 shadow-xl group-hover:scale-105 transition">
-                        <img src="/img/staff/Nexium.webp" alt="Avatar" class="w-full h-full object-cover rounded-full bg-[#060911]">
-                    </div>
-                    <span class="absolute bottom-0 right-1 h-3 w-3 rounded-full bg-green-400 border-2 border-[#060911]"></span>
-                </div>
-                <h4 class="font-bold text-white text-lg">Nexium</h4>
-                <div class="flex flex-wrap justify-center gap-2 mt-1 mb-3">
-                    <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">Direction & Responsable Support</span>
-                    <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Fournisseur Potentiel</span>
-                </div>
-                <p class="text-gray-500 text-xs leading-relaxed max-w-xs">Supervise la communauté sur Discord et s'assure de l'aide technique 24/7.</p>
-                <div class="flex gap-3 mt-4 text-gray-400 text-sm">
-                    <a href="#" class="hover:text-amber-400 transition hover:scale-110"><i class="fab fa-discord"></i></a>
-                </div>
+ <!-- Nexium + NitroHebergeur -->
+<div class="glass p-6 rounded-2xl border border-white/[0.05] flex flex-col group hover:border-amber-500/30 transition sm:col-span-2 lg:col-span-1 relative overflow-hidden">
+    
+    <!-- Profil Nexium -->
+    <div class="text-center flex flex-col items-center">
+        <div class="relative mb-4">
+            <div class="w-20 h-20 bg-gradient-to-tr from-amber-400 to-orange-500 rounded-full p-0.5 shadow-xl group-hover:scale-105 transition">
+                <img src="/img/staff/Nexium.webp" alt="Avatar" class="w-full h-full object-cover rounded-full bg-[#060911]">
             </div>
-
-            <!-- Séparateur -->
-            <div class="my-5 h-px w-full bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
-
-            <!-- Encart NitroHebergeur -->
-            <div class="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.03] p-4 text-center">
-                <div class="flex items-center justify-center gap-2 mb-2">
-                    <i class="fas fa-bolt text-emerald-400 text-sm"></i>
-                    <h5 class="font-bold text-white text-sm">NitroHebergeur</h5>
-                </div>
-                <p class="text-[10px] font-semibold uppercase tracking-wider text-emerald-400 mb-2">Partenariat · Géré par Nexium</p>
-                <p class="text-gray-400 text-[11px] leading-relaxed mb-3">
-                    Hébergement web haute performance et infrastructure cloud professionnelle. Solutions adaptées aux besoins des développeurs et entreprises.
-                </p>
-                <div class="flex flex-wrap justify-center gap-1.5">
-                    <span class="text-[10px] font-medium px-2 py-1 rounded-md bg-white/[0.04] border border-white/[0.06] text-gray-300">
-                        <i class="fas fa-globe text-emerald-400 mr-1"></i>Hébergement Web
-                    </span>
-                    <span class="text-[10px] font-medium px-2 py-1 rounded-md bg-white/[0.04] border border-white/[0.06] text-gray-300">
-                        <i class="fas fa-cloud text-emerald-400 mr-1"></i>Serveurs Cloud
-                    </span>
-                    <span class="text-[10px] font-medium px-2 py-1 rounded-md bg-white/[0.04] border border-white/[0.06] text-gray-300">
-                        <i class="fas fa-server text-emerald-400 mr-1"></i>VPS
-                    </span>
-                </div>
-            </div>
-
+            <span class="absolute bottom-0 right-1 h-3 w-3 rounded-full bg-green-400 border-2 border-[#060911]"></span>
         </div>
-
+        <h4 class="font-bold text-white text-lg">Nexium</h4>
+        <div class="flex flex-wrap justify-center gap-2 mt-1 mb-3">
+            <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">Direction & Responsable Support</span>
+            <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Partenaire Infrastructure</span>
+        </div>
+        <p class="text-gray-500 text-xs leading-relaxed max-w-xs">Supervise la communauté sur Discord et s'assure de l'aide technique 24/7.</p>
+        <div class="flex gap-3 mt-4 text-gray-400 text-sm">
+            <a href="#" class="hover:text-amber-400 transition hover:scale-110"><i class="fab fa-discord"></i></a>
+        </div>
     </div>
+
+    <!-- Séparateur -->
+    <div class="my-5 h-px w-full bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
+
+    <!-- Encart NitroHebergeur -->
+    <div class="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.03] p-4 text-center">
+        <div class="flex items-center justify-center gap-2 mb-2">
+            <i class="fas fa-bolt text-emerald-400 text-sm"></i>
+            <h5 class="font-bold text-white text-sm">NitroHebergeur</h5>
+        </div>
+        <p class="text-[10px] font-semibold uppercase tracking-wider text-emerald-400 mb-2">Partenariat · Géré par Nexium</p>
+        <p class="text-gray-400 text-[11px] leading-relaxed mb-3">
+            Hébergement web haute performance et infrastructure cloud professionnelle. Solutions adaptées aux besoins des développeurs et entreprises.
+        </p>
+        <div class="flex flex-wrap justify-center gap-1.5">
+            <span class="text-[10px] font-medium px-2 py-1 rounded-md bg-white/[0.04] border border-white/[0.06] text-gray-300">
+                <i class="fas fa-globe text-emerald-400 mr-1"></i>Hébergement Web
+            </span>
+            <span class="text-[10px] font-medium px-2 py-1 rounded-md bg-white/[0.04] border border-white/[0.06] text-gray-300">
+                <i class="fas fa-cloud text-emerald-400 mr-1"></i>Serveurs Cloud
+            </span>
+            <span class="text-[10px] font-medium px-2 py-1 rounded-md bg-white/[0.04] border border-white/[0.06] text-gray-300">
+                <i class="fas fa-server text-emerald-400 mr-1"></i>VPS
+            </span>
+        </div>
+    </div>
+
+</div>
 </section>
 
     <!-- POURQUOI NOUS -->
