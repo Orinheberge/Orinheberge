@@ -305,29 +305,101 @@ function getCardStyle($tier_key) {
     </section>
 
     <!-- ÉQUIPE -->
-    <section class="py-20 px-6 max-w-7xl mx-auto">
-        <div class="text-center mb-12"><h2 class="text-3xl md:text-4xl font-black mb-3">L'<span class="gradient-text">Équipe</span> OrinHeberge</h2><p class="text-gray-500 max-w-lg mx-auto text-sm">Les passionnés qui travaillent chaque jour pour maintenir vos serveurs en ligne.</p></div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div class="glass p-6 rounded-2xl border border-white/[0.05] text-center flex flex-col items-center group hover:border-sky-500/30 transition">
-                <div class="relative mb-4"><div class="w-20 h-20 bg-gradient-to-tr from-sky-400 to-purple-500 rounded-full p-0.5 shadow-xl group-hover:scale-105 transition"><img src="/img/staff/Mathéo-Favier.jpg" alt="Avatar" class="w-full h-full object-cover rounded-full bg-[#060911]"></div><span class="absolute bottom-0 right-1 h-3 w-3 rounded-full bg-green-400 border-2 border-[#060911]"></span></div>
-                <h4 class="font-bold text-white text-lg">Mathéo Favier</h4><span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/20 mt-1 mb-3">Fondateur & Dev SysAdmin</span>
-                <p class="text-gray-500 text-xs leading-relaxed max-w-xs">Garant de l'architecture serveur et du développement global du panel.</p>
-                <div class="flex gap-3 mt-4 text-gray-400 text-sm"><a href="https://github.com/metal54400" class="hover:text-white transition hover:scale-110"><i class="fab fa-github"></i></a><a href="https://portfolio.deepstone.fr" class="hover:text-sky-400 transition hover:scale-110"><i class="fas fa-globe"></i></a></div>
+ <!-- ÉQUIPE -->
+<section class="py-20 px-6 max-w-7xl mx-auto">
+    <div class="text-center mb-12">
+        <h2 class="text-3xl md:text-4xl font-black mb-3">L'<span class="gradient-text">Équipe</span> OrinHeberge</h2>
+        <p class="text-gray-500 max-w-lg mx-auto text-sm">Les passionnés qui travaillent chaque jour pour maintenir vos serveurs en ligne.</p>
+    </div>
+    
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        
+        <!-- Mathéo Favier -->
+        <div class="glass p-6 rounded-2xl border border-white/[0.05] text-center flex flex-col items-center group hover:border-sky-500/30 transition">
+            <div class="relative mb-4">
+                <div class="w-20 h-20 bg-gradient-to-tr from-sky-400 to-purple-500 rounded-full p-0.5 shadow-xl group-hover:scale-105 transition">
+                    <img src="/img/staff/Mathéo-Favier.jpg" alt="Avatar" class="w-full h-full object-cover rounded-full bg-[#060911]">
+                </div>
+                <span class="absolute bottom-0 right-1 h-3 w-3 rounded-full bg-green-400 border-2 border-[#060911]"></span>
             </div>
-            <div class="glass p-6 rounded-2xl border border-white/[0.05] text-center flex flex-col items-center group hover:border-purple-500/30 transition">
-                <div class="relative mb-4"><div class="w-20 h-20 bg-gradient-to-tr from-purple-500 to-pink-500 rounded-full p-0.5 shadow-xl group-hover:scale-105 transition"><img src="/img/staff/WixyMc.png" alt="Avatar" class="w-full h-full object-cover rounded-full bg-[#060911]"></div><span class="absolute bottom-0 right-1 h-3 w-3 rounded-full bg-green-400 border-2 border-[#060911]"></span></div>
-                <h4 class="font-bold text-white text-lg">WixyMc</h4><span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20 mt-1 mb-3">Co Fondateur & Dev SysAdmin</span>
-                <p class="text-gray-500 text-xs leading-relaxed max-w-xs">Conçoit l'interface utilisateur pour la rendre fluide et accessible à tous.</p>
-                <div class="flex gap-3 mt-4 text-gray-400 text-sm"><a href="#" class="hover:text-white transition hover:scale-110"><i class="fab fa-github"></i></a><a href="#" class="hover:text-purple-400 transition hover:scale-110"><i class="fab fa-discord"></i></a></div>
-            </div>
-            <div class="glass p-6 rounded-2xl border border-white/[0.05] text-center flex flex-col items-center sm:col-span-2 lg:col-span-1 group hover:border-amber-500/30 transition">
-                <div class="relative mb-4"><div class="w-20 h-20 bg-gradient-to-tr from-amber-400 to-orange-500 rounded-full p-0.5 shadow-xl group-hover:scale-105 transition"><img src="/img/staff/Nexium.webp" alt="Avatar" class="w-full h-full object-cover rounded-full bg-[#060911]"></div><span class="absolute bottom-0 right-1 h-3 w-3 rounded-full bg-green-400 border-2 border-[#060911]"></span></div>
-                <h4 class="font-bold text-white text-lg">Nexium</h4><span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 mt-1 mb-3">Responsable Support</span>
-                <p class="text-gray-500 text-xs leading-relaxed max-w-xs">Supervise la communauté sur Discord et s'assure de l'aide technique 24/7.</p>
-                <div class="flex gap-3 mt-4 text-gray-400 text-sm"><a href="#" class="hover:text-amber-400 transition hover:scale-110"><i class="fab fa-discord"></i></a></div>
+            <h4 class="font-bold text-white text-lg">Mathéo Favier</h4>
+            <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/20 mt-1 mb-3">Fondateur & Dev SysAdmin</span>
+            <p class="text-gray-500 text-xs leading-relaxed max-w-xs">Garant de l'architecture serveur et du développement global du panel.</p>
+            <div class="flex gap-3 mt-4 text-gray-400 text-sm">
+                <a href="https://github.com/metal54400" class="hover:text-white transition hover:scale-110"><i class="fab fa-github"></i></a>
+                <a href="https://portfolio.deepstone.fr" class="hover:text-sky-400 transition hover:scale-110"><i class="fas fa-globe"></i></a>
             </div>
         </div>
-    </section>
+
+        <!-- WixyMc -->
+        <div class="glass p-6 rounded-2xl border border-white/[0.05] text-center flex flex-col items-center group hover:border-purple-500/30 transition">
+            <div class="relative mb-4">
+                <div class="w-20 h-20 bg-gradient-to-tr from-purple-500 to-pink-500 rounded-full p-0.5 shadow-xl group-hover:scale-105 transition">
+                    <img src="/img/staff/WixyMc.png" alt="Avatar" class="w-full h-full object-cover rounded-full bg-[#060911]">
+                </div>
+                <span class="absolute bottom-0 right-1 h-3 w-3 rounded-full bg-green-400 border-2 border-[#060911]"></span>
+            </div>
+            <h4 class="font-bold text-white text-lg">WixyMc</h4>
+            <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20 mt-1 mb-3">Co-Fondateur & Dev SysAdmin</span>
+            <p class="text-gray-500 text-xs leading-relaxed max-w-xs">Conçoit l'interface utilisateur pour la rendre fluide et accessible à tous.</p>
+            <div class="flex gap-3 mt-4 text-gray-400 text-sm">
+                <a href="#" class="hover:text-white transition hover:scale-110"><i class="fab fa-github"></i></a>
+                <a href="#" class="hover:text-purple-400 transition hover:scale-110"><i class="fab fa-discord"></i></a>
+            </div>
+        </div>
+
+        <!-- Nexium + NitroHebergeur -->
+        <div class="glass p-6 rounded-2xl border border-white/[0.05] flex flex-col group hover:border-amber-500/30 transition sm:col-span-2 lg:col-span-1 relative overflow-hidden">
+            
+            <!-- Profil Nexium -->
+            <div class="text-center flex flex-col items-center">
+                <div class="relative mb-4">
+                    <div class="w-20 h-20 bg-gradient-to-tr from-amber-400 to-orange-500 rounded-full p-0.5 shadow-xl group-hover:scale-105 transition">
+                        <img src="/img/staff/Nexium.webp" alt="Avatar" class="w-full h-full object-cover rounded-full bg-[#060911]">
+                    </div>
+                    <span class="absolute bottom-0 right-1 h-3 w-3 rounded-full bg-green-400 border-2 border-[#060911]"></span>
+                </div>
+                <h4 class="font-bold text-white text-lg">Nexium</h4>
+                <div class="flex flex-wrap justify-center gap-2 mt-1 mb-3">
+                    <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">Direction & Responsable Support</span>
+                    <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Fournisseur Potentiel</span>
+                </div>
+                <p class="text-gray-500 text-xs leading-relaxed max-w-xs">Supervise la communauté sur Discord et s'assure de l'aide technique 24/7.</p>
+                <div class="flex gap-3 mt-4 text-gray-400 text-sm">
+                    <a href="#" class="hover:text-amber-400 transition hover:scale-110"><i class="fab fa-discord"></i></a>
+                </div>
+            </div>
+
+            <!-- Séparateur -->
+            <div class="my-5 h-px w-full bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
+
+            <!-- Encart NitroHebergeur -->
+            <div class="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.03] p-4 text-center">
+                <div class="flex items-center justify-center gap-2 mb-2">
+                    <i class="fas fa-bolt text-emerald-400 text-sm"></i>
+                    <h5 class="font-bold text-white text-sm">NitroHebergeur</h5>
+                </div>
+                <p class="text-[10px] font-semibold uppercase tracking-wider text-emerald-400 mb-2">Partenariat · Géré par Nexium</p>
+                <p class="text-gray-400 text-[11px] leading-relaxed mb-3">
+                    Hébergement web haute performance et infrastructure cloud professionnelle. Solutions adaptées aux besoins des développeurs et entreprises.
+                </p>
+                <div class="flex flex-wrap justify-center gap-1.5">
+                    <span class="text-[10px] font-medium px-2 py-1 rounded-md bg-white/[0.04] border border-white/[0.06] text-gray-300">
+                        <i class="fas fa-globe text-emerald-400 mr-1"></i>Hébergement Web
+                    </span>
+                    <span class="text-[10px] font-medium px-2 py-1 rounded-md bg-white/[0.04] border border-white/[0.06] text-gray-300">
+                        <i class="fas fa-cloud text-emerald-400 mr-1"></i>Serveurs Cloud
+                    </span>
+                    <span class="text-[10px] font-medium px-2 py-1 rounded-md bg-white/[0.04] border border-white/[0.06] text-gray-300">
+                        <i class="fas fa-server text-emerald-400 mr-1"></i>VPS
+                    </span>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+</section>
 
     <!-- POURQUOI NOUS -->
     <section class="py-20 px-6 max-w-7xl mx-auto">
@@ -340,77 +412,6 @@ function getCardStyle($tier_key) {
         </div>
     </section>
 
-    <!-- SECTION AVIS CLIENTS (DYNAMIQUE) -->
-<section class="py-20 px-6 max-w-5xl mx-auto border-t border-white/[0.03]">
-    <div class="text-center mb-12">
-        <div class="inline-flex items-center gap-2 bg-pink-500/10 text-pink-400 border border-pink-500/20 px-4 py-1.5 rounded-full text-xs font-semibold mb-4"><i class="fas fa-star"></i> Témoignages</div>
-        <h2 class="text-3xl font-black mb-3">Ce que disent nos <span class="gradient-text">Clients</span></h2>
-        <p class="text-gray-500 text-sm">Votre satisfaction est notre meilleure récompense.</p>
-        
-        <!-- Statistiques dynamiques -->
-        <div id="review-stats" class="hidden mt-6 flex items-center justify-center gap-6">
-            <div class="flex items-center gap-2">
-                <span id="avg-rating" class="text-3xl font-black gradient-text">0</span>
-                <div class="text-left">
-                    <div id="avg-stars" class="text-yellow-400 text-sm"></div>
-                    <span id="total-count" class="text-gray-500 text-xs">0 avis</span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Grille des avis (chargée dynamiquement) -->
-    <div id="reviews-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-        <!-- Skeleton loading -->
-        <div class="glass p-5 rounded-xl border border-white/[0.05] animate-pulse"><div class="flex items-center gap-3 mb-3"><div class="w-10 h-10 rounded-full bg-white/10"></div><div class="flex-1 space-y-2"><div class="h-3 bg-white/10 rounded w-24"></div><div class="h-2 bg-white/10 rounded w-16"></div></div></div><div class="h-2 bg-white/10 rounded w-full mb-1"></div><div class="h-2 bg-white/10 rounded w-3/4"></div></div>
-        <div class="glass p-5 rounded-xl border border-white/[0.05] animate-pulse"><div class="flex items-center gap-3 mb-3"><div class="w-10 h-10 rounded-full bg-white/10"></div><div class="flex-1 space-y-2"><div class="h-3 bg-white/10 rounded w-20"></div><div class="h-2 bg-white/10 rounded w-14"></div></div></div><div class="h-2 bg-white/10 rounded w-full mb-1"></div><div class="h-2 bg-white/10 rounded w-2/3"></div></div>
-    </div>
-
-    <div id="no-reviews" class="hidden text-center py-8 text-gray-500 text-sm"><i class="fas fa-comment-slash text-3xl mb-3 opacity-30"></i><p>Aucun avis pour le moment. Soyez le premier !</p></div>
-
-    <div id="load-more-wrap" class="hidden text-center mb-12">
-        <button onclick="loadMoreReviews()" id="load-more-btn" class="glass hover:bg-white/[0.07] border border-white/10 text-gray-300 hover:text-white px-6 py-2.5 rounded-xl text-sm font-bold transition flex items-center gap-2 mx-auto"><i class="fas fa-chevron-down"></i> Voir plus d'avis</button>
-    </div>
-
-    <!-- Formulaire pour laisser un avis -->
-    <div class="glass rounded-2xl p-6 md:p-8 border border-white/[0.08] relative overflow-hidden">
-        <div class="absolute top-0 right-0 w-32 h-32 bg-pink-500/10 blur-3xl rounded-full pointer-events-none"></div>
-        <h3 class="text-xl font-bold text-white mb-6 flex items-center gap-2"><i class="fas fa-pen-fancy text-pink-400"></i> Laissez votre avis</h3>
-
-        <form id="review-form" class="space-y-4 relative z-10">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-xs font-bold text-gray-400 mb-1">Votre Pseudo</label>
-                    <input type="text" id="review-name" required maxlength="50" class="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-sm text-white focus:border-pink-500 focus:outline-none transition" placeholder="Ex: Alex">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-400 mb-1">Note</label>
-                    <select id="review-rating" class="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-sm text-white focus:border-pink-500 focus:outline-none transition">
-                        <option value="5">⭐⭐⭐⭐⭐ Excellent</option>
-                        <option value="4">⭐⭐⭐⭐ Très bien</option>
-                        <option value="3">⭐⭐⭐ Bien</option>
-                        <option value="2">⭐⭐ Moyen</option>
-                        <option value="1">⭐ Décevant</option>
-                    </select>
-                </div>
-            </div>
-            <div>
-                <label class="block text-xs font-bold text-gray-400 mb-1">Votre Commentaire</label>
-                <textarea id="review-comment" rows="3" required minlength="10" maxlength="500" class="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-sm text-white focus:border-pink-500 focus:outline-none transition" placeholder="Parlez-nous de votre expérience (min. 10 caractères)..."></textarea>
-                <p class="text-xs text-gray-600 mt-1 text-right"><span id="char-count">0</span>/500</p>
-            </div>
-
-            <div id="review-success" class="hidden bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-3 rounded-lg text-sm flex items-center gap-2"><i class="fas fa-check-circle"></i> Merci ! Votre avis a été envoyé avec succès.</div>
-            <div id="review-error" class="hidden bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-lg text-sm flex items-center gap-2"><i class="fas fa-exclamation-circle"></i> <span id="review-error-text"></span></div>
-
-            <div class="flex justify-end pt-2">
-                <button type="submit" id="review-submit-btn" class="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-400 hover:to-purple-500 text-white font-bold py-2 px-6 rounded-lg text-sm transition shadow-lg shadow-pink-900/20 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
-                    <i class="fas fa-paper-plane"></i> <span>Envoyer l'avis</span>
-                </button>
-            </div>
-        </form>
-    </div>
-</section>
 
 <!-- SECTION AVIS CLIENTS (DYNAMIQUE) - EXISTANTE -->
 <section class="py-20 px-6 max-w-5xl mx-auto border-t border-white/[0.03]">
