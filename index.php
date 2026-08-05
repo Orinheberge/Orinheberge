@@ -374,7 +374,7 @@ function getCardStyle($tier_key) {
     <div class="my-5 h-px w-full bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
 
     <!-- Encart NitroHebergeur -->
-    <div class="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.03] p-4 text-center">
+    <div class="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.03] p-4 text-center flex flex-col items-center">
         <div class="flex items-center justify-center gap-2 mb-2">
             <i class="fas fa-bolt text-emerald-400 text-sm"></i>
             <h5 class="font-bold text-white text-sm">NitroHebergeur</h5>
@@ -383,7 +383,7 @@ function getCardStyle($tier_key) {
         <p class="text-gray-400 text-[11px] leading-relaxed mb-3">
             Hébergement web haute performance et infrastructure cloud professionnelle. Solutions adaptées aux besoins des développeurs et entreprises.
         </p>
-        <div class="flex flex-wrap justify-center gap-1.5">
+        <div class="flex flex-wrap justify-center gap-1.5 mb-4">
             <span class="text-[10px] font-medium px-2 py-1 rounded-md bg-white/[0.04] border border-white/[0.06] text-gray-300">
                 <i class="fas fa-globe text-emerald-400 mr-1"></i>Hébergement Web
             </span>
@@ -394,6 +394,11 @@ function getCardStyle($tier_key) {
                 <i class="fas fa-server text-emerald-400 mr-1"></i>VPS
             </span>
         </div>
+
+        <!-- Bouton En savoir plus -->
+        <a href="/partenaires/" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold hover:bg-emerald-500/20 hover:text-emerald-300 hover:gap-3 transition-all">
+            En savoir plus <i class="fas fa-arrow-right text-[10px]"></i>
+        </a>
     </div>
 
 </div>
