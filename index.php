@@ -305,8 +305,8 @@ function getCardStyle($tier_key) {
     </section>
 
    
-<!-- ÉQUIPE -->
-<section class="py-20 px-6 max-w-7xl mx-auto">
+    <!-- ÉQUIPE -->
+    <section class="py-20 px-6 max-w-7xl mx-auto">
     <div class="text-center mb-12">
         <h2 class="text-3xl md:text-4xl font-black mb-3">L'<span class="gradient-text">Équipe</span> OrinHeberge</h2>
         <p class="text-gray-500 max-w-lg mx-auto text-sm">Les passionnés qui travaillent chaque jour pour maintenir vos serveurs en ligne.</p>
@@ -326,11 +326,36 @@ function getCardStyle($tier_key) {
             <h4 class="font-bold text-white text-lg">Mathéo Favier</h4>
             <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/20 mt-1 mb-3">Fondateur & Dev SysAdmin</span>
             <p class="text-gray-500 text-xs leading-relaxed max-w-xs">Architecte de l'infrastructure, il pilote le développement du panel et garantit la stabilité globale de nos serveurs.</p>
-            <div class="flex gap-3 mt-4 text-gray-400 text-sm">
-                <a href="https://github.com/metal54400" class="hover:text-white transition hover:scale-110"><i class="fab fa-github"></i></a>
-                <a href="/discord/" class="hover:text-purple-400 transition hover:scale-110"><i class="fab fa-discord"></i></a>
-                <a href="https://portfolio.deepstone.fr" class="hover:text-sky-400 transition hover:scale-110"><i class="fas fa-globe"></i></a>
-            </div>
+
+
+    <div class="flex flex-wrap justify-center gap-3 mt-4 text-gray-400 text-sm">
+    <a href="https://github.com/metal54400" target="_blank" rel="noopener noreferrer" class="hover:text-white transition hover:scale-110" aria-label="GitHub">
+        <i class="fab fa-github"></i>
+    </a>
+    <a href="https://discord.com" target="_blank" rel="noopener noreferrer" class="hover:text-indigo-400 transition hover:scale-110" aria-label="Discord">
+        <i class="fab fa-discord"></i>
+    </a>
+    <a href="https://tiktok.com/@metal54400" target="_blank" rel="noopener noreferrer" class="hover:text-pink-400 transition hover:scale-110" aria-label="TikTok">
+        <i class="fab fa-tiktok"></i>
+    </a>
+    <a href="https://open.spotify.com/user/31lwi37n2kwhkyu34hs6frdj4scq" target="_blank" rel="noopener noreferrer" class="hover:text-green-400 transition hover:scale-110" aria-label="Spotify">
+        <i class="fab fa-spotify"></i>
+    </a>
+    <a href="https://instagram.com/matheocillierfavier54" target="_blank" rel="noopener noreferrer" class="hover:text-pink-500 transition hover:scale-110" aria-label="Instagram">
+        <i class="fab fa-instagram"></i>
+    </a>
+    <a href="https://snapchat.com/add/matheo54400" target="_blank" rel="noopener noreferrer" class="hover:text-yellow-300 transition hover:scale-110" aria-label="Snapchat">
+        <i class="fab fa-snapchat"></i>
+    </a>
+    <a href="https://x.com/MCillierFaviier" target="_blank" rel="noopener noreferrer" class="hover:text-sky-400 transition hover:scale-110" aria-label="Twitter/X">
+        <i class="fab fa-x-twitter"></i>
+    </a>
+    <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" class="hover:text-blue-400 transition hover:scale-110" aria-label="Facebook">
+        <i class="fab fa-facebook"></i>
+    </a>
+ <a href="https://portfolio.deepstone.fr" class="hover:text-sky-400 transition hover:scale-110"><i class="fas fa-globe"></i></a>
+    <a href="/discord/" class="hover:text-purple-400 transition hover:scale-110"><i class="fab fa-discord"></i>notre server discord</a>
+</div>
         </div>
 
         <!-- WixyMc -->
