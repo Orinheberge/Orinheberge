@@ -388,76 +388,158 @@ function getCardStyle($tier_key) {
     </section>
 
     <!-- SECTION AVIS CLIENTS (DYNAMIQUE) -->
-    <section class="py-20 px-6 max-w-5xl mx-auto border-t border-white/[0.03]">
-        <div class="text-center mb-12">
-            <div class="inline-flex items-center gap-2 bg-pink-500/10 text-pink-400 border border-pink-500/20 px-4 py-1.5 rounded-full text-xs font-semibold mb-4"><i class="fas fa-star"></i> Témoignages</div>
-            <h2 class="text-3xl font-black mb-3">Ce que disent nos <span class="gradient-text">Clients</span></h2>
-            <p class="text-gray-500 text-sm">Votre satisfaction est notre meilleure récompense.</p>
-            
-            <!-- Statistiques dynamiques -->
-            <div id="review-stats" class="hidden mt-6 flex items-center justify-center gap-6">
-                <div class="flex items-center gap-2">
-                    <span id="avg-rating" class="text-3xl font-black gradient-text">0</span>
-                    <div class="text-left">
-                        <div id="avg-stars" class="text-yellow-400 text-sm"></div>
-                        <span id="total-count" class="text-gray-500 text-xs">0 avis</span>
+<section class="py-20 px-6 max-w-5xl mx-auto border-t border-white/[0.03]">
+    <div class="text-center mb-12">
+        <div class="inline-flex items-center gap-2 bg-pink-500/10 text-pink-400 border border-pink-500/20 px-4 py-1.5 rounded-full text-xs font-semibold mb-4"><i class="fas fa-star"></i> Témoignages</div>
+        <h2 class="text-3xl font-black mb-3">Ce que disent nos <span class="gradient-text">Clients</span></h2>
+        <p class="text-gray-500 text-sm">Votre satisfaction est notre meilleure récompense.</p>
+        
+        <!-- Statistiques dynamiques -->
+        <div id="review-stats" class="hidden mt-6 flex items-center justify-center gap-6">
+            <div class="flex items-center gap-2">
+                <span id="avg-rating" class="text-3xl font-black gradient-text">0</span>
+                <div class="text-left">
+                    <div id="avg-stars" class="text-yellow-400 text-sm"></div>
+                    <span id="total-count" class="text-gray-500 text-xs">0 avis</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Grille des avis (chargée dynamiquement) -->
+    <div id="reviews-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+        <!-- Skeleton loading -->
+        <div class="glass p-5 rounded-xl border border-white/[0.05] animate-pulse"><div class="flex items-center gap-3 mb-3"><div class="w-10 h-10 rounded-full bg-white/10"></div><div class="flex-1 space-y-2"><div class="h-3 bg-white/10 rounded w-24"></div><div class="h-2 bg-white/10 rounded w-16"></div></div></div><div class="h-2 bg-white/10 rounded w-full mb-1"></div><div class="h-2 bg-white/10 rounded w-3/4"></div></div>
+        <div class="glass p-5 rounded-xl border border-white/[0.05] animate-pulse"><div class="flex items-center gap-3 mb-3"><div class="w-10 h-10 rounded-full bg-white/10"></div><div class="flex-1 space-y-2"><div class="h-3 bg-white/10 rounded w-20"></div><div class="h-2 bg-white/10 rounded w-14"></div></div></div><div class="h-2 bg-white/10 rounded w-full mb-1"></div><div class="h-2 bg-white/10 rounded w-2/3"></div></div>
+    </div>
+
+    <div id="no-reviews" class="hidden text-center py-8 text-gray-500 text-sm"><i class="fas fa-comment-slash text-3xl mb-3 opacity-30"></i><p>Aucun avis pour le moment. Soyez le premier !</p></div>
+
+    <div id="load-more-wrap" class="hidden text-center mb-12">
+        <button onclick="loadMoreReviews()" id="load-more-btn" class="glass hover:bg-white/[0.07] border border-white/10 text-gray-300 hover:text-white px-6 py-2.5 rounded-xl text-sm font-bold transition flex items-center gap-2 mx-auto"><i class="fas fa-chevron-down"></i> Voir plus d'avis</button>
+    </div>
+
+    <!-- Formulaire pour laisser un avis -->
+    <div class="glass rounded-2xl p-6 md:p-8 border border-white/[0.08] relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-32 h-32 bg-pink-500/10 blur-3xl rounded-full pointer-events-none"></div>
+        <h3 class="text-xl font-bold text-white mb-6 flex items-center gap-2"><i class="fas fa-pen-fancy text-pink-400"></i> Laissez votre avis</h3>
+
+        <form id="review-form" class="space-y-4 relative z-10">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 mb-1">Votre Pseudo</label>
+                    <input type="text" id="review-name" required maxlength="50" class="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-sm text-white focus:border-pink-500 focus:outline-none transition" placeholder="Ex: Alex">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 mb-1">Note</label>
+                    <select id="review-rating" class="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-sm text-white focus:border-pink-500 focus:outline-none transition">
+                        <option value="5">⭐⭐⭐⭐⭐ Excellent</option>
+                        <option value="4">⭐⭐⭐⭐ Très bien</option>
+                        <option value="3">⭐⭐⭐ Bien</option>
+                        <option value="2">⭐⭐ Moyen</option>
+                        <option value="1">⭐ Décevant</option>
+                    </select>
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-400 mb-1">Votre Commentaire</label>
+                <textarea id="review-comment" rows="3" required minlength="10" maxlength="500" class="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-sm text-white focus:border-pink-500 focus:outline-none transition" placeholder="Parlez-nous de votre expérience (min. 10 caractères)..."></textarea>
+                <p class="text-xs text-gray-600 mt-1 text-right"><span id="char-count">0</span>/500</p>
+            </div>
+
+            <div id="review-success" class="hidden bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-3 rounded-lg text-sm flex items-center gap-2"><i class="fas fa-check-circle"></i> Merci ! Votre avis a été envoyé avec succès.</div>
+            <div id="review-error" class="hidden bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-lg text-sm flex items-center gap-2"><i class="fas fa-exclamation-circle"></i> <span id="review-error-text"></span></div>
+
+            <div class="flex justify-end pt-2">
+                <button type="submit" id="review-submit-btn" class="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-400 hover:to-purple-500 text-white font-bold py-2 px-6 rounded-lg text-sm transition shadow-lg shadow-pink-900/20 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="fas fa-paper-plane"></i> <span>Envoyer l'avis</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</section>
+
+<!-- SECTION TRUSTPILOT -->
+<section class="py-20 px-6 max-w-5xl mx-auto border-t border-white/[0.03]">
+    <div class="glass rounded-2xl p-8 md:p-12 border border-white/[0.08] relative overflow-hidden text-center">
+        <div class="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-green-500/5 via-transparent to-emerald-500/5 pointer-events-none"></div>
+        
+        <div class="relative z-10">
+            <!-- Logo Trustpilot -->
+            <div class="flex justify-center mb-6">
+                <svg width="180" height="40" viewBox="0 0 180 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M10 8H20V32H10V8Z" fill="#00B67A"/>
+                    <path d="M24 8H34V32H24V8Z" fill="#00B67A"/>
+                    <path d="M38 8H48V32H38V8Z" fill="#00B67A"/>
+                    <path d="M52 8H62V32H52V8Z" fill="#00B67A"/>
+                    <path d="M66 8H76V32H66V8Z" fill="#00B67A"/>
+                    <path d="M80 8H90V32H80V8Z" fill="#00B67A"/>
+                    <path d="M94 8H104V32H94V8Z" fill="#00B67A"/>
+                    <path d="M108 8H118V32H108V8Z" fill="#00B67A"/>
+                    <path d="M122 8H132V32H122V8Z" fill="#00B67A"/>
+                    <path d="M136 8H146V32H136V8Z" fill="#00B67A"/>
+                </svg>
+            </div>
+
+            <h2 class="text-3xl md:text-4xl font-black mb-3">Rejoignez-nous sur <span class="gradient-text">Trustpilot</span></h2>
+            <p class="text-gray-400 max-w-2xl mx-auto text-sm mb-8">
+                Partagez votre expérience avec la communauté Trustpilot et aidez d'autres utilisateurs à découvrir OrinHeberge.
+            </p>
+
+            <!-- Widget Trustpilot officiel -->
+            <div class="mb-8">
+                <!-- TrustBox widget - Micro Review Count -->
+                <div class="trustpilot-widget" 
+                     data-locale="fr-FR" 
+                     data-template-id="5419b6a8b0d04a076446a9ad" 
+                     data-businessunit-id="68e5f8c8f5a3d8a0f4b8c9d1"
+                     data-style-height="52px" 
+                     data-style-width="100%" 
+                     data-theme="dark"
+                     data-style-alignment="center">
+                    <a href="https://fr.trustpilot.com/review/heberge.orinstone.deepstone.fr" target="_blank" rel="noopener noreferrer">Voir nos avis sur Trustpilot</a>
+                </div>
+            </div>
+
+            <!-- Bouton principal -->
+            <div class="flex flex-col sm:flex-row justify-center items-center gap-4">
+                <a href="https://fr.trustpilot.com/evaluate/heberge.orinstone.deepstone.fr" 
+                   target="_blank" 
+                   rel="noopener noreferrer"
+                   class="bg-[#00B67A] hover:bg-[#00A068] text-white font-bold py-3.5 px-8 rounded-xl text-sm transition shadow-lg shadow-emerald-900/30 flex items-center gap-2 hover:scale-105 transform duration-200">
+                    <i class="fas fa-star"></i> Laisser un avis sur Trustpilot
+                </a>
+                <a href="https://fr.trustpilot.com/review/heberge.orinstone.deepstone.fr" 
+                   target="_blank" 
+                   rel="noopener noreferrer"
+                   class="glass hover:bg-white/[0.07] border border-white/10 text-gray-300 hover:text-white font-bold py-3.5 px-8 rounded-xl text-sm transition flex items-center gap-2">
+                    <i class="fas fa-external-link-alt"></i> Voir tous les avis
+                </a>
+            </div>
+
+            <!-- Info supplémentaire -->
+            <div class="mt-10 pt-8 border-t border-white/[0.05]">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+                    <div>
+                        <div class="text-2xl font-black gradient-text mb-1"><i class="fas fa-shield-alt"></i></div>
+                        <p class="text-xs text-gray-500">Avis vérifiés</p>
+                    </div>
+                    <div>
+                        <div class="text-2xl font-black gradient-text mb-1"><i class="fas fa-globe"></i></div>
+                        <p class="text-xs text-gray-500">Communauté mondiale</p>
+                    </div>
+                    <div>
+                        <div class="text-2xl font-black gradient-text mb-1"><i class="fas fa-check-circle"></i></div>
+                        <p class="text-xs text-gray-500">Plateforme certifiée</p>
                     </div>
                 </div>
             </div>
         </div>
+    </div>
+</section>
 
-        <!-- Grille des avis (chargée dynamiquement) -->
-        <div id="reviews-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-            <!-- Skeleton loading -->
-            <div class="glass p-5 rounded-xl border border-white/[0.05] animate-pulse"><div class="flex items-center gap-3 mb-3"><div class="w-10 h-10 rounded-full bg-white/10"></div><div class="flex-1 space-y-2"><div class="h-3 bg-white/10 rounded w-24"></div><div class="h-2 bg-white/10 rounded w-16"></div></div></div><div class="h-2 bg-white/10 rounded w-full mb-1"></div><div class="h-2 bg-white/10 rounded w-3/4"></div></div>
-            <div class="glass p-5 rounded-xl border border-white/[0.05] animate-pulse"><div class="flex items-center gap-3 mb-3"><div class="w-10 h-10 rounded-full bg-white/10"></div><div class="flex-1 space-y-2"><div class="h-3 bg-white/10 rounded w-20"></div><div class="h-2 bg-white/10 rounded w-14"></div></div></div><div class="h-2 bg-white/10 rounded w-full mb-1"></div><div class="h-2 bg-white/10 rounded w-2/3"></div></div>
-        </div>
-
-        <div id="no-reviews" class="hidden text-center py-8 text-gray-500 text-sm"><i class="fas fa-comment-slash text-3xl mb-3 opacity-30"></i><p>Aucun avis pour le moment. Soyez le premier !</p></div>
-
-        <div id="load-more-wrap" class="hidden text-center mb-12">
-            <button onclick="loadMoreReviews()" id="load-more-btn" class="glass hover:bg-white/[0.07] border border-white/10 text-gray-300 hover:text-white px-6 py-2.5 rounded-xl text-sm font-bold transition flex items-center gap-2 mx-auto"><i class="fas fa-chevron-down"></i> Voir plus d'avis</button>
-        </div>
-
-        <!-- Formulaire pour laisser un avis -->
-        <div class="glass rounded-2xl p-6 md:p-8 border border-white/[0.08] relative overflow-hidden">
-            <div class="absolute top-0 right-0 w-32 h-32 bg-pink-500/10 blur-3xl rounded-full pointer-events-none"></div>
-            <h3 class="text-xl font-bold text-white mb-6 flex items-center gap-2"><i class="fas fa-pen-fancy text-pink-400"></i> Laissez votre avis</h3>
-
-            <form id="review-form" class="space-y-4 relative z-10">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-bold text-gray-400 mb-1">Votre Pseudo</label>
-                        <input type="text" id="review-name" required maxlength="50" class="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-sm text-white focus:border-pink-500 focus:outline-none transition" placeholder="Ex: Alex">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-400 mb-1">Note</label>
-                        <select id="review-rating" class="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-sm text-white focus:border-pink-500 focus:outline-none transition">
-                            <option value="5">⭐⭐⭐⭐⭐ Excellent</option>
-                            <option value="4">⭐⭐⭐⭐ Très bien</option>
-                            <option value="3">⭐⭐⭐ Bien</option>
-                            <option value="2">⭐⭐ Moyen</option>
-                            <option value="1">⭐ Décevant</option>
-                        </select>
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-400 mb-1">Votre Commentaire</label>
-                    <textarea id="review-comment" rows="3" required minlength="10" maxlength="500" class="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-sm text-white focus:border-pink-500 focus:outline-none transition" placeholder="Parlez-nous de votre expérience (min. 10 caractères)..."></textarea>
-                    <p class="text-xs text-gray-600 mt-1 text-right"><span id="char-count">0</span>/500</p>
-                </div>
-
-                <div id="review-success" class="hidden bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-3 rounded-lg text-sm flex items-center gap-2"><i class="fas fa-check-circle"></i> Merci ! Votre avis a été envoyé avec succès.</div>
-                <div id="review-error" class="hidden bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-lg text-sm flex items-center gap-2"><i class="fas fa-exclamation-circle"></i> <span id="review-error-text"></span></div>
-
-                <div class="flex justify-end pt-2">
-                    <button type="submit" id="review-submit-btn" class="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-400 hover:to-purple-500 text-white font-bold py-2 px-6 rounded-lg text-sm transition shadow-lg shadow-pink-900/20 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
-                        <i class="fas fa-paper-plane"></i> <span>Envoyer l'avis</span>
-                    </button>
-                </div>
-            </form>
-        </div>
-    </section>
+<!-- Script Trustpilot officiel -->
+<script type="text/javascript" src="//widget.trustpilot.com/bootstrap/v5/tp.widget.bootstrap.min.js" async></script>
 
     <!-- FAQ -->
     <section class="py-20 px-6 max-w-4xl mx-auto border-t border-white/[0.03]">
