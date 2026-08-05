@@ -3,26 +3,20 @@
  * OrinHeberge - API de récupération des avis clients
  * Endpoint: /api/reviews/get.php
  * Méthode: GET
- * 
- * Paramètres optionnels (query string):
- *   ?limit=10    → Nombre d'avis à retourner (défaut: 10, max: 50)
- *   ?page=1      → Numéro de page (défaut: 1)
- *   ?min_rating=4 → Filtrer par note minimum (1-5)
  */
 
-// Headers
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, OPTIONS');
-header('Cache-Control: public, max-age=60'); // Cache 60 secondes
+header('Cache-Control: no-cache, no-store, must-revalidate');
+header('Pragma: no-cache');
+header('Expires: 0');
 
-// Gestion CORS preflight
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit();
 }
 
-// Vérifier que c'est bien une requête GET
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     http_response_code(405);
     echo json_encode(['success' => false, 'error' => 'Méthode non autorisée']);
@@ -35,7 +29,6 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
 
 $reviews_file = __DIR__ . '/reviews.json';
 
-// Paramètres de pagination
 $limit = isset($_GET['limit']) ? max(1, min(50, intval($_GET['limit']))) : 10;
 $page  = isset($_GET['page'])  ? max(1, intval($_GET['page'])) : 1;
 $min_rating = isset($_GET['min_rating']) ? max(1, min(5, intval($_GET['min_rating']))) : 0;
@@ -47,24 +40,31 @@ $min_rating = isset($_GET['min_rating']) ? max(1, min(5, intval($_GET['min_ratin
 $reviews = [];
 
 if (file_exists($reviews_file)) {
-    $raw = file_get_contents($reviews_file);
-    $reviews = json_decode($raw, true);
-    
-    if (!is_array($reviews)) {
-        $reviews = [];
+    $raw = @file_get_contents($reviews_file);
+    if ($raw !== false) {
+        $decoded = json_decode($raw, true);
+        if (is_array($decoded)) {
+            $reviews = $decoded;
+        }
     }
 }
+
+// TRI : toujours du plus récent au plus ancien
+usort($reviews, function($a, $b) {
+    $tA = $a['timestamp'] ?? strtotime($a['created_at'] ?? 'now');
+    $tB = $b['timestamp'] ?? strtotime($b['created_at'] ?? 'now');
+    return $tB <=> $tA;
+});
 
 // ═══════════════════════════════════════════════════════════════
 // FILTRAGE
 // ═══════════════════════════════════════════════════════════════
 
-// Filtrer par note minimum si demandé
 if ($min_rating > 0) {
     $reviews = array_filter($reviews, function($review) use ($min_rating) {
         return isset($review['rating']) && $review['rating'] >= $min_rating;
     });
-    $reviews = array_values($reviews); // Réindexer
+    $reviews = array_values($reviews);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -96,7 +96,7 @@ $offset = ($page - 1) * $limit;
 $paginated_reviews = array_slice($reviews, $offset, $limit);
 
 // ═══════════════════════════════════════════════════════════════
-// NETTOYAGE DES DONNÉES (Sécurité : ne pas exposer les IPs)
+// NETTOYAGE (pas d'IP exposée)
 // ═══════════════════════════════════════════════════════════════
 
 $safe_reviews = [];
@@ -107,12 +107,11 @@ foreach ($paginated_reviews as $review) {
         'rating'     => intval($review['rating'] ?? 0),
         'comment'    => htmlspecialchars($review['comment'] ?? '', ENT_QUOTES, 'UTF-8'),
         'created_at' => $review['created_at'] ?? '',
-        // ⚠️ L'IP n'est PAS envoyée au client (sécurité)
     ];
 }
 
 // ═══════════════════════════════════════════════════════════════
-// RÉPONSE JSON
+// RÉPONSE JSON (sans JSON_PRETTY_PRINT pour éviter les problèmes)
 // ═══════════════════════════════════════════════════════════════
 
 http_response_code(200);
@@ -131,4 +130,4 @@ echo json_encode([
         'has_next'     => $page < $total_pages,
         'has_prev'     => $page > 1
     ]
-], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+], JSON_UNESCAPED_UNICODE);
