@@ -328,6 +328,7 @@ function getCardStyle($tier_key) {
             <p class="text-gray-500 text-xs leading-relaxed max-w-xs">Architecte de l'infrastructure, il pilote le développement du panel et garantit la stabilité globale de nos serveurs.</p>
             <div class="flex gap-3 mt-4 text-gray-400 text-sm">
                 <a href="https://github.com/metal54400" class="hover:text-white transition hover:scale-110"><i class="fab fa-github"></i></a>
+                <a href="/discord/" class="hover:text-purple-400 transition hover:scale-110"><i class="fab fa-discord"></i></a>
                 <a href="https://portfolio.deepstone.fr" class="hover:text-sky-400 transition hover:scale-110"><i class="fas fa-globe"></i></a>
             </div>
         </div>
@@ -344,8 +345,8 @@ function getCardStyle($tier_key) {
             <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20 mt-1 mb-3">Co-Fondateur & Dev SysAdmin</span>
             <p class="text-gray-500 text-xs leading-relaxed max-w-xs">Artisan de l'expérience utilisateur, il façonne une interface intuitive, rapide et agréable au quotidien.</p>
             <div class="flex gap-3 mt-4 text-gray-400 text-sm">
-                <a href="#" class="hover:text-white transition hover:scale-110"><i class="fab fa-github"></i></a>
-                <a href="#" class="hover:text-purple-400 transition hover:scale-110"><i class="fab fa-discord"></i></a>
+                <a href="https://github.com/WixyMC" class="hover:text-white transition hover:scale-110"><i class="fab fa-github"></i></a>
+                <a href="/discord/" class="hover:text-purple-400 transition hover:scale-110"><i class="fab fa-discord"></i></a>
             </div>
         </div>
 
@@ -367,7 +368,9 @@ function getCardStyle($tier_key) {
                 </div>
                 <p class="text-gray-500 text-xs leading-relaxed max-w-xs">Pilote la stratégie et anime la communauté Discord, tout en assurant un support technique réactif disponible 24h/24.</p>
                 <div class="flex gap-3 mt-4 text-gray-400 text-sm">
-                    <a href="#" class="hover:text-amber-400 transition hover:scale-110"><i class="fab fa-discord"></i></a>
+                    <a href="/discord/" class="hover:text-amber-400 transition hover:scale-110"><i class="fab fa-discord"></i></a>
+                    <a href="https://github.com/neyrixmc" class="hover:text-white transition hover:scale-110"><i class="fab fa-github"></i></a>
+                    <a href="https://www.nitrohebergeur.fr/" class="hover:text-sky-400 transition hover:scale-110"><i class="fas fa-globe"></i></a>
                 </div>
             </div>
 
