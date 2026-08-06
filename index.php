@@ -305,73 +305,82 @@ function getCardStyle($tier_key) {
     </section>
 
    
-    <!-- ÉQUIPE -->
-    <section class="py-20 px-6 max-w-7xl mx-auto">
+ <!-- ÉQUIPE -->
+<section class="py-20 px-6 max-w-7xl mx-auto">
     <div class="text-center mb-12">
         <h2 class="text-3xl md:text-4xl font-black mb-3">L'<span class="gradient-text">Équipe</span> OrinHeberge</h2>
         <p class="text-gray-500 max-w-lg mx-auto text-sm">Les passionnés qui travaillent chaque jour pour maintenir vos serveurs en ligne.</p>
     </div> 
     
-    <!-- items-start empêche les cartes de s'étirer à la même hauteur : seule Nexium garde son extension -->
+    <!-- items-start empêche les cartes de s'étirer à la même hauteur -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
         
         <!-- Mathéo Favier -->
         <div class="glass p-6 rounded-2xl border border-white/[0.05] text-center flex flex-col items-center group hover:border-sky-500/30 transition">
             <div class="relative mb-4">
                 <div class="w-20 h-20 bg-gradient-to-tr from-sky-400 to-purple-500 rounded-full p-0.5 shadow-xl group-hover:scale-105 transition">
-                    <img src="/img/staff/Mathéo-Favier.jpg" alt="Avatar" class="w-full h-full object-cover rounded-full bg-[#060911]">
+                    <img src="/img/staff/Mathéo-Favier.jpg" alt="Avatar de Mathéo Favier" class="w-full h-full object-cover rounded-full bg-[#060911]">
                 </div>
-                <span class="absolute bottom-0 right-1 h-3 w-3 rounded-full bg-green-400 border-2 border-[#060911]"></span>
+                <span class="absolute bottom-0 right-1 h-3 w-3 rounded-full bg-green-400 border-2 border-[#060911]" title="En ligne"></span>
             </div>
             <h4 class="font-bold text-white text-lg">Mathéo Favier</h4>
             <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/20 mt-1 mb-3">Fondateur & Dev SysAdmin</span>
             <p class="text-gray-500 text-xs leading-relaxed max-w-xs">Architecte de l'infrastructure, il pilote le développement du panel et garantit la stabilité globale de nos serveurs.</p>
 
+            <!-- Réseaux sociaux personnels -->
+            <div class="flex flex-wrap justify-center gap-3 mt-4 text-gray-400 text-sm">
+                <a href="https://github.com/metal54400" target="_blank" rel="noopener noreferrer" title="GitHub" aria-label="GitHub" class="hover:text-white transition hover:scale-110">
+                    <i class="fab fa-github"></i>
+                </a>
+                <a href="https://tiktok.com/@metal54400" target="_blank" rel="noopener noreferrer" title="TikTok" aria-label="TikTok" class="hover:text-pink-400 transition hover:scale-110">
+                    <i class="fab fa-tiktok"></i>
+                </a>
+                <a href="https://open.spotify.com/user/31lwi37n2kwhkyu34hs6frdj4scq" target="_blank" rel="noopener noreferrer" title="Spotify" aria-label="Spotify" class="hover:text-green-400 transition hover:scale-110">
+                    <i class="fab fa-spotify"></i>
+                </a>
+                <a href="https://instagram.com/matheocillierfavier54" target="_blank" rel="noopener noreferrer" title="Instagram" aria-label="Instagram" class="hover:text-pink-500 transition hover:scale-110">
+                    <i class="fab fa-instagram"></i>
+                </a>
+                <a href="https://snapchat.com/add/matheo54400" target="_blank" rel="noopener noreferrer" title="Snapchat" aria-label="Snapchat" class="hover:text-yellow-300 transition hover:scale-110">
+                    <i class="fab fa-snapchat"></i>
+                </a>
+                <a href="https://x.com/MCillierFaviier" target="_blank" rel="noopener noreferrer" title="X (Twitter)" aria-label="X (Twitter)" class="hover:text-sky-400 transition hover:scale-110">
+                    <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                    </svg>
+                </a>
+                <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" title="Facebook" aria-label="Facebook" class="hover:text-blue-400 transition hover:scale-110">
+                    <i class="fab fa-facebook"></i>
+                </a>
+                <a href="https://portfolio.deepstone.fr" target="_blank" rel="noopener noreferrer" title="Portfolio" aria-label="Portfolio" class="hover:text-sky-400 transition hover:scale-110">
+                    <i class="fas fa-globe"></i>
+                </a>
+            </div>
 
-    <div class="flex flex-wrap justify-center gap-3 mt-4 text-gray-400 text-sm">
-    <a href="https://github.com/metal54400" target="_blank" rel="noopener noreferrer" class="hover:text-white transition hover:scale-110" aria-label="GitHub">
-        <i class="fab fa-github"></i>
-    </a>
-    <a href="https://discord.com" target="_blank" rel="noopener noreferrer" class="hover:text-indigo-400 transition hover:scale-110" aria-label="Discord">
-        <i class="fab fa-discord"></i>
-    </a>
-    <a href="https://tiktok.com/@metal54400" target="_blank" rel="noopener noreferrer" class="hover:text-pink-400 transition hover:scale-110" aria-label="TikTok">
-        <i class="fab fa-tiktok"></i>
-    </a>
-    <a href="https://open.spotify.com/user/31lwi37n2kwhkyu34hs6frdj4scq" target="_blank" rel="noopener noreferrer" class="hover:text-green-400 transition hover:scale-110" aria-label="Spotify">
-        <i class="fab fa-spotify"></i>
-    </a>
-    <a href="https://instagram.com/matheocillierfavier54" target="_blank" rel="noopener noreferrer" class="hover:text-pink-500 transition hover:scale-110" aria-label="Instagram">
-        <i class="fab fa-instagram"></i>
-    </a>
-    <a href="https://snapchat.com/add/matheo54400" target="_blank" rel="noopener noreferrer" class="hover:text-yellow-300 transition hover:scale-110" aria-label="Snapchat">
-        <i class="fab fa-snapchat"></i>
-    </a>
-    <a href="https://x.com/MCillierFaviier" target="_blank" rel="noopener noreferrer" class="hover:text-sky-400 transition hover:scale-110" aria-label="Twitter/X">
-        <i class="fab fa-x-twitter"></i>
-    </a>
-    <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" class="hover:text-blue-400 transition hover:scale-110" aria-label="Facebook">
-        <i class="fab fa-facebook"></i>
-    </a>
- <a href="https://portfolio.deepstone.fr" class="hover:text-sky-400 transition hover:scale-110"><i class="fas fa-globe"></i></a>
-    <a href="/discord/" class="hover:text-purple-400 transition hover:scale-110"><i class="fab fa-discord"></i>notre server discord</a>
-</div>
+            <!-- Lien serveur Discord (mis en valeur) -->
+            <a href="/discord/" class="mt-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-medium hover:bg-indigo-500/20 hover:scale-105 transition">
+                <i class="fab fa-discord"></i> Notre serveur Discord
+            </a>
         </div>
 
         <!-- WixyMc -->
         <div class="glass p-6 rounded-2xl border border-white/[0.05] text-center flex flex-col items-center group hover:border-purple-500/30 transition">
             <div class="relative mb-4">
                 <div class="w-20 h-20 bg-gradient-to-tr from-purple-500 to-pink-500 rounded-full p-0.5 shadow-xl group-hover:scale-105 transition">
-                    <img src="/img/staff/WixyMc.png" alt="Avatar" class="w-full h-full object-cover rounded-full bg-[#060911]">
+                    <img src="/img/staff/WixyMc.png" alt="Avatar de WixyMc" class="w-full h-full object-cover rounded-full bg-[#060911]">
                 </div>
-                <span class="absolute bottom-0 right-1 h-3 w-3 rounded-full bg-green-400 border-2 border-[#060911]"></span>
+                <span class="absolute bottom-0 right-1 h-3 w-3 rounded-full bg-green-400 border-2 border-[#060911]" title="En ligne"></span>
             </div>
             <h4 class="font-bold text-white text-lg">WixyMc</h4>
             <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20 mt-1 mb-3">Co-Fondateur & Dev SysAdmin</span>
             <p class="text-gray-500 text-xs leading-relaxed max-w-xs">Artisan de l'expérience utilisateur, il façonne une interface intuitive, rapide et agréable au quotidien.</p>
             <div class="flex gap-3 mt-4 text-gray-400 text-sm">
-                <a href="https://github.com/WixyMC" class="hover:text-white transition hover:scale-110"><i class="fab fa-github"></i></a>
-                <a href="/discord/" class="hover:text-purple-400 transition hover:scale-110"><i class="fab fa-discord"></i></a>
+                <a href="https://github.com/WixyMC" target="_blank" rel="noopener noreferrer" title="GitHub" aria-label="GitHub" class="hover:text-white transition hover:scale-110">
+                    <i class="fab fa-github"></i>
+                </a>
+                <a href="/discord/" title="Serveur Discord" aria-label="Serveur Discord" class="hover:text-purple-400 transition hover:scale-110">
+                    <i class="fab fa-discord"></i>
+                </a>
             </div>
         </div>
 
@@ -382,9 +391,9 @@ function getCardStyle($tier_key) {
             <div class="text-center flex flex-col items-center">
                 <div class="relative mb-4">
                     <div class="w-20 h-20 bg-gradient-to-tr from-amber-400 to-orange-500 rounded-full p-0.5 shadow-xl group-hover:scale-105 transition">
-                        <img src="/img/staff/Nexium.webp" alt="Avatar" class="w-full h-full object-cover rounded-full bg-[#060911]">
+                        <img src="/img/staff/Nexium.webp" alt="Avatar de Nexium" class="w-full h-full object-cover rounded-full bg-[#060911]">
                     </div>
-                    <span class="absolute bottom-0 right-1 h-3 w-3 rounded-full bg-green-400 border-2 border-[#060911]"></span>
+                    <span class="absolute bottom-0 right-1 h-3 w-3 rounded-full bg-green-400 border-2 border-[#060911]" title="En ligne"></span>
                 </div>
                 <h4 class="font-bold text-white text-lg">Nexium</h4>
                 <div class="flex flex-wrap justify-center gap-2 mt-1 mb-3">
@@ -393,9 +402,15 @@ function getCardStyle($tier_key) {
                 </div>
                 <p class="text-gray-500 text-xs leading-relaxed max-w-xs">Pilote la stratégie et anime la communauté Discord, tout en assurant un support technique réactif disponible 24h/24.</p>
                 <div class="flex gap-3 mt-4 text-gray-400 text-sm">
-                    <a href="/discord/" class="hover:text-amber-400 transition hover:scale-110"><i class="fab fa-discord"></i></a>
-                    <a href="https://github.com/neyrixmc" class="hover:text-white transition hover:scale-110"><i class="fab fa-github"></i></a>
-                    <a href="https://www.nitrohebergeur.fr/" class="hover:text-sky-400 transition hover:scale-110"><i class="fas fa-globe"></i></a>
+                    <a href="/discord/" title="Serveur Discord" aria-label="Serveur Discord" class="hover:text-amber-400 transition hover:scale-110">
+                        <i class="fab fa-discord"></i>
+                    </a>
+                    <a href="https://github.com/neyrixmc" target="_blank" rel="noopener noreferrer" title="GitHub" aria-label="GitHub" class="hover:text-white transition hover:scale-110">
+                        <i class="fab fa-github"></i>
+                    </a>
+                    <a href="https://www.nitrohebergeur.fr/" target="_blank" rel="noopener noreferrer" title="NitroHebergeur" aria-label="NitroHebergeur" class="hover:text-sky-400 transition hover:scale-110">
+                        <i class="fas fa-globe"></i>
+                    </a>
                 </div>
             </div>
 
