@@ -128,7 +128,7 @@ const ChatApp = {
         console.error('[Chat] ❌ Erreur fetch messages:', error);
         this.showError('Erreur de connexion');
     }
-}
+},
 
     appendMessage(msg) {
         const container = document.getElementById('messagesContainer');
