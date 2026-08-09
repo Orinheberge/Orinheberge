@@ -1,11 +1,11 @@
 <?php
 /**
- * OrinHeberge — Navbar partagée améliorée
+ * OrinHeberge — Navbar partagée améliorée (v3 FINAL)
  * Nécessite que inc/lang.php soit déjà chargé (donc $lang et t() disponibles).
  * Nécessite que $is_logged_in soit défini.
  *
  * Variables optionnelles :
- * $active_nav  — 'home'|'servers'|'offers'|'support' pour surligner le lien actif
+ * $active_nav  — 'home'|'servers'|'offers'|'support'|'partners' pour surligner le lien actif
  */
 $active_nav = $active_nav ?? '';
 
@@ -17,7 +17,7 @@ error_log(sprintf(
     $_SERVER['REQUEST_URI'] ?? '/'
 ));
 
-// 🔵 AJOUT : Récupérer les maintenances actives pour afficher un bandeau
+// 🔵 Récupérer les maintenances actives pour afficher un bandeau
 $maintenance_banner = null;
 if (isset($pdo)) {
     try {
@@ -41,7 +41,7 @@ if (isset($pdo)) {
     }
 }
 
-// 🔵 AJOUT : Compteur de notifications non lues
+// 🔵 Compteur de notifications non lues
 $notif_count = 0;
 if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc/notifications.php')) {
     try {
@@ -67,6 +67,7 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
 
 <nav class="sticky top-0 z-50 border-b border-white/5" style="background: rgba(7, 10, 19, 0.8); backdrop-filter: blur(14px);">
     
+    <!-- 🛠️ Bandeau maintenance -->
     <?php if ($maintenance_banner): 
         $sev_colors = [
             'info'     => ['bg' => 'bg-sky-500/10',     'border' => 'border-sky-500/20',     'text' => 'text-sky-400',     'icon' => 'fa-info-circle'],
@@ -92,6 +93,7 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
     </div>
     <?php endif; ?>
 
+    <!-- 🕵️ Bandeau impersonation admin -->
     <?php if (!empty($_SESSION['admin_impersonating'])): ?>
     <div style="background:rgba(244,63,94,.15);border-bottom:1px solid rgba(244,63,94,.3);" class="px-5 py-2 flex items-center justify-between text-xs">
         <span class="text-rose-400 font-semibold flex items-center gap-2">
@@ -106,6 +108,7 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
     </div>
     <?php endif; ?>
 
+    <!-- 🖥️ Barre principale -->
     <div class="max-w-7xl mx-auto flex items-center gap-4 p-5">
 
         <h1 class="font-black text-white tracking-tight shrink-0">
@@ -115,10 +118,13 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
             </a>
         </h1>
 
+        <!-- 🖥️ Navigation desktop -->
         <div class="hidden md:flex items-center gap-2 lg:gap-3 flex-1 justify-end flex-wrap">
             <a href="/" class="<?php echo $active_nav === 'home' ? 'bg-sky-600/30 text-sky-400 border-sky-500/50 font-bold' : 'bg-sky-600/5 text-sky-400/70 hover:text-sky-300 border-sky-500/10 hover:bg-sky-600/20'; ?> px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium shadow-md border whitespace-nowrap">
                 <i class="fas fa-home"></i> <?php echo t('nav.home'); ?>
             </a>
+
+            <!-- Dropdown Boutique desktop -->
             <div class="relative group">
                 <button class="text-gray-300 hover:text-sky-400 font-bold flex items-center gap-2.5 transition bg-white/5 hover:bg-white/10 px-4 py-2 rounded-full border border-white/5 focus:outline-none text-xs whitespace-nowrap cursor-pointer">
                     <i class="fas fa-tags"></i> Boutique
@@ -149,6 +155,7 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
             </a>
 
             <?php if (isset($_SESSION['user_id'])): ?>
+                <!-- 🔔 Badge notifications -->
                 <?php if ($notif_count > 0): ?>
                 <a href="/client/notifications/" class="relative bg-rose-600/10 hover:bg-rose-600/20 border border-rose-500/20 text-rose-400 px-3 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium whitespace-nowrap">
                     <i class="fas fa-bell"></i>
@@ -158,6 +165,7 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
                 </a>
                 <?php endif; ?>
 
+                <!-- 👤 Dropdown profil desktop -->
                 <div class="relative group">
                     <button class="text-gray-300 hover:text-sky-400 font-bold flex items-center gap-2.5 transition bg-white/5 hover:bg-white/10 px-4 py-2 rounded-full border border-white/5 focus:outline-none text-xs whitespace-nowrap cursor-pointer">
                         <?php if (!empty($_SESSION['avatar']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/' . $_SESSION['avatar'])): ?>
@@ -179,7 +187,7 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
                         <a href="/client/" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white">
                             <i class="fas fa-home w-4"></i> Mon Espace
                         </a>
-                        <a href="/client/notification" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white">
+                        <a href="/client/notifications/" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white">
                             <i class="fas fa-bell w-4"></i> Mes notifications
                         </a>
                         <a href="/client/billing/" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white">
@@ -215,7 +223,7 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
         </div>
 
         <!-- 📱 Bouton hamburger amélioré -->
-        <button id="mobileMenuBtn" class="md:hidden relative w-11 h-11 flex items-center justify-center text-2xl text-gray-400 hover:text-white transition shrink-0 ml-auto cursor-pointer rounded-xl bg-white/5 border border-white/10 hover:bg-white/10" aria-label="Menu">
+        <button id="mobileMenuBtn" class="md:hidden relative w-11 h-11 flex items-center justify-center text-2xl text-gray-400 hover:text-white transition shrink-0 ml-auto cursor-pointer rounded-xl bg-white/5 border border-white/10 hover:bg-white/10" aria-label="Menu" aria-expanded="false">
             <i class="fas fa-bars absolute transition-all duration-300" id="menuIconBars"></i>
             <i class="fas fa-xmark absolute transition-all duration-300 opacity-0 scale-50" id="menuIconX"></i>
         </button>
@@ -223,7 +231,7 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
 
     <!-- 📱 Menu mobile amélioré -->
     <div id="mobileMenu" class="md:hidden overflow-hidden transition-all duration-500 ease-in-out" style="max-height: 0px;">
-        <div class="px-4 pb-6 pt-2 space-y-2 border-t border-white/5 bg-gradient-to-b from-transparent to-black/20">
+        <div class="px-4 pb-6 pt-2 space-y-2 border-t border-white/5">
             
             <a href="/" class="block py-3.5 px-4 rounded-xl flex items-center gap-3 text-base font-medium border transition-all <?php echo $active_nav === 'home' ? 'bg-sky-600/20 border-sky-500/40 text-sky-400 shadow-lg shadow-sky-900/20' : 'bg-white/[0.02] border-white/5 text-gray-300 hover:bg-white/5'; ?>">
                 <i class="fas fa-home w-6 text-center text-lg"></i> <?php echo t('nav.home'); ?>
@@ -235,9 +243,9 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
             </a>
             <?php endif; ?>
 
-            <!-- Boutique dropdown mobile -->
+            <!-- ️ Dropdown Boutique mobile -->
             <div class="bg-white/[0.02] border border-white/5 rounded-xl overflow-hidden">
-                <button type="button" id="mobileShopDropdownBtn" class="w-full py-3.5 px-4 flex items-center justify-between text-base font-medium text-gray-300 hover:bg-white/5 transition cursor-pointer">
+                <button type="button" id="mobileShopDropdownBtn" class="w-full py-3.5 px-4 flex items-center justify-between text-base font-medium text-gray-300 hover:bg-white/5 transition cursor-pointer" aria-expanded="false">
                     <span class="flex items-center gap-3">
                         <i class="fas fa-tags w-6 text-center text-lg"></i> Boutique
                     </span>
@@ -275,7 +283,7 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
             <hr class="border-white/10 my-3">
 
             <?php if (isset($_SESSION['user_id']) && $notif_count > 0): ?>
-            <a href="/notifications/" class="block py-3.5 px-4 rounded-xl flex items-center gap-3 text-base font-medium border bg-rose-600/10 border-rose-500/30 text-rose-400 hover:bg-rose-600/20 transition-all">
+            <a href="/client/notifications/" class="block py-3.5 px-4 rounded-xl flex items-center gap-3 text-base font-medium border bg-rose-600/10 border-rose-500/30 text-rose-400 hover:bg-rose-600/20 transition-all">
                 <i class="fas fa-bell w-6 text-center text-lg"></i> 
                 <span>Notifications</span>
                 <span class="ml-auto bg-rose-500 text-white text-xs font-bold px-2.5 py-1 rounded-full"><?= $notif_count ?></span>
@@ -309,16 +317,13 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
                 </a>
             <?php endif; ?>
 
-            <!-- ✅ BLOC LANGUE PATCHÉ (compact + centré) -->
+            <!-- 🌐 Bloc langue (compact + centré) -->
             <div class="mt-4 pt-4 border-t border-white/10">
                 <div class="flex flex-col items-center px-2 pb-2">
-                    <!-- Label -->
                     <div class="flex items-center justify-center gap-2 py-2 text-xs text-gray-500 uppercase tracking-wide font-semibold">
                         <i class="fas fa-globe text-sky-400"></i>
                         <span>Langue / Language</span>
                     </div>
-                    
-                    <!-- Sélecteur -->
                     <div class="mt-1">
                         <?php include __DIR__ . '/lang_switcher.php'; ?>
                     </div>
