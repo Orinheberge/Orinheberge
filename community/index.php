@@ -2,7 +2,6 @@
 require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/auth.php';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/lang.php';
 
-// Vérifier connexion
 if (!isset($_SESSION['user_id'])) {
     header('Location: /login/');
     exit;
@@ -16,6 +15,12 @@ $active_nav = 'community';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo t('chat.title'); ?> - OrinHeberge</title>
+    <link rel="icon" type="image/png" href="https://heberge.orinstone.deepstone.fr/favicon.ico">
+    
+    <!-- ⚠️ OBLIGATOIRE : Tailwind + FontAwesome -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
     <link href="/inc/navbar.css?v=<?php echo filemtime($_SERVER['DOCUMENT_ROOT'] . '/inc/navbar.css'); ?>" rel="stylesheet">
     <link href="/inc/chat.css?v=<?php echo filemtime($_SERVER['DOCUMENT_ROOT'] . '/inc/chat.css'); ?>" rel="stylesheet">
 </head>
@@ -55,7 +60,7 @@ $active_nav = 'community';
             </aside>
 
             <!-- 💬 Zone de chat -->
-            <main class="flex-1 flex flex-col bg-[#0b0f17] rounded-xl border border-white/5 overflow-hidden">
+            <main class="flex-1 flex flex-col bg-[#0b0f17] rounded-xl border border-white/5 overflow-hidden relative">
                 
                 <!-- Header canal -->
                 <header class="px-6 py-4 border-b border-white/5 flex items-center justify-between">
@@ -83,8 +88,8 @@ $active_nav = 'community';
                     </div>
                 </div>
 
-                <!-- Emoji Picker (caché par défaut) -->
-                <div id="emojiPicker" class="hidden absolute bottom-24 right-6 bg-[#11151d] border border-white/10 rounded-xl shadow-2xl p-4 z-50 max-w-sm">
+                <!-- Emoji Picker -->
+                <div id="emojiPicker" class="hidden absolute bottom-24 right-6 bg-[#11151d] border border-white/10 rounded-xl shadow-2xl p-4 z-50 w-80 max-h-96 overflow-y-auto">
                     <div class="mb-3">
                         <input type="text" id="emojiSearch" placeholder="<?php echo t('chat.search_emoji'); ?>" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-sky-500/50">
                     </div>
@@ -93,7 +98,6 @@ $active_nav = 'community';
                             <i class="fas fa-star mr-1"></i><?php echo t('chat.custom_emojis'); ?>
                         </h3>
                         <div id="customEmojis" class="grid grid-cols-6 gap-2 max-h-32 overflow-y-auto custom-scrollbar">
-                            <!-- Rempli par JS -->
                         </div>
                     </div>
                     <hr class="border-white/10 my-3">
@@ -102,7 +106,6 @@ $active_nav = 'community';
                             <i class="far fa-smile mr-1"></i><?php echo t('chat.standard_emojis'); ?>
                         </h3>
                         <div id="standardEmojis" class="grid grid-cols-8 gap-1 max-h-32 overflow-y-auto custom-scrollbar">
-                            <!-- Rempli par JS -->
                         </div>
                     </div>
                 </div>

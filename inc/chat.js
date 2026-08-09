@@ -1,6 +1,5 @@
 /**
- * OrinHeberge — Chat Communautaire
- * Système de chat en temps réel avec polling + emojis custom
+ * OrinHeberge — Chat Communautaire (v2 debug)
  */
 
 'use strict';
@@ -10,37 +9,88 @@ const ChatApp = {
     lastMessageId: 0,
     pollInterval: null,
     customEmojis: [],
-    standardEmojis: ['😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '🙃', '😉', '😊', '😇', '🥰', '😍', '🤩', '😘', '', '😚', '', '🥲', '😋', '😛', '😜', '🤪', '😝', '🤑', '🤗', '', '', '🤔', '🤐', '', '😐', '😑', '😶', '😏', '😒', '🙄', '😬', '🤥', '😌', '😔', '😪', '🤤', '😴', '😷', '🤒', '🤕', '', '', '🤧', '🥵', '🥶', '🥴', '', '', '🤠', '🥳', '', '😎', '🤓', '', '😕', '😟', '', '️', '😮', '😯', '😲', '😳', '🥺', '😦', '😧', '😨', '😰', '😥', '😢', '😭', '😱', '😖', '😣', '😞', '😓', '😩', '😫', '🥱', '😤', '😡', '😠', '🤬', '👍', '', '', '🙏', '🤝', '❤️', '🔥', '⭐', '🎉', '🚀'],
+    isInitialized: false,
+    
+    // 📍 CHEMINS API (à ajuster si besoin)
+    API: {
+        SEND: '/community/api/send_message.php',
+        GET:  '/community/api/get_messages.php',
+        EMOJIS: '/community/api/get_emojis.php'
+    },
 
-    init() {
-        this.loadCustomEmojis();
-        this.loadMessages();
-        this.startPolling();
-        this.bindEvents();
-        this.renderEmojiPicker();
+    standardEmojis: ['😀','😃','😄','😁','😆','😅','🤣','😂','🙂','🙃','😉','😊','😇','🥰','😍','🤩','😘','','😚','','🥲','😋','😛','😜','🤪','😝','🤑','🤗','','','🤔','🤐','','😐','😑','😶','😏','😒','🙄','😬','🤥','😌','😔','😪','🤤','😴','😷','🤒','🤕','','','🤧','🥵','🥶','🥴','','','🤠','🥳','','😎','🤓','','😕','😟','','️','😮','😯','😲','😳','🥺','😦','😧','😨','😰','😥','😢','😭','😱','😖','😣','😞','😓','😩','😫','🥱','😤','😡','😠','🤬','👍','','','🙏','🤝','❤️','🔥','⭐','🎉','🚀','💯','👀','✨','💪','🎮','🎵','📚','🌟','💡','🎁'],
+
+    async init() {
+        console.log('[Chat] 🚀 Initialisation...');
+        
+        // Vérifier que les éléments DOM existent
+        const requiredElements = ['messagesContainer', 'messageForm', 'messageInput', 'emojiPicker', 'customEmojis', 'standardEmojis'];
+        const missingElements = requiredElements.filter(id => !document.getElementById(id));
+        
+        if (missingElements.length > 0) {
+            console.error('[Chat] ❌ Éléments DOM manquants:', missingElements);
+            return;
+        }
+        
+        console.log('[Chat] ✅ Tous les éléments DOM présents');
+        
+        try {
+            await this.loadCustomEmojis();
+            await this.loadMessages();
+            this.startPolling();
+            this.bindEvents();
+            this.renderEmojiPicker();
+            this.isInitialized = true;
+            console.log('[Chat] ✅ Initialisation terminée');
+        } catch (error) {
+            console.error('[Chat] ❌ Erreur initialisation:', error);
+        }
     },
 
     async loadCustomEmojis() {
+        console.log('[Chat] 📥 Chargement emojis custom depuis:', this.API.EMOJIS);
         try {
-            const response = await fetch('/community/api/get_emojis.php');
+            const response = await fetch(this.API.EMOJIS);
+            console.log('[Chat] 📥 Réponse emojis:', response.status, response.statusText);
+            
+            if (!response.ok) {
+                console.warn('[Chat] ⚠️ Endpoint emojis indisponible (', response.status, ')');
+                this.customEmojis = [];
+                return;
+            }
+            
             const data = await response.json();
+            console.log('[Chat] ✅', data.emojis?.length || 0, 'emojis custom chargés');
+            
             if (data.success) {
-                this.customEmojis = data.emojis;
+                this.customEmojis = data.emojis || [];
             }
         } catch (error) {
-            console.error('[Chat] Erreur chargement emojis:', error);
+            console.warn('[Chat] ⚠️ Erreur chargement emojis (non bloquant):', error.message);
+            this.customEmojis = [];
         }
     },
 
     async loadMessages() {
+        const url = `${this.API.GET}?channel=${this.currentChannel}&last_id=${this.lastMessageId}`;
+        console.log('[Chat] 📥 Chargement messages:', url);
+        
         try {
-            const response = await fetch(`/community/api/get_messages.php?channel=${this.currentChannel}&last_id=${this.lastMessageId}`);
-            const data = await response.json();
+            const response = await fetch(url);
+            console.log('[Chat] 📥 Réponse messages:', response.status);
             
-            if (data.success && data.messages.length > 0) {
+            if (!response.ok) {
+                console.error('[Chat] ❌ Erreur HTTP:', response.status, response.statusText);
+                this.showError('Erreur de connexion au serveur');
+                return;
+            }
+            
+            const data = await response.json();
+            console.log('[Chat] ✅', data.messages?.length || 0, 'messages reçus');
+            
+            if (data.success && data.messages && data.messages.length > 0) {
                 const container = document.getElementById('messagesContainer');
                 
-                // Premier chargement : vider le container
                 if (this.lastMessageId === 0) {
                     container.innerHTML = '';
                 }
@@ -50,11 +100,19 @@ const ChatApp = {
                     this.lastMessageId = Math.max(this.lastMessageId, msg.id);
                 });
                 
-                // Scroll vers le bas
                 container.scrollTop = container.scrollHeight;
+            } else if (this.lastMessageId === 0) {
+                document.getElementById('messagesContainer').innerHTML = `
+                    <div class="text-center text-gray-500 py-12">
+                        <i class="far fa-comments text-4xl mb-3"></i>
+                        <p>Aucun message pour le moment.</p>
+                        <p class="text-xs mt-2">Soyez le premier à dire bonjour ! 👋</p>
+                    </div>
+                `;
             }
         } catch (error) {
-            console.error('[Chat] Erreur chargement messages:', error);
+            console.error('[Chat] ❌ Erreur fetch messages:', error);
+            this.showError('Erreur de connexion');
         }
     },
 
@@ -63,12 +121,12 @@ const ChatApp = {
         const div = document.createElement('div');
         div.className = 'chat-message';
         
-        const avatarUrl = msg.avatar ? `/${msg.avatar}` : '/assets/default-avatar.png';
+        const avatarUrl = msg.avatar ? `/${msg.avatar}` : 'https://ui-avatars.com/api/?name=' + encodeURIComponent(msg.username) + '&background=0284c7&color=fff';
         const timestamp = new Date(msg.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
         const messageHtml = this.parseMessage(msg.message);
         
         div.innerHTML = `
-            <img src="${avatarUrl}" alt="${msg.username}" class="chat-avatar">
+            <img src="${avatarUrl}" alt="${this.escapeHtml(msg.username)}" class="chat-avatar" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(msg.username)}'">
             <div class="chat-content">
                 <div class="chat-header">
                     <span class="chat-username">${this.escapeHtml(msg.username)}</span>
@@ -82,22 +140,18 @@ const ChatApp = {
     },
 
     parseMessage(text) {
-        // Échapper HTML
         let html = this.escapeHtml(text);
         
-        // Remplacer les shortcodes d'emojis custom :emoji_name:
         this.customEmojis.forEach(emoji => {
             const regex = new RegExp(emoji.shortcode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
-            html = html.replace(regex, `<img src="${emoji.url}" alt="${emoji.name}" class="custom-emoji" title="${emoji.name}">`);
+            html = html.replace(regex, `<img src="${emoji.url}" alt="${emoji.name}" class="custom-emoji" title=":${emoji.name}:">`);
         });
         
-        // Convertir les URLs en liens
         html = html.replace(
             /(https?:\/\/[^\s]+)/g,
             '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-sky-400 hover:underline">$1</a>'
         );
         
-        // Convertir les sauts de ligne
         html = html.replace(/\n/g, '<br>');
         
         return html;
@@ -109,16 +163,27 @@ const ChatApp = {
         return div.innerHTML;
     },
 
+    showError(message) {
+        const container = document.getElementById('messagesContainer');
+        if (this.lastMessageId === 0) {
+            container.innerHTML = `
+                <div class="text-center text-red-400 py-8">
+                    <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
+                    <p>${message}</p>
+                </div>
+            `;
+        }
+    },
+
     startPolling() {
-        // Polling toutes les 2 secondes
-        this.pollInterval = setInterval(() => {
-            this.loadMessages();
-        }, 2000);
+        console.log('[Chat] 🔄 Polling activé (toutes les 2s)');
+        this.pollInterval = setInterval(() => this.loadMessages(), 2000);
     },
 
     stopPolling() {
         if (this.pollInterval) {
             clearInterval(this.pollInterval);
+            this.pollInterval = null;
         }
     },
 
@@ -129,28 +194,37 @@ const ChatApp = {
             await this.sendMessage();
         });
 
+        // Entrée pour envoyer
+        document.getElementById('messageInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                this.sendMessage();
+            }
+        });
+
         // Changement de canal
         document.querySelectorAll('.channel-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                this.switchChannel(e.currentTarget.dataset.channel);
+                this.switchChannel(e.currentTarget.dataset.channel, e.currentTarget);
             });
         });
 
         // Emoji picker
-        document.getElementById('emojiPickerBtn').addEventListener('click', () => {
+        document.getElementById('emojiPickerBtn')?.addEventListener('click', (e) => {
+            e.stopPropagation();
             this.toggleEmojiPicker();
         });
 
-        document.getElementById('emojiBtnInline').addEventListener('click', () => {
+        document.getElementById('emojiBtnInline')?.addEventListener('click', (e) => {
+            e.stopPropagation();
             this.toggleEmojiPicker();
         });
 
         // Fermer emoji picker au clic extérieur
         document.addEventListener('click', (e) => {
             const picker = document.getElementById('emojiPicker');
-            if (!picker.contains(e.target) && 
-                e.target.id !== 'emojiPickerBtn' && 
-                e.target.id !== 'emojiBtnInline' &&
+            if (picker && !picker.classList.contains('hidden') &&
+                !picker.contains(e.target) &&
                 !e.target.closest('#emojiPickerBtn') &&
                 !e.target.closest('#emojiBtnInline')) {
                 picker.classList.add('hidden');
@@ -158,19 +232,26 @@ const ChatApp = {
         });
 
         // Recherche d'emojis
-        document.getElementById('emojiSearch').addEventListener('input', (e) => {
+        document.getElementById('emojiSearch')?.addEventListener('input', (e) => {
             this.filterEmojis(e.target.value);
         });
+
+        console.log('[Chat] ✅ Event listeners attachés');
     },
 
     async sendMessage() {
         const input = document.getElementById('messageInput');
         const message = input.value.trim();
         
-        if (!message) return;
+        if (!message) {
+            console.log('[Chat] ⚠️ Message vide, ignoré');
+            return;
+        }
+        
+        console.log('[Chat] 📤 Envoi message:', message.substring(0, 50) + '...');
         
         try {
-            const response = await fetch('/community/api/send_message.php', {
+            const response = await fetch(this.API.SEND, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -178,6 +259,15 @@ const ChatApp = {
                     channel: this.currentChannel
                 })
             });
+            
+            console.log('[Chat] 📤 Réponse send:', response.status);
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('[Chat] ❌ Erreur HTTP:', response.status, errorText);
+                alert('Erreur lors de l\'envoi du message');
+                return;
+            }
             
             const data = await response.json();
             
@@ -188,44 +278,41 @@ const ChatApp = {
                 
                 const container = document.getElementById('messagesContainer');
                 container.scrollTop = container.scrollHeight;
+                console.log('[Chat] ✅ Message envoyé');
             } else {
+                console.error('[Chat] ❌ Erreur API:', data.error);
                 alert(data.error || 'Erreur lors de l\'envoi');
             }
         } catch (error) {
-            console.error('[Chat] Erreur envoi:', error);
+            console.error('[Chat] ❌ Erreur fetch send:', error);
             alert('Erreur de connexion');
         }
     },
 
-    switchChannel(channel) {
+    switchChannel(channel, btnElement) {
+        console.log('[Chat] 🔀 Changement canal:', channel);
+        
         this.currentChannel = channel;
         this.lastMessageId = 0;
         
-        // Mettre à jour UI
+        // UI
         document.querySelectorAll('.channel-btn').forEach(btn => {
             btn.classList.remove('active', 'bg-sky-600/20', 'text-sky-400', 'border', 'border-sky-500/30');
             btn.classList.add('text-gray-400');
         });
         
-        const activeBtn = document.querySelector(`[data-channel="${channel}"]`);
-        activeBtn.classList.add('active', 'bg-sky-600/20', 'text-sky-400', 'border', 'border-sky-500/30');
-        activeBtn.classList.remove('text-gray-400');
+        if (btnElement) {
+            btnElement.classList.add('active', 'bg-sky-600/20', 'text-sky-400', 'border', 'border-sky-500/30');
+            btnElement.classList.remove('text-gray-400');
+        }
         
-        // Mettre à jour header
-        const channelNames = {
-            'general': 'Général',
-            'support': 'Support',
-            'offtopic': 'Hors sujet'
-        };
-        document.getElementById('currentChannelName').textContent = channelNames[channel] || channel;
-        
-        // Recharger messages
         document.getElementById('messagesContainer').innerHTML = `
             <div class="text-center text-gray-500 py-8">
                 <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
                 <p>Chargement...</p>
             </div>
         `;
+        
         this.loadMessages();
     },
 
@@ -237,25 +324,28 @@ const ChatApp = {
     renderEmojiPicker() {
         // Emojis custom
         const customContainer = document.getElementById('customEmojis');
-        this.customEmojis.forEach(emoji => {
-            const div = document.createElement('div');
-            div.className = 'emoji-item';
-            div.innerHTML = `<img src="${emoji.url}" alt="${emoji.name}" title="${emoji.name}">`;
-            div.addEventListener('click', () => {
-                this.insertEmoji(emoji.shortcode);
+        customContainer.innerHTML = '';
+        
+        if (this.customEmojis.length === 0) {
+            customContainer.innerHTML = '<p class="col-span-6 text-xs text-gray-500 text-center py-2">Aucun emoji custom</p>';
+        } else {
+            this.customEmojis.forEach(emoji => {
+                const div = document.createElement('div');
+                div.className = 'emoji-item';
+                div.innerHTML = `<img src="${emoji.url}" alt="${emoji.name}" title=":${emoji.name}:">`;
+                div.addEventListener('click', () => this.insertEmoji(emoji.shortcode));
+                customContainer.appendChild(div);
             });
-            customContainer.appendChild(div);
-        });
+        }
         
         // Emojis standards
         const standardContainer = document.getElementById('standardEmojis');
+        standardContainer.innerHTML = '';
         this.standardEmojis.forEach(emoji => {
             const div = document.createElement('div');
             div.className = 'emoji-item';
             div.textContent = emoji;
-            div.addEventListener('click', () => {
-                this.insertEmoji(emoji);
-            });
+            div.addEventListener('click', () => this.insertEmoji(emoji));
             standardContainer.appendChild(div);
         });
     },
@@ -270,7 +360,6 @@ const ChatApp = {
         input.focus();
         input.selectionStart = input.selectionEnd = start + emoji.length;
         
-        // Fermer le picker
         document.getElementById('emojiPicker').classList.add('hidden');
     },
 
@@ -286,7 +375,12 @@ const ChatApp = {
     }
 };
 
-// Initialisation
-document.addEventListener('DOMContentLoaded', () => {
+// Initialisation au chargement du DOM
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => ChatApp.init());
+} else {
     ChatApp.init();
-});
+}
+
+// Nettoyage quand on quitte la page
+window.addEventListener('beforeunload', () => ChatApp.stopPolling());

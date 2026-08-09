@@ -18,7 +18,4 @@ if (is_dir($emojiDir)) {
     }
 }
 
-echo json_encode([
-    'success' => true,
-    'emojis' => $emojis
-]);
+echo json_encode(['success' => true, 'emojis' => $emojis]);
