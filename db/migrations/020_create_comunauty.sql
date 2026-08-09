@@ -1,25 +1,30 @@
+-- Table chat_messages
 CREATE TABLE IF NOT EXISTS `chat_messages` (
-    `id` INT AUTO_INCREMENT PRIMARY KEY,
-    `user_id` INT NOT NULL,
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `user_id` INT UNSIGNED NOT NULL,
     `channel` VARCHAR(50) NOT NULL DEFAULT 'general',
     `message` TEXT NOT NULL,
-    `created_at` DATETIME NOT NULL,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     INDEX `idx_channel` (`channel`),
     INDEX `idx_created_at` (`created_at`),
-    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+    INDEX `idx_user` (`user_id`),
+    CONSTRAINT `fk_chat_user` FOREIGN KEY (`user_id`) 
+        REFERENCES `users`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-
+-- Table remember_tokens
 CREATE TABLE IF NOT EXISTS `remember_tokens` (
-    `id` INT AUTO_INCREMENT PRIMARY KEY,
-    `user_id` INT NOT NULL,
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `user_id` INT UNSIGNED NOT NULL,
     `token` VARCHAR(64) NOT NULL,
     `expires_at` DATETIME NOT NULL,
     `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
     UNIQUE INDEX `idx_token` (`token`),
     INDEX `idx_expires` (`expires_at`),
-    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    INDEX `idx_user` (`user_id`),
+    CONSTRAINT `fk_remember_user` FOREIGN KEY (`user_id`) 
+        REFERENCES `users`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Ajouter colonnes OAuth si pas existantes
 ALTER TABLE `users`

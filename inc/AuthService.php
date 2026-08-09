@@ -143,6 +143,223 @@ class AuthService {
         }
     }
 
+        // ============================================
+    // 🔑 RÉINITIALISATION MOT DE PASSE
+    // ============================================
+
+    /**
+     * Demande de reset : génère un token et envoie l'email
+     * Retourne toujours success (même si email inexistant) pour éviter l'énumération
+     */
+    public function requestPasswordReset($email) {
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return ['success' => true]; // Ne pas révéler si email existe
+        }
+
+        // Rate limiting : max 3 demandes par email par heure
+        $key = 'reset_attempts_' . md5($email);
+        $attempts = $_SESSION[$key] ?? [];
+        $recentAttempts = array_filter($attempts, fn($t) => $t > time() - 3600);
+        
+        if (count($recentAttempts) >= 3) {
+            return ['success' => false, 'error' => 'too_many_attempts', 'retry_after' => 3600];
+        }
+        
+        $_SESSION[$key][] = time();
+
+        $stmt = $this->pdo->prepare("SELECT id, oauth_provider FROM users WHERE email = ?");
+        $stmt->execute([$email]);
+        $user = $stmt->fetch();
+
+        if (!$user) {
+            return ['success' => true]; // Silencieux
+        }
+
+        // Si compte OAuth, pas de reset password
+        if (($user['oauth_provider'] ?? 'local') !== 'local') {
+            return [
+                'success' => false,
+                'error' => 'oauth_account',
+                'provider' => $user['oauth_provider'],
+                'hint' => "Utilisez la connexion " . ucfirst($user['oauth_provider'])
+            ];
+        }
+
+        // Nettoyer anciens tokens inutilisés
+        $this->pdo->prepare("DELETE FROM password_resets WHERE user_id = ? AND used = 0")
+                  ->execute([$user['id']]);
+
+        // Générer nouveau token (1 heure)
+        $token = bin2hex(random_bytes(32));
+        $expires = date('Y-m-d H:i:s', time() + 3600);
+
+        try {
+            $stmt = $this->pdo->prepare("
+                INSERT INTO password_resets (user_id, token, expires_at, used, created_at)
+                VALUES (?, ?, ?, 0, NOW())
+            ");
+            $stmt->execute([$user['id'], $token, $expires]);
+        } catch (Exception $e) {
+            error_log('[Auth] Password reset insert error: ' . $e->getMessage());
+            return ['success' => false, 'error' => 'db_error'];
+        }
+
+        // Envoyer email
+        $this->sendPasswordResetEmail($email, $token);
+
+        return ['success' => true, 'token' => $token]; // token retourné pour debug/dev uniquement
+    }
+
+    /**
+     * Valide le token et applique le nouveau mot de passe
+     */
+    public function resetPassword($token, $newPassword) {
+        if (!$token || strlen($token) !== 64) {
+            return ['success' => false, 'error' => 'invalid_token'];
+        }
+
+        if (strlen($newPassword) < 8) {
+            return ['success' => false, 'error' => 'password_too_short'];
+        }
+
+        if (!preg_match('/[A-Za-z]/', $newPassword) || !preg_match('/[0-9]/', $newPassword)) {
+            return ['success' => false, 'error' => 'password_too_weak'];
+        }
+
+        $stmt = $this->pdo->prepare("
+            SELECT pr.id, pr.user_id, pr.expires_at, pr.used, u.email
+            FROM password_resets pr
+            JOIN users u ON pr.user_id = u.id
+            WHERE pr.token = ? LIMIT 1
+        ");
+        $stmt->execute([$token]);
+        $row = $stmt->fetch();
+
+        if (!$row)             return ['success' => false, 'error' => 'invalid_token'];
+        if ($row['used'])      return ['success' => false, 'error' => 'token_used'];
+        if (strtotime($row['expires_at']) < time()) return ['success' => false, 'error' => 'token_expired'];
+
+        try {
+            $this->pdo->beginTransaction();
+
+            $hash = password_hash($newPassword, PASSWORD_DEFAULT);
+            $this->pdo->prepare("UPDATE users SET password = ? WHERE id = ?")
+                      ->execute([$hash, $row['user_id']]);
+
+            // Marquer token comme utilisé
+            $this->pdo->prepare("UPDATE password_resets SET used = 1 WHERE id = ?")
+                      ->execute([$row['id']]);
+
+            // Invalider tous les autres tokens de ce user
+            $this->pdo->prepare("UPDATE password_resets SET used = 1 WHERE user_id = ? AND id != ?")
+                      ->execute([$row['user_id'], $row['id']]);
+
+            $this->pdo->commit();
+
+            // Envoyer email de confirmation
+            $this->sendPasswordChangedEmail($row['email']);
+
+            return ['success' => true, 'user_id' => $row['user_id']];
+
+        } catch (Exception $e) {
+            if ($this->pdo->inTransaction()) $this->pdo->rollBack();
+            error_log('[Auth] Reset password error: ' . $e->getMessage());
+            return ['success' => false, 'error' => 'db_error'];
+        }
+    }
+
+    /**
+     * Vérifie si un token est valide (sans le consommer)
+     */
+    public function validateResetToken($token) {
+        if (!$token || strlen($token) !== 64) {
+            return ['valid' => false, 'error' => 'invalid_token'];
+        }
+
+        $stmt = $this->pdo->prepare("
+            SELECT expires_at, used 
+            FROM password_resets 
+            WHERE token = ? LIMIT 1
+        ");
+        $stmt->execute([$token]);
+        $row = $stmt->fetch();
+
+        if (!$row)             return ['valid' => false, 'error' => 'invalid_token'];
+        if ($row['used'])      return ['valid' => false, 'error' => 'token_used'];
+        if (strtotime($row['expires_at']) < time()) return ['valid' => false, 'error' => 'token_expired'];
+
+        return ['valid' => true, 'expires_at' => $row['expires_at']];
+    }
+
+    // ============================================
+    // 📧 EMAILS RESET
+    // ============================================
+
+    private function sendPasswordResetEmail($email, $token) {
+        try {
+            require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/smtp.php';
+
+            $resetLink = 'https://heberge.orinstone.deepstone.fr/resetpassword/?token=' . $token;
+
+            $body = '
+                <p>Bonjour,</p>
+                <p>Une demande de réinitialisation de mot de passe a été effectuée pour votre compte OrinHeberge.</p>
+                <p>Cliquez sur le bouton ci-dessous pour définir un nouveau mot de passe :</p>
+                <p style="text-align:center;margin:24px 0;">
+                    <a href="' . htmlspecialchars($resetLink) . '" 
+                       style="display:inline-block;padding:14px 28px;background:#0284c7;color:white;text-decoration:none;border-radius:12px;font-weight:bold;">
+                        Réinitialiser mon mot de passe
+                    </a>
+                </p>
+                <p style="font-size:13px;color:#6b7280;">
+                    ⏱️ Ce lien expirera dans <strong>1 heure</strong>.<br>
+                    Si vous n\'êtes pas à l\'origine de cette demande, ignorez cet email.
+                </p>
+                <p style="font-size:11px;color:#9ca3af;margin-top:24px;border-top:1px solid #e5e7eb;padding-top:16px;">
+                    Lien direct : <a href="' . htmlspecialchars($resetLink) . '" style="color:#0284c7;">' . htmlspecialchars($resetLink) . '</a>
+                </p>
+            ';
+
+            if (function_exists('send_smtp_mail') && function_exists('email_layout')) {
+                send_smtp_mail(
+                    $email,
+                    '🔐 Réinitialisation de votre mot de passe - OrinHeberge',
+                    email_layout('Réinitialisation mot de passe', $body)
+                );
+            }
+        } catch (Throwable $e) {
+            error_log('[Auth] Reset email error: ' . $e->getMessage());
+        }
+    }
+
+    private function sendPasswordChangedEmail($email) {
+        try {
+            require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/smtp.php';
+
+            $body = '
+                <p>Bonjour,</p>
+                <p>Votre mot de passe OrinHeberge a été <strong>modifié avec succès</strong>.</p>
+                <p>Si vous n\'êtes pas à l\'origine de ce changement, contactez immédiatement notre support :</p>
+                <p style="text-align:center;margin:24px 0;">
+                    <a href="https://heberge.orinstone.deepstone.fr/support/" 
+                       style="display:inline-block;padding:14px 28px;background:#dc2626;color:white;text-decoration:none;border-radius:12px;font-weight:bold;">
+                        Contacter le support
+                    </a>
+                </p>
+            ';
+
+            if (function_exists('send_smtp_mail') && function_exists('email_layout')) {
+                send_smtp_mail(
+                    $email,
+                    '✅ Mot de passe modifié - OrinHeberge',
+                    email_layout('Sécurité du compte', $body)
+                );
+            }
+        } catch (Throwable $e) {
+            error_log('[Auth] Password changed email error: ' . $e->getMessage());
+        }
+    }
+
     /**
      * Déconnexion complète
      */
