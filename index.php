@@ -11,21 +11,42 @@ if (!function_exists('add_custom_translations')) {
         global $translations; 
         
         // --- AVERTISSEMENT ---
-        $translations['warning.game_purchase.title'] = [
-            'fr' => '⚠️ Avertissement Important',
-            'en' => '⚠️ Important Warning',
-            'de' => '⚠️ Wichtiger Hinweis'
-        ];
-        $translations['warning.game_purchase.text'] = [
-            'fr' => 'Merci de ne pas vouloir acheter des offres de jeux (Minecraft, Hytale, FiveM, Terraria).',
-            'en' => 'Please do not attempt to purchase game offers (Minecraft, Hytale, FiveM, Terraria).',
-            'de' => 'Bitte versuchen Sie nicht, Spiel-Angebote (Minecraft, Hytale, FiveM, Terraria).'
-        ];
-        $translations['warning.signoff'] = [
-            'fr' => 'Cordialement, l\'équipe OrinHeberge',
-            'en' => 'Best regards, The OrinHeberge Team',
-            'de' => 'Mit freundlichen Grüßen, Das OrinHeberge-Team'
-        ];
+     $translations['warning.game_purchase.title'] = [
+    'fr' => '⚠️ Avertissement Important',
+    'en' => '⚠️ Important Warning',
+    'de' => '⚠️ Wichtiger Hinweis'
+];
+
+$translations['warning.game_purchase.text'] = [
+    'fr' => 'Merci de ne pas vouloir acheter des offres de jeux (Minecraft, Hytale, FiveM, Terraria).',
+    'en' => 'Please do not attempt to purchase game offers (Minecraft, Hytale, FiveM, Terraria).',
+    'de' => 'Bitte versuchen Sie nicht, Spiel-Angebote (Minecraft, Hytale, FiveM, Terraria) zu erwerben.'
+];
+
+$translations['warning.signoff'] = [
+    'fr' => 'Cordialement, l\'équipe OrinHeberge',
+    'en' => 'Best regards, The OrinHeberge Team',
+    'de' => 'Mit freundlichen Grüßen, Das OrinHeberge-Team'
+];
+
+// ➕ Nouvelles entrées ajoutées temporairement à la fin
+$translations['warning.temp_notice.title'] = [
+    'fr' => '📌 Information Temporaire',
+    'en' => '📌 Temporary Notice',
+    'de' => '📌 Vorübergehender Hinweis'
+];
+
+$translations['warning.temp_notice.text'] = [
+    'fr' => 'Cette section est en cours de mise à jour. Merci de votre compréhension.',
+    'en' => 'This section is currently being updated. Thank you for your understanding.',
+    'de' => 'Dieser Bereich wird derzeit aktualisiert. Vielen Dank für Ihr Verständnis.'
+];
+
+$translations['warning.temp_notice.signoff'] = [
+    'fr' => 'Cordialement, l\'équipe OrinHeberge',
+    'en' => 'Best regards, The OrinHeberge Team',
+    'de' => 'Mit freundlichen Grüßen, Das OrinHeberge-Team'
+];
 
         // --- HERO SECTION ---
         $translations['hero.status.online'] = ['fr' => 'Tous les systèmes opérationnels', 'en' => 'All systems operational', 'de' => 'Alle Systeme betriebsbereit'];
@@ -322,22 +343,39 @@ function getCardStyle($tier_key) {
 
 <main class="flex-grow">
 
-    <!-- AVERTISSEMENT -->
-    <section class="relative z-20 px-6 pt-6 pb-2">
-        <div class="max-w-4xl mx-auto glass rounded-xl border border-amber-500/30 bg-amber-500/[0.04] backdrop-blur-md overflow-hidden shadow-lg shadow-amber-900/10 animate-fade-in">
-            <div class="absolute top-0 left-0 w-1 h-full bg-amber-500"></div>
-            <div class="p-5 md:p-6 flex flex-col md:flex-row items-start md:items-center gap-4">
-                <div class="flex-shrink-0 w-10 h-10 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 text-lg">
-                    <i class="fas fa-triangle-exclamation"></i>
-                </div>
-                <div class="flex-grow">
-                    <h3 class="text-amber-400 font-bold text-sm mb-1 uppercase tracking-wide"><?php echo t('warning.game_purchase.title'); ?></h3>
-                    <p class="text-gray-300 text-sm leading-relaxed"><?php echo t('warning.game_purchase.text'); ?></p>
-                    <p class="text-amber-500/80 text-xs font-semibold mt-2 italic">— <?php echo t('warning.signoff'); ?></p>
-                </div>
+   <!-- AVERTISSEMENT 1 — Achat de jeux -->
+<section class="relative z-20 px-6 pt-6 pb-2">
+    <div class="max-w-4xl mx-auto glass rounded-xl border border-amber-500/30 bg-amber-500/[0.04] backdrop-blur-md overflow-hidden shadow-lg shadow-amber-900/10 animate-fade-in">
+        <div class="absolute top-0 left-0 w-1 h-full bg-amber-500"></div>
+        <div class="p-5 md:p-6 flex flex-col md:flex-row items-start md:items-center gap-4">
+            <div class="flex-shrink-0 w-10 h-10 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 text-lg">
+                <i class="fas fa-triangle-exclamation"></i>
+            </div>
+            <div class="flex-grow">
+                <h3 class="text-amber-400 font-bold text-sm mb-1 uppercase tracking-wide"><?php echo t('warning.game_purchase.title'); ?></h3>
+                <p class="text-gray-300 text-sm leading-relaxed"><?php echo t('warning.game_purchase.text'); ?></p>
+                <p class="text-amber-500/80 text-xs font-semibold mt-2 italic">— <?php echo t('warning.signoff'); ?></p>
             </div>
         </div>
-    </section>
+    </div>
+</section>
+
+<!-- AVERTISSEMENT 2 — Notice temporaire -->
+<section class="relative z-20 px-6 pt-2 pb-2">
+    <div class="max-w-4xl mx-auto glass rounded-xl border border-amber-500/30 bg-amber-500/[0.04] backdrop-blur-md overflow-hidden shadow-lg shadow-amber-900/10 animate-fade-in">
+        <div class="absolute top-0 left-0 w-1 h-full bg-amber-500"></div>
+        <div class="p-5 md:p-6 flex flex-col md:flex-row items-start md:items-center gap-4">
+            <div class="flex-shrink-0 w-10 h-10 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 text-lg">
+                <i class="fas fa-circle-info"></i>
+            </div>
+            <div class="flex-grow">
+                <h3 class="text-amber-400 font-bold text-sm mb-1 uppercase tracking-wide"><?php echo t('warning.temp_notice.title'); ?></h3>
+                <p class="text-gray-300 text-sm leading-relaxed"><?php echo t('warning.temp_notice.text'); ?></p>
+                <p class="text-amber-500/80 text-xs font-semibold mt-2 italic">— <?php echo t('warning.temp_notice.signoff'); ?></p>
+            </div>
+        </div>
+    </div>
+</section>
 
     <!-- HERO -->
     <section class="relative text-center py-28 md:py-40 px-6 overflow-hidden flex items-center justify-center">
