@@ -311,9 +311,15 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
 
             <hr class="border-white/10 my-3">
 
-            <div class="pt-2">
-                <?php include __DIR__ . '/lang_switcher.php'; ?>
-            </div>
+         <div class="pt-4 mt-4 border-t border-white/10">
+    <div class="flex items-center gap-3 px-4 py-2 text-xs text-gray-500 uppercase tracking-wide font-semibold">
+        <i class="fas fa-globe"></i>
+        <span>Langue / Language</span>
+    </div>
+    <div class="px-4 pb-2">
+        <?php include __DIR__ . '/lang_switcher.php'; ?>
+    </div>
+</div>
         </div>
     </div>
 </nav>
