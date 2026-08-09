@@ -404,10 +404,18 @@ a:focus:not(:focus-visible),
     }
     
     /* Override agressif du maxHeight inline */
-    #mobileMenu[style] {
-        max-height: calc(100vh - 80px) !important;
-        overflow-y: auto !important;
-    }
+   /* ✅ APRÈS (correct) */
+        /* Ne pas override le style inline quand fermé */
+        #mobileMenu[style*="max-height: 0px"] {
+            max-height: 0px !important;
+            overflow: hidden !important;
+        }
+
+        /* Override seulement quand ouvert (maxHeight > 0) */
+        #mobileMenu:not([style*="max-height: 0px"])[style*="max-height"] {
+            max-height: calc(100vh - 80px) !important;
+            overflow-y: auto !important;
+}
     
     /* Container interne */
     #mobileMenu > div {

@@ -81,6 +81,38 @@ $translations = [
     'nav.admin_tickets_short' => ['fr' => 'Gérer les tickets', 'en' => 'Manage tickets', 'de' => 'Tickets verwalten'],
     'nav.phpmyadmin'      => ['fr' => 'phpMyAdmin',        'en' => 'phpMyAdmin',        'de' => 'phpMyAdmin'],
     'nav.panel'           => ['fr' => 'Panel',             'en' => 'Panel',             'de' => 'Panel'],
+    // ============================================
+    // NAVIGATION - COMPLÉMENTS
+    // ============================================
+    'nav.partners'        => ['fr' => 'Partenaires',       'en' => 'Partners',          'de' => 'Partner'],
+    'nav.status'          => ['fr' => 'Statut',            'en' => 'Status',            'de' => 'Status'],
+    'nav.notifications'   => ['fr' => 'Notifications',     'en' => 'Notifications',     'de' => 'Benachrichtigungen'],
+    'nav.my_notifications' => ['fr' => 'Mes notifications', 'en' => 'My notifications',  'de' => 'Meine Benachrichtigungen'],
+    'nav.my_servers'      => ['fr' => 'Mes serveurs',      'en' => 'My servers',        'de' => 'Meine Server'],
+    'nav.my_space'        => ['fr' => 'Mon Espace',        'en' => 'My Space',          'de' => 'Mein Bereich'],
+    'nav.my_profile'      => ['fr' => 'Profil',            'en' => 'Profile',           'de' => 'Profil'],
+    'nav.administration'  => ['fr' => 'Administration',    'en' => 'Administration',    'de' => 'Verwaltung'],
+    
+    // ============================================
+    // BOUTIQUE & FACTURATION
+    // ============================================
+    'nav.shop'            => ['fr' => 'Boutique',          'en' => 'Shop',              'de' => 'Shop'],
+    'nav.cart'            => ['fr' => 'Mon panier',        'en' => 'My cart',           'de' => 'Mein Warenkorb'],
+    'nav.billing'         => ['fr' => 'Facturation',       'en' => 'Billing',           'de' => 'Abrechnung'],
+    
+    // ============================================
+    // BANDEAUX & ALERTES
+    // ============================================
+    'nav.more_info'       => ['fr' => 'Plus d\'infos',     'en' => 'More info',         'de' => 'Mehr Infos'],
+    'nav.impersonating'   => ['fr' => 'Vous êtes connecté en tant que', 'en' => 'You are logged in as', 'de' => 'Sie sind angemeldet als'],
+    'nav.back_to_admin'   => ['fr' => 'Retour admin',      'en' => 'Back to admin',     'de' => 'Zurück zur Verwaltung'],
+    
+    // ============================================
+    // LANGUE
+    // ============================================
+    'nav.language_label'  => ['fr' => 'Langue / Language', 'en' => 'Language',          'de' => 'Sprache'],
+
+
 
     // ══════════════════════════════════════════════════════════════════════
     // FOOTER

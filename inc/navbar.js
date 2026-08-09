@@ -245,31 +245,30 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    function openMobileMenu() {
-        log('Ouverture du menu.');
+function openMobileMenu() {
+    log('Ouverture du menu.');
 
-        // 🔑 Ouvrir avec scrollHeight pour la transition
-        elements.menu.style.maxHeight = elements.menu.scrollHeight + 'px';
-        
-        // Puis laisser le CSS prendre le relais après la transition
-        setTimeout(() => {
-            if (state.menuOpen) {
-                elements.menu.style.maxHeight = ''; // Retire le style inline
-            }
-        }, 500);
-        
-        state.menuOpen = true;
+    // 🔑 Calculer la hauteur réelle
+    const navbarHeight = elements.nav?.offsetHeight || 80;
+    const maxHeight = window.innerHeight - navbarHeight - 20;
+    const menuHeight = Math.min(elements.menu.scrollHeight, maxHeight);
+    
+    // Forcer la hauteur avec scroll
+    elements.menu.style.maxHeight = menuHeight + 'px';
+    elements.menu.style.overflowY = 'auto';
+    
+    state.menuOpen = true;
 
-        setIconsState(true);
-        setOverlayState(true);
-        setBodyScroll(true);
+    setIconsState(true);
+    setOverlayState(true);
+    setBodyScroll(true);
 
-        // Focus accessibilité
-        setTimeout(() => {
-            const firstLink = elements.menu.querySelector('a');
-            if (firstLink) firstLink.focus();
-        }, 300);
-    }
+    // Focus accessibilité
+    setTimeout(() => {
+        const firstLink = elements.menu.querySelector('a');
+        if (firstLink) firstLink.focus();
+    }, 300);
+}
 
     function toggleMobileMenu() {
         if (isMenuOpen()) {
