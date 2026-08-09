@@ -45,7 +45,6 @@ if (isset($pdo)) {
 $notif_count = 0;
 if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc/notifications.php')) {
     try {
-        // Vérifier que $pdo existe avant de l'utiliser
         if (!isset($pdo)) {
             require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/db.php';
         }
@@ -62,6 +61,9 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
 <script src="https://cdn.tailwindcss.com"></script>
 
 <link href="/inc/navbar.css?v=<?php echo filemtime($_SERVER['DOCUMENT_ROOT'] . '/inc/navbar.css'); ?>" rel="stylesheet">
+
+<!-- 📱 Overlay mobile -->
+<div id="mobileOverlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 opacity-0 pointer-events-none transition-opacity duration-300 md:hidden"></div>
 
 <nav class="sticky top-0 z-50 border-b border-white/5" style="background: rgba(7, 10, 19, 0.8); backdrop-filter: blur(14px);">
     
@@ -106,12 +108,12 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
 
     <div class="max-w-7xl mx-auto flex items-center gap-4 p-5">
 
- <h1 class="font-black text-white tracking-tight shrink-0">
-    <a href="/" class="flex items-center gap-2.5 group">
-        <img src="https://heberge.orinstone.deepstone.fr/favicon.png" alt="OrinHeberge Logo" class="w-8 h-8 object-contain">
-        <span class="text-2xl font-black text-white">Orin<span class="text-sky-500">Heberge</span></span>
-    </a>
-</h1>
+        <h1 class="font-black text-white tracking-tight shrink-0">
+            <a href="/" class="flex items-center gap-2.5 group">
+                <img src="https://heberge.orinstone.deepstone.fr/favicon.png" alt="OrinHeberge Logo" class="w-8 h-8 object-contain">
+                <span class="text-2xl font-black text-white">Orin<span class="text-sky-500">Heberge</span></span>
+            </a>
+        </h1>
 
         <div class="hidden md:flex items-center gap-2 lg:gap-3 flex-1 justify-end flex-wrap">
             <a href="/" class="<?php echo $active_nav === 'home' ? 'bg-sky-600/30 text-sky-400 border-sky-500/50 font-bold' : 'bg-sky-600/5 text-sky-400/70 hover:text-sky-300 border-sky-500/10 hover:bg-sky-600/20'; ?> px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium shadow-md border whitespace-nowrap">
@@ -212,100 +214,104 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
             <?php include __DIR__ . '/lang_switcher.php'; ?>
         </div>
 
-        <button id="mobileMenuBtn" class="md:hidden text-2xl text-gray-400 hover:text-white transition shrink-0 ml-auto cursor-pointer" aria-label="Menu">
-            <i class="fas fa-bars" id="menuIcon"></i>
+        <!-- 📱 Bouton hamburger amélioré -->
+        <button id="mobileMenuBtn" class="md:hidden relative w-11 h-11 flex items-center justify-center text-2xl text-gray-400 hover:text-white transition shrink-0 ml-auto cursor-pointer rounded-xl bg-white/5 border border-white/10 hover:bg-white/10" aria-label="Menu">
+            <i class="fas fa-bars absolute transition-all duration-300" id="menuIconBars"></i>
+            <i class="fas fa-xmark absolute transition-all duration-300 opacity-0 scale-50" id="menuIconX"></i>
         </button>
     </div>
 
-    <div id="mobileMenu" class="md:hidden opacity-0" style="max-height: 0px; overflow: hidden;">
-        <div class="px-4 pb-4 space-y-2">
+    <!-- 📱 Menu mobile amélioré -->
+    <div id="mobileMenu" class="md:hidden overflow-hidden transition-all duration-500 ease-in-out" style="max-height: 0px;">
+        <div class="px-4 pb-6 pt-2 space-y-2 border-t border-white/5 bg-gradient-to-b from-transparent to-black/20">
             
-            <a href="/" class="block py-2.5 px-4 rounded-xl flex items-center gap-3 text-sm font-medium border <?php echo $active_nav === 'home' ? 'bg-sky-600/20 border-sky-500/40 text-sky-400' : 'bg-white/[0.02] border-white/5 text-gray-300'; ?>">
-                <i class="fas fa-home w-5 text-center"></i> <?php echo t('nav.home'); ?>
+            <a href="/" class="block py-3.5 px-4 rounded-xl flex items-center gap-3 text-base font-medium border transition-all <?php echo $active_nav === 'home' ? 'bg-sky-600/20 border-sky-500/40 text-sky-400 shadow-lg shadow-sky-900/20' : 'bg-white/[0.02] border-white/5 text-gray-300 hover:bg-white/5'; ?>">
+                <i class="fas fa-home w-6 text-center text-lg"></i> <?php echo t('nav.home'); ?>
             </a>
             
             <?php if (isset($_SESSION['user_id'])): ?>
-            <a href="/client/servers/" class="block py-2.5 px-4 rounded-xl flex items-center gap-3 text-sm font-medium border <?php echo $active_nav === 'servers' ? 'bg-slate-600/20 border-slate-500/40 text-slate-300' : 'bg-white/[0.02] border-white/5 text-gray-300'; ?>">
-                <i class="fas fa-server w-5 text-center"></i> <?php echo t('nav.servers'); ?>
+            <a href="/client/servers/" class="block py-3.5 px-4 rounded-xl flex items-center gap-3 text-base font-medium border transition-all <?php echo $active_nav === 'servers' ? 'bg-slate-600/20 border-slate-500/40 text-slate-300 shadow-lg shadow-slate-900/20' : 'bg-white/[0.02] border-white/5 text-gray-300 hover:bg-white/5'; ?>">
+                <i class="fas fa-server w-6 text-center text-lg"></i> <?php echo t('nav.servers'); ?>
             </a>
             <?php endif; ?>
 
-            <div class="bg-white/[0.02] border border-white/5 rounded-xl">
-                <button type="button" id="mobileShopDropdownBtn" class="w-full py-2.5 px-4 flex items-center justify-between text-sm font-medium text-gray-300 hover:bg-white/5 transition cursor-pointer">
+            <!-- Boutique dropdown mobile -->
+            <div class="bg-white/[0.02] border border-white/5 rounded-xl overflow-hidden">
+                <button type="button" id="mobileShopDropdownBtn" class="w-full py-3.5 px-4 flex items-center justify-between text-base font-medium text-gray-300 hover:bg-white/5 transition cursor-pointer">
                     <span class="flex items-center gap-3">
-                        <i class="fas fa-tags w-5 text-center"></i> Boutique
+                        <i class="fas fa-tags w-6 text-center text-lg"></i> Boutique
                     </span>
-                    <i class="fas fa-chevron-down text-xs transition-transform duration-300" id="shopDropdownIcon"></i>
+                    <i class="fas fa-chevron-down text-sm transition-transform duration-300" id="shopDropdownIcon"></i>
                 </button>
                 <div id="shopDropdown" class="transition-all duration-300 ease-in-out overflow-hidden" style="max-height: 0px;">
-                    <div class="border-t border-white/5 bg-black/20 py-2">
-                        <a href="/shop/" class="block py-2 px-4 pl-12 text-sm text-gray-400 hover:bg-white/5 hover:text-white">
-                            <i class="fas fa-tags w-4 mr-2"></i> <?php echo t('nav.offers'); ?>
+                    <div class="border-t border-white/5 bg-black/30 py-2 space-y-1">
+                        <a href="/shop/" class="block py-3 px-4 pl-14 text-sm text-gray-400 hover:bg-white/5 hover:text-white transition-all">
+                            <i class="fas fa-tags w-5 mr-2 text-sky-400/70"></i> <?php echo t('nav.offers'); ?>
                         </a>
-                        <a href="/shop/cart/" class="block py-2 px-4 pl-12 text-sm text-gray-400 hover:bg-white/5 hover:text-white">
-                            <i class="fas fa-shopping-cart w-4 mr-2"></i> Mon panier
+                        <a href="/shop/cart/" class="block py-3 px-4 pl-14 text-sm text-gray-400 hover:bg-white/5 hover:text-white transition-all">
+                            <i class="fas fa-shopping-cart w-5 mr-2 text-sky-400/70"></i> Mon panier
                         </a>
                         <?php if (isset($_SESSION['user_id'])): ?>
-                        <a href="/client/billing/" class="block py-2 px-4 pl-12 text-sm text-gray-400 hover:bg-white/5 hover:text-white">
-                            <i class="fas fa-file-invoice-dollar w-4 mr-2"></i> Facturation
+                        <a href="/client/billing/" class="block py-3 px-4 pl-14 text-sm text-gray-400 hover:bg-white/5 hover:text-white transition-all">
+                            <i class="fas fa-file-invoice-dollar w-5 mr-2 text-sky-400/70"></i> Facturation
                         </a>
                         <?php endif; ?>
                     </div>
                 </div>
             </div>
 
-            <a href="/support/" class="block py-2.5 px-4 rounded-xl flex items-center gap-3 text-sm font-medium border <?php echo $active_nav === 'support' ? 'bg-purple-600/20 border-purple-500/40 text-purple-400' : 'bg-white/[0.02] border-white/5 text-gray-300'; ?>">
-                <i class="fas fa-headset w-5 text-center"></i> <?php echo t('nav.support'); ?>
+            <a href="/support/" class="block py-3.5 px-4 rounded-xl flex items-center gap-3 text-base font-medium border transition-all <?php echo $active_nav === 'support' ? 'bg-purple-600/20 border-purple-500/40 text-purple-400 shadow-lg shadow-purple-900/20' : 'bg-white/[0.02] border-white/5 text-gray-300 hover:bg-white/5'; ?>">
+                <i class="fas fa-headset w-6 text-center text-lg"></i> <?php echo t('nav.support'); ?>
             </a>
 
-            <a href="/partenaires/" class="block py-2.5 px-4 rounded-xl flex items-center gap-3 text-sm font-medium border <?php echo $active_nav === 'partners' ? 'bg-indigo-600/20 border-indigo-500/40 text-indigo-400' : 'bg-white/[0.02] border-white/5 text-gray-300'; ?>">
-                <i class="fas fa-handshake w-5 text-center"></i> Partenaires
+            <a href="/partenaires/" class="block py-3.5 px-4 rounded-xl flex items-center gap-3 text-base font-medium border transition-all <?php echo $active_nav === 'partners' ? 'bg-indigo-600/20 border-indigo-500/40 text-indigo-400 shadow-lg shadow-indigo-900/20' : 'bg-white/[0.02] border-white/5 text-gray-300 hover:bg-white/5'; ?>">
+                <i class="fas fa-handshake w-6 text-center text-lg"></i> Partenaires
             </a>
 
-            <a href="/status/" class="block py-2.5 px-4 rounded-xl flex items-center gap-3 text-sm font-medium border bg-emerald-600/10 border-emerald-500/30 text-emerald-400">
-                <i class="fas fa-signal w-5 text-center"></i> <?php echo t('status.nav'); ?>
+            <a href="/status/" class="block py-3.5 px-4 rounded-xl flex items-center gap-3 text-base font-medium border bg-emerald-600/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-600/20 transition-all">
+                <i class="fas fa-signal w-6 text-center text-lg"></i> <?php echo t('status.nav'); ?>
             </a>
 
-            <hr class="border-white/10">
+            <hr class="border-white/10 my-3">
 
             <?php if (isset($_SESSION['user_id']) && $notif_count > 0): ?>
-            <a href="/notifications/" class="block py-2.5 px-4 rounded-xl flex items-center gap-3 text-sm font-medium border bg-rose-600/10 border-rose-500/30 text-rose-400">
-                <i class="fas fa-bell w-5 text-center"></i> 
+            <a href="/notifications/" class="block py-3.5 px-4 rounded-xl flex items-center gap-3 text-base font-medium border bg-rose-600/10 border-rose-500/30 text-rose-400 hover:bg-rose-600/20 transition-all">
+                <i class="fas fa-bell w-6 text-center text-lg"></i> 
                 <span>Notifications</span>
-                <span class="ml-auto bg-rose-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full"><?= $notif_count ?></span>
+                <span class="ml-auto bg-rose-500 text-white text-xs font-bold px-2.5 py-1 rounded-full"><?= $notif_count ?></span>
             </a>
             <?php endif; ?>
 
             <?php if (isset($_SESSION['user_id'])): ?>
-                <a href="/profil/" class="block py-2.5 px-4 rounded-xl flex items-center gap-3 text-sm font-medium bg-white/[0.02] border border-white/5 text-gray-300">
-                    <i class="fas fa-user w-5 text-center"></i> Profil
+                <a href="/profil/" class="block py-3.5 px-4 rounded-xl flex items-center gap-3 text-base font-medium bg-white/[0.02] border border-white/5 text-gray-300 hover:bg-white/5 transition-all">
+                    <i class="fas fa-user w-6 text-center text-lg"></i> Profil
                 </a>
-                <a href="/client/servers/" class="block py-2.5 px-4 rounded-xl flex items-center gap-3 text-sm font-medium bg-white/[0.02] border border-white/5 text-gray-300">
-                    <i class="fas fa-server w-5 text-center"></i> Mes serveurs
+                <a href="/client/servers/" class="block py-3.5 px-4 rounded-xl flex items-center gap-3 text-base font-medium bg-white/[0.02] border border-white/5 text-gray-300 hover:bg-white/5 transition-all">
+                    <i class="fas fa-server w-6 text-center text-lg"></i> Mes serveurs
                 </a>
-                <a href="/client/billing/" class="block py-2.5 px-4 rounded-xl flex items-center gap-3 text-sm font-medium bg-white/[0.02] border border-white/5 text-gray-300">
-                    <i class="fas fa-file-invoice-dollar w-5 text-center"></i> Facturation
+                <a href="/client/billing/" class="block py-3.5 px-4 rounded-xl flex items-center gap-3 text-base font-medium bg-white/[0.02] border border-white/5 text-gray-300 hover:bg-white/5 transition-all">
+                    <i class="fas fa-file-invoice-dollar w-6 text-center text-lg"></i> Facturation
                 </a>
                 <?php if (!empty($_SESSION['is_admin'])): ?>
-                    <a href="/admin/" class="block py-2.5 px-4 rounded-xl flex items-center gap-3 text-sm font-medium bg-amber-600/10 border border-amber-500/30 text-amber-400">
-                        <i class="fas fa-user-tie w-5 text-center"></i> Administration
+                    <a href="/admin/" class="block py-3.5 px-4 rounded-xl flex items-center gap-3 text-base font-medium bg-amber-600/10 border border-amber-500/30 text-amber-400 hover:bg-amber-600/20 transition-all">
+                        <i class="fas fa-user-tie w-6 text-center text-lg"></i> Administration
                     </a>
                 <?php endif; ?>
-                <a href="/logout/" class="block py-2.5 px-4 rounded-xl flex items-center gap-3 text-sm font-medium bg-red-600/10 border border-red-500/30 text-red-400">
-                    <i class="fas fa-sign-out-alt w-5 text-center"></i> Déconnexion
+                <a href="/logout/" class="block py-3.5 px-4 rounded-xl flex items-center gap-3 text-base font-medium bg-red-600/10 border border-red-500/30 text-red-400 hover:bg-red-600/20 transition-all">
+                    <i class="fas fa-sign-out-alt w-6 text-center text-lg"></i> Déconnexion
                 </a>
             <?php else: ?>
-                <a href="/login/" class="block py-2.5 px-4 rounded-xl flex items-center gap-3 text-sm font-medium bg-white/5 border border-white/5 text-gray-300">
-                    <i class="fas fa-sign-in-alt w-5 text-center"></i> <?php echo t('nav.login'); ?>
+                <a href="/login/" class="block py-3.5 px-4 rounded-xl flex items-center gap-3 text-base font-medium bg-white/5 border border-white/5 text-gray-300 hover:bg-white/10 transition-all">
+                    <i class="fas fa-sign-in-alt w-6 text-center text-lg"></i> <?php echo t('nav.login'); ?>
                 </a>
-                <a href="/register/" class="block py-2.5 px-4 rounded-xl flex items-center gap-3 text-sm font-medium bg-sky-600/20 border border-sky-500/30 text-sky-400">
-                    <i class="fas fa-user-plus w-5 text-center"></i> <?php echo t('nav.register'); ?>
+                <a href="/register/" class="block py-3.5 px-4 rounded-xl flex items-center gap-3 text-base font-medium bg-sky-600 border border-sky-500 text-white hover:bg-sky-500 transition-all shadow-lg shadow-sky-900/30">
+                    <i class="fas fa-user-plus w-6 text-center text-lg"></i> <?php echo t('nav.register'); ?>
                 </a>
             <?php endif; ?>
 
-            <hr class="border-white/10">
+            <hr class="border-white/10 my-3">
 
-            <div class="pt-1">
+            <div class="pt-2">
                 <?php include __DIR__ . '/lang_switcher.php'; ?>
             </div>
         </div>
