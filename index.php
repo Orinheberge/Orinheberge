@@ -18,9 +18,9 @@ if (!function_exists('add_custom_translations')) {
 ];
 
 $translations['warning.game_purchase.text'] = [
-    'fr' => 'Merci de ne pas vouloir acheter des offres de jeux (Minecraft, Hytale, FiveM, Terraria).',
-    'en' => 'Please do not attempt to purchase game offers (Minecraft, Hytale, FiveM, Terraria).',
-    'de' => 'Bitte versuchen Sie nicht, Spiel-Angebote (Minecraft, Hytale, FiveM, Terraria) zu erwerben.'
+    'fr' => 'Merci de ne pas vouloir acheter des offres de jeux (Minecraft, Hytale, FiveM, Terraria). Cette indisponibilité est temporaire.',
+    'en' => 'Please do not attempt to purchase game offers (Minecraft, Hytale, FiveM, Terraria). This suspension is temporary.',
+    'de' => 'Bitte versuchen Sie nicht, Spiel-Angebote (Minecraft, Hytale, FiveM, Terraria) gekauft werden können. Dies ist nur vorübergehend.'
 ];
 
 $translations['warning.signoff'] = [
