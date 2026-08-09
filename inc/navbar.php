@@ -309,20 +309,24 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
                 </a>
             <?php endif; ?>
 
-            <hr class="border-white/10 my-3">
-
-         <div class="pt-4 mt-4 border-t border-white/10">
-    <div class="flex items-center gap-3 px-4 py-2 text-xs text-gray-500 uppercase tracking-wide font-semibold">
-        <i class="fas fa-globe"></i>
-        <span>Langue / Language</span>
-    </div>
-    <div class="px-4 pb-2">
-        <?php include __DIR__ . '/lang_switcher.php'; ?>
-    </div>
-</div>
+            <!-- ✅ BLOC LANGUE CORRIGÉ (centré + scrollable sans double bordure) -->
+            <div class="mt-4 pt-4 border-t border-white/10">
+                <div class="flex flex-col items-center max-h-[50vh] overflow-y-auto custom-scrollbar-mobile">
+                    <!-- Label -->
+                    <div class="flex items-center justify-center gap-3 py-2 text-xs text-gray-500 uppercase tracking-wide font-semibold sticky top-0 bg-[#0b0f17]/95 backdrop-blur-sm w-full z-10">
+                        <i class="fas fa-globe text-sky-400"></i>
+                        <span>Langue / Language</span>
+                    </div>
+                    
+                    <!-- Sélecteur -->
+                    <div class="mt-2 mb-2">
+                        <?php include __DIR__ . '/lang_switcher.php'; ?>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </nav>
 
 <script src="/inc/navbar.js?v=<?php echo filemtime($_SERVER['DOCUMENT_ROOT'] . '/inc/navbar.js'); ?>"></script>
-<script src="/inc/lang_switcher.js"></script> 
+<script src="/inc/lang_switcher.js?v=<?php echo filemtime($_SERVER['DOCUMENT_ROOT'] . '/inc/lang_switcher.js'); ?>"></script>
