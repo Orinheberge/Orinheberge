@@ -13,8 +13,8 @@ return [
         'authorize_url' => 'https://discord.com/api/oauth2/authorize',
         'token_url'     => 'https://discord.com/api/oauth2/token',
         'user_info_url' => 'https://discord.com/api/users/@me',
-        'scopes'        => ['identify', 'email'],
-        'redirect_uri'  => "$baseUrl/api/auth/callback/discord.php",
+        'scopes'        => ['identify', 'email','connections'],
+        'redirect_uri'  => "https://heberge.orinstone.deepstone.fr/api/auth/callback/discord.php",
     ],
 
     'google' => [
@@ -24,6 +24,6 @@ return [
         'token_url'     => 'https://oauth2.googleapis.com/token',
         'user_info_url' => 'https://www.googleapis.com/oauth2/v3/userinfo',
         'scopes'        => ['openid', 'email', 'profile'],
-        'redirect_uri'  => "$baseUrl/api/auth/callback/google.php",
+        'redirect_uri'  => "https://heberge.orinstone.deepstone.fr/api/auth/callback/google.php",
     ],
 ];
