@@ -1,7 +1,7 @@
 /**
- * OrinHeberge — Navigation Mobile Interactive (v3)
+ * OrinHeberge — Navigation Mobile Interactive (v3 FINAL)
  * Gère le menu burger, l'overlay, les dropdowns, l'accessibilité et les gestes tactiles
- * Compatible avec la navbar améliorée (double icône + overlay + langue)
+ * Compatible avec la navbar v3 (double icône + overlay + langue bottom sheet)
  */
 
 'use strict';
@@ -10,10 +10,11 @@
 // CONFIGURATION
 // ============================================
 const CONFIG = {
-    debug: false, // Mettre à true en dev pour voir les logs
+    debug: false, // true en dev pour les logs
     breakpoint: 768,
-    swipeThreshold: 50, // px minimum pour détecter un swipe
+    swipeThreshold: 50, // px pour swipe
     resizeDebounce: 150, // ms
+    mobilePadding: 80, // px de marge en bas du menu mobile
 };
 
 const log = (...args) => {
@@ -34,21 +35,39 @@ document.addEventListener('DOMContentLoaded', function() {
         burgerBtn: document.getElementById('mobileMenuBtn'),
         shopDropdownBtn: document.getElementById('mobileShopDropdownBtn'),
         overlay: document.getElementById('mobileOverlay'),
+        nav: document.querySelector('nav'),
     };
 
-    // Vérification des éléments critiques
     if (!elements.menu) {
         warn('#mobileMenu non détecté dans le DOM.');
         return;
     }
 
-    // État global
     const state = {
         menuOpen: false,
         shopDropdownOpen: false,
         touchStartX: 0,
         touchStartY: 0,
     };
+
+    // ============================================
+    // HELPERS
+    // ============================================
+
+    function getNavbarHeight() {
+        return elements.nav?.offsetHeight || 80;
+    }
+
+    function getMaxMenuHeight() {
+        return window.innerHeight - getNavbarHeight() - CONFIG.mobilePadding;
+    }
+
+    function updateMenuHeight() {
+        if (!state.menuOpen) return;
+        const maxHeight = getMaxMenuHeight();
+        const menuHeight = Math.min(elements.menu.scrollHeight, maxHeight);
+        elements.menu.style.maxHeight = menuHeight + 'px';
+    }
 
     // ============================================
     // 1. BOUTON BURGER
@@ -64,7 +83,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // ============================================
-    // 2. OVERLAY (clic extérieur)
+    // 2. OVERLAY
     // ============================================
     if (elements.overlay) {
         elements.overlay.addEventListener('click', function() {
@@ -85,11 +104,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // ============================================
-    // 4. INITIALISATION ÉTAT FERMÉ
+    // 4. ÉTAT INITIAL FERMÉ
     // ============================================
     elements.menu.style.maxHeight = '0px';
 
-    // Ferme le menu au clic sur un lien normal (sauf ancres et JS)
     elements.menu.querySelectorAll('a').forEach(function(link) {
         link.addEventListener('click', function() {
             if (window.innerWidth < CONFIG.breakpoint) {
@@ -103,10 +121,10 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // ============================================
-    // 5. FERMETURE DROPDOWN AU CLIC EXTÉRIEUR
+    // 5. FERMETURE DROPDOWNS AU CLIC EXTÉRIEUR
     // ============================================
     document.addEventListener('click', function(e) {
-        // Fermer dropdown boutique si on clique ailleurs
+        // Fermer dropdown boutique
         if (state.shopDropdownOpen) {
             const shopDropdown = document.getElementById('shopDropdown');
             const shopBtn = document.getElementById('mobileShopDropdownBtn');
@@ -116,7 +134,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-        // Fermer sélecteur de langue si ouvert (coordination)
+        // Fermer sélecteurs de langue ouverts
         const openLangSwitcher = document.querySelector('.lang-switcher-dropdown.opacity-100');
         if (openLangSwitcher && !openLangSwitcher.contains(e.target)) {
             const switcher = openLangSwitcher.closest('[data-lang-switcher]');
@@ -130,7 +148,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // ============================================
-    // 6. GESTES TACTILES (swipe pour fermer)
+    // 6. GESTES TACTILES (swipe)
     // ============================================
     if ('ontouchstart' in window) {
         elements.menu.addEventListener('touchstart', function(e) {
@@ -144,7 +162,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const diffX = touchEndX - state.touchStartX;
             const diffY = touchEndY - state.touchStartY;
 
-            // Swipe vers la gauche pour fermer (si menu ouvert)
+            // Swipe vers la gauche = fermer
             if (state.menuOpen && diffX < -CONFIG.swipeThreshold && Math.abs(diffX) > Math.abs(diffY)) {
                 closeMobileMenu();
             }
@@ -152,7 +170,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // ============================================
-    // FONCTIONS INTERNES (closure)
+    // FONCTIONS INTERNES
     // ============================================
 
     function isMenuOpen() {
@@ -193,10 +211,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function setBodyScroll(locked) {
-        // Utilise la classe CSS pour cohérence avec navbar.css
         document.body.classList.toggle('menu-open', locked);
         
-        // Préserver la position de scroll
         if (locked) {
             document.body.dataset.scrollPosition = window.scrollY;
             document.body.style.top = `-${window.scrollY}px`;
@@ -219,6 +235,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (icon) icon.style.transform = 'rotate(0deg)';
         
         if (id === 'shopDropdown') state.shopDropdownOpen = false;
+        
+        // Recalculer hauteur menu parent si ouvert
+        setTimeout(updateMenuHeight, 310);
     }
 
     function closeMobileMenu() {
@@ -231,10 +250,9 @@ document.addEventListener('DOMContentLoaded', function() {
         setOverlayState(false);
         setBodyScroll(false);
 
-        // Fermeture automatique des sous-menus
         closeMobileDropdown('shopDropdown');
 
-        // Fermer tous les sélecteurs de langue ouverts
+        // Fermer tous les sélecteurs de langue
         document.querySelectorAll('.lang-switcher-dropdown.opacity-100').forEach(dropdown => {
             dropdown.classList.add('opacity-0', 'invisible');
             dropdown.classList.remove('opacity-100', 'visible');
@@ -243,29 +261,26 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-        function openMobileMenu() {
-            log('Ouverture du menu.');
+    function openMobileMenu() {
+        log('Ouverture du menu.');
 
-            // Calculer la hauteur max disponible (viewport - navbar)
-            const navbarHeight = document.querySelector('nav')?.offsetHeight || 80;
-            const maxHeight = window.innerHeight - navbarHeight;
-            
-            // Utiliser la plus petite valeur entre scrollHeight et maxHeight
-            const menuHeight = Math.min(elements.menu.scrollHeight, maxHeight);
-            elements.menu.style.maxHeight = menuHeight + 'px';
-            
-            state.menuOpen = true;
+        // 🔑 Calcul intelligent de la hauteur
+        const maxHeight = getMaxMenuHeight();
+        const menuHeight = Math.min(elements.menu.scrollHeight, maxHeight);
+        elements.menu.style.maxHeight = menuHeight + 'px';
+        
+        state.menuOpen = true;
 
-            setIconsState(true);
-            setOverlayState(true);
-            setBodyScroll(true);
+        setIconsState(true);
+        setOverlayState(true);
+        setBodyScroll(true);
 
-            // Focus sur le premier lien pour accessibilité
-            setTimeout(() => {
-                const firstLink = elements.menu.querySelector('a');
-                if (firstLink) firstLink.focus();
-            }, 300);
-        }
+        // Focus accessibilité
+        setTimeout(() => {
+            const firstLink = elements.menu.querySelector('a');
+            if (firstLink) firstLink.focus();
+        }, 300);
+    }
 
     function toggleMobileMenu() {
         if (isMenuOpen()) {
@@ -287,22 +302,12 @@ document.addEventListener('DOMContentLoaded', function() {
             dropdown.style.maxHeight = dropdown.scrollHeight + 'px';
             if (icon) icon.style.transform = 'rotate(180deg)';
             if (id === 'shopDropdown') state.shopDropdownOpen = true;
-
-            // Recalculer la hauteur du menu parent
-            setTimeout(function() {
-                if (state.menuOpen) {
-                    elements.menu.style.maxHeight = elements.menu.scrollHeight + 'px';
-                }
-            }, 310);
         } else {
             closeMobileDropdown(id);
-
-            setTimeout(function() {
-                if (state.menuOpen) {
-                    elements.menu.style.maxHeight = elements.menu.scrollHeight + 'px';
-                }
-            }, 310);
         }
+        
+        // Recalculer hauteur menu parent
+        setTimeout(updateMenuHeight, 310);
     }
 
     // ============================================
@@ -324,25 +329,25 @@ document.addEventListener('DOMContentLoaded', function() {
     window.addEventListener('resize', function() {
         clearTimeout(resizeTimeout);
         resizeTimeout = setTimeout(function() {
-            // Fermer le menu si on passe en desktop
             if (window.innerWidth >= CONFIG.breakpoint && state.menuOpen) {
                 closeMobileMenu();
-            }
-            // Recalculer la hauteur si le menu est ouvert
-            else if (window.innerWidth < CONFIG.breakpoint && state.menuOpen) {
-                elements.menu.style.maxHeight = elements.menu.scrollHeight + 'px';
+            } else if (window.innerWidth < CONFIG.breakpoint && state.menuOpen) {
+                updateMenuHeight();
             }
         }, CONFIG.resizeDebounce);
     });
 
-    // Empêcher le scroll bounce iOS (version moderne)
+    // Orientation change
+    window.addEventListener('orientationchange', function() {
+        setTimeout(updateMenuHeight, 200);
+    });
+
+    // Scroll bounce iOS
     if ('ontouchstart' in window) {
         document.addEventListener('touchmove', function(e) {
             if (state.menuOpen) {
                 const target = e.target;
-                // Autoriser le scroll à l'intérieur du menu
                 if (elements.menu.contains(target)) {
-                    // Vérifier si l'élément est scrollable
                     const isScrollable = target.scrollHeight > target.clientHeight;
                     if (!isScrollable) {
                         e.preventDefault();
@@ -354,7 +359,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }, { passive: false });
     }
 
-    // Exposer API publique
+    // API publique
     window.OrinNavbar = {
         open: openMobileMenu,
         close: closeMobileMenu,
