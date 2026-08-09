@@ -792,5 +792,163 @@ function getCardStyle($tier_key) {
     window.categoryLabels = <?php echo json_encode(array_map(fn($cat) => t($cat['name_key']), $dynamic_categories), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
 </script>
 <script src="/inc/accueil.js"></script>
+<!-- 🚀 Enregistrement du Service Worker -->
+<script>
+(function() {
+    'use strict';
+
+    // Vérifier le support
+    if (!('serviceWorker' in navigator)) {
+        console.warn('[SW] Service Workers non supportés par ce navigateur.');
+        return;
+    }
+
+    // ⚠️ Les SW nécessitent HTTPS (ou localhost en dev)
+    if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+        console.warn('[SW] HTTPS requis pour enregistrer le Service Worker.');
+        return;
+    }
+
+    window.addEventListener('load', async () => {
+        try {
+            const registration = await navigator.serviceWorker.register('/sw.js', {
+                scope: '/'
+            });
+
+            console.log('[SW] Enregistré avec succès. Scope:', registration.scope);
+
+            // ============================================
+            // GESTION DES MISES À JOUR
+            // ============================================
+
+            // 1. Vérifier les mises à jour périodiquement (toutes les heures)
+            setInterval(() => {
+                registration.update();
+            }, 60 * 60 * 1000);
+
+            // 2. Détecter quand une nouvelle version est en attente
+            registration.addEventListener('updatefound', () => {
+                const newWorker = registration.installing;
+                console.log('[SW] Nouvelle version détectée, installation...');
+
+                newWorker.addEventListener('statechange', () => {
+                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                        // Nouvelle version prête, notifier l'utilisateur
+                        showUpdateNotification(registration);
+                    }
+                });
+            });
+
+            // 3. Écouter les messages du SW (pour SKIP_WAITING)
+            let refreshing = false;
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (refreshing) return;
+                refreshing = true;
+                window.location.reload();
+            });
+
+        } catch (error) {
+            console.error('[SW] Échec de l\'enregistrement:', error);
+        }
+    });
+
+    // ============================================
+    // UI DE NOTIFICATION DE MISE À JOUR
+    // ============================================
+    function showUpdateNotification(registration) {
+        // Ne pas afficher si déjà affiché
+        if (document.getElementById('sw-update-banner')) return;
+
+        const banner = document.createElement('div');
+        banner.id = 'sw-update-banner';
+        banner.innerHTML = `
+            <div style="
+                position: fixed;
+                bottom: 1rem;
+                right: 1rem;
+                left: 1rem;
+                max-width: 28rem;
+                margin: 0 auto;
+                background: linear-gradient(135deg, rgba(14, 165, 233, 0.95), rgba(2, 132, 199, 0.95));
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                border-radius: 1rem;
+                padding: 1rem 1.25rem;
+                color: white;
+                box-shadow: 0 10px 40px rgba(14, 165, 233, 0.3);
+                z-index: 99999;
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+                font-family: system-ui, -apple-system, sans-serif;
+                animation: slideUp 0.4s ease-out;
+            ">
+                <div style="font-size: 1.5rem;">🚀</div>
+                <div style="flex: 1;">
+                    <div style="font-weight: 600; font-size: 0.95rem;">Nouvelle version disponible !</div>
+                    <div style="font-size: 0.8rem; opacity: 0.9; margin-top: 2px;">
+                        Rechargez pour profiter des dernières améliorations.
+                    </div>
+                </div>
+                <button id="sw-update-btn" style="
+                    background: white;
+                    color: rgb(2, 132, 199);
+                    border: none;
+                    padding: 0.5rem 1rem;
+                    border-radius: 0.5rem;
+                    font-weight: 600;
+                    font-size: 0.85rem;
+                    cursor: pointer;
+                    white-space: nowrap;
+                    transition: transform 0.2s;
+                ">
+                    Mettre à jour
+                </button>
+                <button id="sw-close-btn" style="
+                    background: transparent;
+                    color: white;
+                    border: none;
+                    font-size: 1.25rem;
+                    cursor: pointer;
+                    padding: 0.25rem;
+                    opacity: 0.8;
+                    line-height: 1;
+                ">
+                    ×
+                </button>
+            </div>
+        `;
+
+        // Animation CSS inline
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideUp {
+                from { transform: translateY(100%); opacity: 0; }
+                to { transform: translateY(0); opacity: 1; }
+            }
+            #sw-update-btn:hover { transform: scale(1.05); }
+            #sw-close-btn:hover { opacity: 1; }
+        `;
+        document.head.appendChild(style);
+
+        document.body.appendChild(banner);
+
+        // Handlers
+        document.getElementById('sw-update-btn').addEventListener('click', () => {
+            // Demander au SW d'activer la nouvelle version immédiatement
+            if (registration.waiting) {
+                registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+            }
+            banner.remove();
+        });
+
+        document.getElementById('sw-close-btn').addEventListener('click', () => {
+            banner.style.animation = 'slideUp 0.3s ease-in reverse';
+            setTimeout(() => banner.remove(), 300);
+        });
+    }
+})();
+</script>
 </body>
 </html>
