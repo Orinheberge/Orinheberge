@@ -1,7 +1,7 @@
 /**
- * OrinHeberge — Navigation Mobile Interactive (v3 FINAL)
+ * OrinHeberge — Navigation Mobile Interactive (v4 FINAL)
  * Gère le menu burger, l'overlay, les dropdowns, l'accessibilité et les gestes tactiles
- * Compatible avec la navbar v3 (double icône + overlay + langue bottom sheet)
+ * Compatible avec la navbar v4 (scroll forcé + z-index fix)
  */
 
 'use strict';
@@ -14,7 +14,6 @@ const CONFIG = {
     breakpoint: 768,
     swipeThreshold: 50, // px pour swipe
     resizeDebounce: 150, // ms
-    mobilePadding: 80, // px de marge en bas du menu mobile
 };
 
 const log = (...args) => {
@@ -22,7 +21,7 @@ const log = (...args) => {
 };
 const warn = (...args) => console.warn('[Navbar]', ...args);
 
-log('Script navbar.js v3 initialisé.');
+log('Script navbar.js v4 initialisé.');
 
 // ============================================
 // INITIALISATION
@@ -49,25 +48,6 @@ document.addEventListener('DOMContentLoaded', function() {
         touchStartX: 0,
         touchStartY: 0,
     };
-
-    // ============================================
-    // HELPERS
-    // ============================================
-
-    function getNavbarHeight() {
-        return elements.nav?.offsetHeight || 80;
-    }
-
-    function getMaxMenuHeight() {
-        return window.innerHeight - getNavbarHeight() - CONFIG.mobilePadding;
-    }
-
-    function updateMenuHeight() {
-        if (!state.menuOpen) return;
-        const maxHeight = getMaxMenuHeight();
-        const menuHeight = Math.min(elements.menu.scrollHeight, maxHeight);
-        elements.menu.style.maxHeight = menuHeight + 'px';
-    }
 
     // ============================================
     // 1. BOUTON BURGER
@@ -235,14 +215,18 @@ document.addEventListener('DOMContentLoaded', function() {
         if (icon) icon.style.transform = 'rotate(0deg)';
         
         if (id === 'shopDropdown') state.shopDropdownOpen = false;
-        
-        // Recalculer hauteur menu parent si ouvert
-        setTimeout(updateMenuHeight, 310);
     }
 
     function closeMobileMenu() {
         log('Fermeture du menu.');
         
+        // Remettre maxHeight à scrollHeight pour la transition
+        elements.menu.style.maxHeight = elements.menu.scrollHeight + 'px';
+        
+        // Force reflow
+        elements.menu.offsetHeight;
+        
+        // Puis fermer
         elements.menu.style.maxHeight = '0px';
         state.menuOpen = false;
 
@@ -264,10 +248,15 @@ document.addEventListener('DOMContentLoaded', function() {
     function openMobileMenu() {
         log('Ouverture du menu.');
 
-        // 🔑 Calcul intelligent de la hauteur
-        const maxHeight = getMaxMenuHeight();
-        const menuHeight = Math.min(elements.menu.scrollHeight, maxHeight);
-        elements.menu.style.maxHeight = menuHeight + 'px';
+        // 🔑 Ouvrir avec scrollHeight pour la transition
+        elements.menu.style.maxHeight = elements.menu.scrollHeight + 'px';
+        
+        // Puis laisser le CSS prendre le relais après la transition
+        setTimeout(() => {
+            if (state.menuOpen) {
+                elements.menu.style.maxHeight = ''; // Retire le style inline
+            }
+        }, 500);
         
         state.menuOpen = true;
 
@@ -306,8 +295,13 @@ document.addEventListener('DOMContentLoaded', function() {
             closeMobileDropdown(id);
         }
         
-        // Recalculer hauteur menu parent
-        setTimeout(updateMenuHeight, 310);
+        // 🔑 Recalculer après ouverture/fermeture du dropdown
+        setTimeout(() => {
+            if (state.menuOpen) {
+                // Retirer le style inline pour laisser le CSS gérer
+                elements.menu.style.maxHeight = '';
+            }
+        }, 350);
     }
 
     // ============================================
@@ -332,14 +326,19 @@ document.addEventListener('DOMContentLoaded', function() {
             if (window.innerWidth >= CONFIG.breakpoint && state.menuOpen) {
                 closeMobileMenu();
             } else if (window.innerWidth < CONFIG.breakpoint && state.menuOpen) {
-                updateMenuHeight();
+                // Retirer le style inline pour laisser le CSS gérer
+                elements.menu.style.maxHeight = '';
             }
         }, CONFIG.resizeDebounce);
     });
 
     // Orientation change
     window.addEventListener('orientationchange', function() {
-        setTimeout(updateMenuHeight, 200);
+        setTimeout(() => {
+            if (state.menuOpen) {
+                elements.menu.style.maxHeight = '';
+            }
+        }, 200);
     });
 
     // Scroll bounce iOS
