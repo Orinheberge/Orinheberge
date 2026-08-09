@@ -391,11 +391,28 @@ a:focus:not(:focus-visible),
    MEDIA QUERIES
    ============================================ */
 
-/* Mobile (< 768px) */
+/* ============================================
+   MOBILE (< 768px) - PATCH v3
+   ============================================ */
 @media (max-width: 767px) {
+    /* 🎯 Fond solide pour le menu mobile (corrige la transparence) */
     #mobileMenu {
+        background: linear-gradient(180deg, #070a13 0%, #0b0f17 100%);
         transform: translateZ(0);
         backface-visibility: hidden;
+        -webkit-transform: translateZ(0);
+        -webkit-backface-visibility: hidden;
+        
+        /* Scroll interne si le contenu dépasse */
+        max-height: calc(100vh - 80px) !important;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+    }
+    
+    /* Quand le menu est ouvert, on override le max-height inline */
+    #mobileMenu[style*="max-height"]:not([style*="max-height: 0px"]) {
+        max-height: calc(100vh - 80px) !important;
     }
     
     #shopDropdown {
@@ -408,6 +425,7 @@ a:focus:not(:focus-visible),
         overflow: hidden;
         position: fixed;
         width: 100%;
+        height: 100%;
     }
     
     /* Ajustement des tailles tactiles */
@@ -417,17 +435,44 @@ a:focus:not(:focus-visible),
         align-items: center;
     }
     
-    /* Dropdown langue en position fixe sur mobile */
+    /* 🌐 Dropdown langue en modal bottom sheet sur mobile */
     .lang-switcher-dropdown {
         position: fixed !important;
-        bottom: 1rem;
-        left: 1rem;
-        right: 1rem;
+        bottom: 1rem !important;
+        left: 1rem !important;
+        right: 1rem !important;
         top: auto !important;
         margin-top: 0 !important;
         max-width: none !important;
         width: auto !important;
-        z-index: 9999 !important;
+        z-index: 99999 !important;
+        background: rgba(17, 21, 29, 0.98) !important;
+        backdrop-filter: blur(20px) !important;
+        -webkit-backdrop-filter: blur(20px) !important;
+        border: 1px solid rgba(56, 189, 248, 0.3) !important;
+        box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5) !important;
+        animation: slideUpLang 0.3s ease-out !important;
+    }
+    
+    @keyframes slideUpLang {
+        from { 
+            transform: translateY(100%); 
+            opacity: 0; 
+        }
+        to { 
+            transform: translateY(0); 
+            opacity: 1; 
+        }
+    }
+    
+    /* Options langue plus grandes sur mobile */
+    [data-lang-option] {
+        padding: 1rem !important;
+        font-size: 1rem !important;
+    }
+    
+    [data-lang-option] img {
+        width: 1.5rem !important;
     }
 }
 

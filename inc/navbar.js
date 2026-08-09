@@ -243,22 +243,29 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    function openMobileMenu() {
-        log('Ouverture du menu.');
+        function openMobileMenu() {
+            log('Ouverture du menu.');
 
-        elements.menu.style.maxHeight = elements.menu.scrollHeight + 'px';
-        state.menuOpen = true;
+            // Calculer la hauteur max disponible (viewport - navbar)
+            const navbarHeight = document.querySelector('nav')?.offsetHeight || 80;
+            const maxHeight = window.innerHeight - navbarHeight;
+            
+            // Utiliser la plus petite valeur entre scrollHeight et maxHeight
+            const menuHeight = Math.min(elements.menu.scrollHeight, maxHeight);
+            elements.menu.style.maxHeight = menuHeight + 'px';
+            
+            state.menuOpen = true;
 
-        setIconsState(true);
-        setOverlayState(true);
-        setBodyScroll(true);
+            setIconsState(true);
+            setOverlayState(true);
+            setBodyScroll(true);
 
-        // Focus sur le premier lien pour accessibilité
-        setTimeout(() => {
-            const firstLink = elements.menu.querySelector('a');
-            if (firstLink) firstLink.focus();
-        }, 300);
-    }
+            // Focus sur le premier lien pour accessibilité
+            setTimeout(() => {
+                const firstLink = elements.menu.querySelector('a');
+                if (firstLink) firstLink.focus();
+            }, 300);
+        }
 
     function toggleMobileMenu() {
         if (isMenuOpen()) {

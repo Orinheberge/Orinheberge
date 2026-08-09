@@ -309,17 +309,17 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
                 </a>
             <?php endif; ?>
 
-            <!-- ✅ BLOC LANGUE CORRIGÉ (centré + scrollable sans double bordure) -->
+            <!-- ✅ BLOC LANGUE PATCHÉ (compact + centré) -->
             <div class="mt-4 pt-4 border-t border-white/10">
-                <div class="flex flex-col items-center max-h-[50vh] overflow-y-auto custom-scrollbar-mobile">
+                <div class="flex flex-col items-center px-2 pb-2">
                     <!-- Label -->
-                    <div class="flex items-center justify-center gap-3 py-2 text-xs text-gray-500 uppercase tracking-wide font-semibold sticky top-0 bg-[#0b0f17]/95 backdrop-blur-sm w-full z-10">
+                    <div class="flex items-center justify-center gap-2 py-2 text-xs text-gray-500 uppercase tracking-wide font-semibold">
                         <i class="fas fa-globe text-sky-400"></i>
                         <span>Langue / Language</span>
                     </div>
                     
                     <!-- Sélecteur -->
-                    <div class="mt-2 mb-2">
+                    <div class="mt-1">
                         <?php include __DIR__ . '/lang_switcher.php'; ?>
                     </div>
                 </div>
