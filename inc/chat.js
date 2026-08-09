@@ -72,49 +72,63 @@ const ChatApp = {
     },
 
     async loadMessages() {
-        const url = `${this.API.GET}?channel=${this.currentChannel}&last_id=${this.lastMessageId}`;
-        console.log('[Chat] 📥 Chargement messages:', url);
+    const url = `${this.API.GET}?channel=${this.currentChannel}&last_id=${this.lastMessageId}`;
+    console.log('[Chat] 📥 Chargement messages:', url);
+    
+    try {
+        const response = await fetch(url);
+        console.log('[Chat] 📥 Réponse messages:', response.status);
         
+        // 🔍 DEBUG : Récupérer le texte brut AVANT de parser en JSON
+        const responseText = await response.text();
+        console.log('[Chat] 📥 Contenu brut:', responseText.substring(0, 500));
+        
+        // Essayer de parser en JSON
+        let data;
         try {
-            const response = await fetch(url);
-            console.log('[Chat] 📥 Réponse messages:', response.status);
+            data = JSON.parse(responseText);
+        } catch (parseError) {
+            console.error('[Chat] ❌ Réponse non-JSON reçue:');
+            console.error(responseText);
             
-            if (!response.ok) {
-                console.error('[Chat] ❌ Erreur HTTP:', response.status, response.statusText);
-                this.showError('Erreur de connexion au serveur');
-                return;
-            }
-            
-            const data = await response.json();
-            console.log('[Chat] ✅', data.messages?.length || 0, 'messages reçus');
-            
-            if (data.success && data.messages && data.messages.length > 0) {
-                const container = document.getElementById('messagesContainer');
-                
-                if (this.lastMessageId === 0) {
-                    container.innerHTML = '';
-                }
-                
-                data.messages.forEach(msg => {
-                    this.appendMessage(msg);
-                    this.lastMessageId = Math.max(this.lastMessageId, msg.id);
-                });
-                
-                container.scrollTop = container.scrollHeight;
-            } else if (this.lastMessageId === 0) {
-                document.getElementById('messagesContainer').innerHTML = `
-                    <div class="text-center text-gray-500 py-12">
-                        <i class="far fa-comments text-4xl mb-3"></i>
-                        <p>Aucun message pour le moment.</p>
-                        <p class="text-xs mt-2">Soyez le premier à dire bonjour ! 👋</p>
-                    </div>
-                `;
-            }
-        } catch (error) {
-            console.error('[Chat] ❌ Erreur fetch messages:', error);
-            this.showError('Erreur de connexion');
+            // Afficher l'erreur dans le chat
+            this.showError(`
+                <strong>Erreur API</strong><br>
+                Le serveur renvoie du HTML au lieu de JSON.<br>
+                <small>Vérifie la console (F12) pour voir le contenu.</small>
+            `);
+            return;
         }
-    },
+        
+        console.log('[Chat] ✅', data.messages?.length || 0, 'messages reçus');
+        
+        if (data.success && data.messages && data.messages.length > 0) {
+            const container = document.getElementById('messagesContainer');
+            
+            if (this.lastMessageId === 0) {
+                container.innerHTML = '';
+            }
+            
+            data.messages.forEach(msg => {
+                this.appendMessage(msg);
+                this.lastMessageId = Math.max(this.lastMessageId, msg.id);
+            });
+            
+            container.scrollTop = container.scrollHeight;
+        } else if (this.lastMessageId === 0) {
+            document.getElementById('messagesContainer').innerHTML = `
+                <div class="text-center text-gray-500 py-12">
+                    <i class="far fa-comments text-4xl mb-3"></i>
+                    <p>Aucun message pour le moment.</p>
+                    <p class="text-xs mt-2">Soyez le premier à dire bonjour ! 👋</p>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('[Chat] ❌ Erreur fetch messages:', error);
+        this.showError('Erreur de connexion');
+    }
+}
 
     appendMessage(msg) {
         const container = document.getElementById('messagesContainer');
