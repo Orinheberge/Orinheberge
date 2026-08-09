@@ -5,6 +5,35 @@ require_once __DIR__ . '/inc/lang.php';
 $db_status   = false;
 $is_logged_in = isset($_SESSION['user_id']);
 
+// ==========================================
+// AJOUT DES TRADUCTIONS POUR L'AVERTISSEMENT
+// (À ajouter idéalement dans votre fichier inc/lang.php)
+// ==========================================
+if (!function_exists('add_custom_translations')) {
+    function add_custom_translations() {
+        global $translations; // Assurez-vous que cette variable est accessible
+        
+        $translations['warning.game_purchase.title'] = [
+            'fr' => '⚠️ Avertissement Important',
+            'en' => '⚠️ Important Warning',
+            'de' => '⚠️ Wichtiger Hinweis'
+        ];
+        
+        $translations['warning.game_purchase.text'] = [
+            'fr' => 'Merci de ne pas vouloir acheter des offres de jeux (Minecraft, Hytale, FiveM, Terraria) en allemand.',
+            'en' => 'Please do not attempt to purchase game offers (Minecraft, Hytale, FiveM, Terraria) in German.',
+            'de' => 'Bitte versuchen Sie nicht, Spiel-Angebote (Minecraft, Hytale, FiveM, Terraria) auf Deutsch zu kaufen.'
+        ];
+        
+        $translations['warning.signoff'] = [
+            'fr' => 'Cordialement, l\'équipe OrinHeberge',
+            'en' => 'Best regards, The OrinHeberge Team',
+            'de' => 'Mit freundlichen Grüßen, Das OrinHeberge-Team'
+        ];
+    }
+    add_custom_translations();
+}
+
 try {
     $pdo = new PDO('mysql:host=localhost;dbname=s43_orinheberge;charset=utf8mb4','root','1504',[PDO::ATTR_TIMEOUT=>3,PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);
     $db_status = true;
@@ -157,6 +186,28 @@ function getCardStyle($tier_key) {
 <?php $active_nav = 'home'; include __DIR__ . '/inc/navbar.php'; ?>
 
 <main class="flex-grow">
+    <!-- ========================================== -->
+    <!-- SECTION AVERTISSEMENT (NOUVELLE)           -->
+    <!-- ========================================== -->
+    <section class="relative z-20 px-6 pt-6 pb-2">
+        <div class="max-w-4xl mx-auto glass rounded-xl border border-amber-500/30 bg-amber-500/[0.04] backdrop-blur-md overflow-hidden shadow-lg shadow-amber-900/10 animate-fade-in">
+            <div class="absolute top-0 left-0 w-1 h-full bg-amber-500"></div>
+            <div class="p-5 md:p-6 flex flex-col md:flex-row items-start md:items-center gap-4">
+                <div class="flex-shrink-0 w-10 h-10 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 text-lg">
+                    <i class="fas fa-triangle-exclamation"></i>
+                </div>
+                <div class="flex-grow">
+                    <h3 class="text-amber-400 font-bold text-sm mb-1 uppercase tracking-wide"><?php echo t('warning.game_purchase.title'); ?></h3>
+                    <p class="text-gray-300 text-sm leading-relaxed">
+                        <?php echo t('warning.game_purchase.text'); ?>
+                    </p>
+                    <p class="text-amber-500/80 text-xs font-semibold mt-2 italic">
+                        — <?php echo t('warning.signoff'); ?>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
     <!-- HERO -->
     <section class="relative text-center py-28 md:py-40 px-6 overflow-hidden flex items-center justify-center">
         <div class="hero-glow w-[500px] h-[500px] bg-sky-500/10 top-1/2 left-1/2"></div>
