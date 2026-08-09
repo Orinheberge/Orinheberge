@@ -31,8 +31,13 @@ const STATIC_ASSETS = [
     './inc/notifications.js',
     './inc/lang_switcher.js',
     './inc/accueil.js',
+    './inc/clients_sidebar.css',
+    './inc/admin_sidebar.css',
+    './inc/chat.js',
+    './inc/chat.css',
     './inc/navbar.css',
     './favicon.ico',
+    './favicon.png',
 ];
 
 // Patterns pour stratégies spécifiques

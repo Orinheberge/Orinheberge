@@ -112,7 +112,23 @@ $translations = [
     // ============================================
     'nav.language_label'  => ['fr' => 'Langue / Language', 'en' => 'Language',          'de' => 'Sprache'],
 
-
+    // ============================================
+    // CHAT COMMUNAUTAIRE
+    // ============================================
+    'chat.title'              => ['fr' => 'Chat Communautaire', 'en' => 'Community Chat', 'de' => 'Community-Chat'],
+    'chat.channels'           => ['fr' => 'Canaux', 'en' => 'Channels', 'de' => 'Kanäle'],
+    'chat.channel_general'    => ['fr' => 'Général', 'en' => 'General', 'de' => 'Allgemein'],
+    'chat.channel_general_desc' => ['fr' => 'Discussions générales entre membres', 'en' => 'General discussions between members', 'de' => 'Allgemeine Diskussionen zwischen Mitgliedern'],
+    'chat.channel_support'    => ['fr' => 'Support', 'en' => 'Support', 'de' => 'Support'],
+    'chat.channel_support_desc' => ['fr' => 'Demandes d\'aide et support technique', 'en' => 'Help requests and technical support', 'de' => 'Hilfeanfragen und technischer Support'],
+    'chat.channel_offtopic'   => ['fr' => 'Hors sujet', 'en' => 'Off-topic', 'de' => 'Off-Topic'],
+    'chat.channel_offtopic_desc' => ['fr' => 'Discussions libres et hors sujet', 'en' => 'Free and off-topic discussions', 'de' => 'Freie und Off-Topic-Diskussionen'],
+    'chat.online'             => ['fr' => 'En ligne', 'en' => 'Online', 'de' => 'Online'],
+    'chat.loading'            => ['fr' => 'Chargement...', 'en' => 'Loading...', 'de' => 'Laden...'],
+    'chat.placeholder'        => ['fr' => 'Écrire un message...', 'en' => 'Type a message...', 'de' => 'Nachricht schreiben...'],
+    'chat.search_emoji'       => ['fr' => 'Rechercher un emoji...', 'en' => 'Search emoji...', 'de' => 'Emoji suchen...'],
+    'chat.custom_emojis'      => ['fr' => 'Emojis OrinHeberge', 'en' => 'OrinHeberge Emojis', 'de' => 'OrinHeberge Emojis'],
+    'chat.standard_emojis'    => ['fr' => 'Emojis standards', 'en' => 'Standard Emojis', 'de' => 'Standard-Emojis'],
 
     // ══════════════════════════════════════════════════════════════════════
     // FOOTER
