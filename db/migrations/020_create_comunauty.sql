@@ -26,6 +26,15 @@ CREATE TABLE IF NOT EXISTS `remember_tokens` (
         REFERENCES `users`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS `user_activity` (
+    `user_id` INT UNSIGNED NOT NULL PRIMARY KEY,
+    `last_seen` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `current_page` VARCHAR(255) DEFAULT NULL,
+    INDEX `idx_last_seen` (`last_seen`),
+    CONSTRAINT `fk_activity_user` FOREIGN KEY (`user_id`) 
+        REFERENCES `users`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Ajouter colonnes OAuth si pas existantes
 ALTER TABLE `users`
 ADD COLUMN IF NOT EXISTS `oauth_provider` ENUM('local','discord','google') DEFAULT 'local' AFTER `avatar`,

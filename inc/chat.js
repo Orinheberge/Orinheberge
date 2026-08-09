@@ -15,37 +15,131 @@ const ChatApp = {
     API: {
         SEND: '/community/api/send_message.php',
         GET:  '/community/api/get_messages.php',
-        EMOJIS: '/community/api/get_emojis.php'
+        EMOJIS: '/community/api/get_emojis.php',
+        ONLINE: '/community/api/get_online.php'
     },
 
     standardEmojis: ['😀','😃','😄','😁','😆','😅','🤣','😂','🙂','🙃','😉','😊','😇','🥰','😍','🤩','😘','','😚','','🥲','😋','😛','😜','🤪','😝','🤑','🤗','','','🤔','🤐','','😐','😑','😶','😏','😒','🙄','😬','🤥','😌','😔','😪','🤤','😴','😷','🤒','🤕','','','🤧','🥵','🥶','🥴','','','🤠','🥳','','😎','🤓','','😕','😟','','️','😮','😯','😲','😳','🥺','😦','😧','😨','😰','😥','😢','😭','😱','😖','😣','😞','😓','😩','😫','🥱','😤','😡','😠','🤬','👍','','','🙏','🤝','❤️','🔥','⭐','🎉','🚀','💯','👀','✨','💪','🎮','🎵','📚','🌟','💡','🎁'],
 
-    async init() {
-        console.log('[Chat] 🚀 Initialisation...');
+async init() {
+    console.log('[Chat] 🚀 Initialisation...');
+    
+    const requiredElements = ['messagesContainer', 'messageForm', 'messageInput', 'emojiPicker', 'customEmojis', 'standardEmojis'];
+    const missingElements = requiredElements.filter(id => !document.getElementById(id));
+    
+    if (missingElements.length > 0) {
+        console.error('[Chat] ❌ Éléments DOM manquants:', missingElements);
+        return;
+    }
+    
+    console.log('[Chat] ✅ Tous les éléments DOM présents');
+    
+    try {
+        await this.loadCustomEmojis();
+        await this.loadMessages();
+        this.startPolling();           // Messages (2s)
+        this.startOnlinePolling();     // ← AJOUTER : Online users (30s)
+        this.bindEvents();
+        this.renderEmojiPicker();
+        this.isInitialized = true;
+        console.log('[Chat] ✅ Initialisation terminée');
+    } catch (error) {
+        console.error('[Chat] ❌ Erreur initialisation:', error);
+    }
+},
+
+    async loadOnlineUsers() {
+    try {
+        const response = await fetch(this.API.ONLINE);
         
-        // Vérifier que les éléments DOM existent
-        const requiredElements = ['messagesContainer', 'messageForm', 'messageInput', 'emojiPicker', 'customEmojis', 'standardEmojis'];
-        const missingElements = requiredElements.filter(id => !document.getElementById(id));
-        
-        if (missingElements.length > 0) {
-            console.error('[Chat] ❌ Éléments DOM manquants:', missingElements);
+        if (!response.ok) {
+            console.warn('[Chat] ⚠️ Endpoint online indisponible:', response.status);
             return;
         }
         
-        console.log('[Chat] ✅ Tous les éléments DOM présents');
+        const data = await response.json();
         
-        try {
-            await this.loadCustomEmojis();
-            await this.loadMessages();
-            this.startPolling();
-            this.bindEvents();
-            this.renderEmojiPicker();
-            this.isInitialized = true;
-            console.log('[Chat] ✅ Initialisation terminée');
-        } catch (error) {
-            console.error('[Chat] ❌ Erreur initialisation:', error);
+        if (data.success) {
+            this.renderOnlineUsers(data.users);
+            console.log('[Chat] 👥', data.count, 'utilisateurs en ligne');
         }
-    },
+    } catch (error) {
+        console.warn('[Chat] ⚠️ Erreur chargement online:', error.message);
+    }
+},
+
+renderOnlineUsers(users) {
+    const container = document.getElementById('onlineUsers');
+    if (!container) return;
+    
+    if (!users || users.length === 0) {
+        container.innerHTML = '<p class="text-xs text-gray-500 italic">Personne en ligne</p>';
+        return;
+    }
+    
+    container.innerHTML = users.map(user => {
+        const avatarUrl = user.avatar 
+            ? `/${user.avatar}` 
+            : `https://ui-avatars.com/api/?name=${encodeURIComponent(user.username)}&background=0284c7&color=fff&size=32`;
+        
+        const secondsAgo = parseInt(user.seconds_ago);
+        let statusColor = 'bg-green-500';
+        let statusText = 'En ligne';
+        
+        if (secondsAgo > 60) {
+            statusColor = 'bg-yellow-500';
+            statusText = 'Inactif';
+        }
+        
+        const providerIcon = user.oauth_provider === 'discord' 
+            ? '<i class="fab fa-discord text-[#5865F2] text-xs"></i>'
+            : user.oauth_provider === 'google'
+            ? '<i class="fab fa-google text-xs"></i>'
+            : '';
+        
+        return `
+            <div class="flex items-center gap-2 p-2 rounded-lg hover:bg-white/5 transition cursor-pointer group" title="${statusText}">
+                <div class="relative shrink-0">
+                    <img src="${avatarUrl}" alt="${this.escapeHtml(user.username)}" 
+                         class="w-8 h-8 rounded-full object-cover border border-white/10"
+                         onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(user.username)}&background=0284c7&color=fff&size=32'">
+                    <span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 ${statusColor} rounded-full border-2 border-[#0b0f17]"></span>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="text-sm font-medium text-gray-200 truncate flex items-center gap-1">
+                        ${this.escapeHtml(user.username)}
+                        ${providerIcon}
+                    </div>
+                    <div class="text-xs text-gray-500 truncate">${this.formatTimeAgo(secondsAgo)}</div>
+                </div>
+            </div>
+        `;
+    }).join('');
+},
+
+formatTimeAgo(seconds) {
+    if (seconds < 10) return 'À l\'instant';
+    if (seconds < 60) return `Il y a ${seconds}s`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `Il y a ${minutes}min`;
+    const hours = Math.floor(minutes / 60);
+    return `Il y a ${hours}h`;
+},
+
+startOnlinePolling() {
+    console.log('[Chat] 👥 Polling utilisateurs en ligne activé (toutes les 30s)');
+    // Charger immédiatement
+    this.loadOnlineUsers();
+    // Puis toutes les 30 secondes
+    this.onlineInterval = setInterval(() => this.loadOnlineUsers(), 30000);
+},
+
+stopOnlinePolling() {
+    if (this.onlineInterval) {
+        clearInterval(this.onlineInterval);
+        this.onlineInterval = null;
+    }
+},
 
     async loadCustomEmojis() {
         console.log('[Chat] 📥 Chargement emojis custom depuis:', this.API.EMOJIS);
@@ -364,6 +458,8 @@ const ChatApp = {
         });
     },
 
+    
+
     insertEmoji(emoji) {
         const input = document.getElementById('messageInput');
         const start = input.selectionStart;
@@ -388,6 +484,8 @@ const ChatApp = {
         });
     }
 };
+
+
 
 // Initialisation au chargement du DOM
 if (document.readyState === 'loading') {
