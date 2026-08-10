@@ -125,6 +125,11 @@ $open_tickets = $open_tickets ?? 0;
             <?php endif; ?>
         </a>
 
+        <a href="/client/oauth-providers/" class="nav-item nav-profile <?php echo cs_active('/client/oauth-providers'); ?>">
+            <i class="fas fa-user icon"></i> 
+            <span>Comptes connectés</span>
+        </a>
+
         <?php if ($_notif_count > 0): ?>
         <a href="/client/notifications/" class="nav-item nav-notif <?php echo cs_active('/client/notifications'); ?>">
             <i class="fas fa-bell icon"></i> 
