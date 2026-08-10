@@ -1,11 +1,76 @@
-# To get started with Dependabot version updates, you'll need to specify which
-# package ecosystems to update and where the package manifests are located.
-# Please see the documentation for all configuration options:
+# Dependabot configuration for OrinHeberge
 # https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
 
 version: 2
 updates:
-  - package-ecosystem: "" # See documentation for possible values
-    directory: "/" # Location of package manifests
+  # ═══════════════════════════════════════════
+  # 🐘 COMPOSER - Dépendances PHP
+  # ═══════════════════════════════════════════
+  - package-ecosystem: "composer"
+    directory: "/"                    # Où se trouve composer.json
     schedule:
       interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Europe/Paris"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "php"
+    commit-message:
+      prefix: "composer"
+      include: "scope"
+    # Ignorer les mises à jour majeures qui cassent la compat
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  # ═══════════════════════════════════════════
+  # 📦 NPM - Dépendances Node.js (si tu utilises npm/yarn)
+  # ═══════════════════════════════════════════
+  - package-ecosystem: "npm"
+    directory: "/"                    # Où se trouve package.json
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Europe/Paris"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "javascript"
+    commit-message:
+      prefix: "npm"
+    # Désactiver si tu n'utilises pas npm
+    # (supprime cette section si non pertinent)
+
+  # ═══════════════════════════════════════════
+  # 🔄 GITHUB ACTIONS - Workflows CI/CD
+  # ═══════════════════════════════════════════
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Europe/Paris"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "ci"
+    commit-message:
+      prefix: "ci"
+
+  # ═══════════════════════════════════════════
+  # 🐳 DOCKER - Images de base (si Dockerfile présent)
+  # ═══════════════════════════════════════════
+  - package-ecosystem: "docker"
+    directory: "/"                    # Où se trouve le Dockerfile
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "docker"
+    commit-message:
+      prefix: "docker"
