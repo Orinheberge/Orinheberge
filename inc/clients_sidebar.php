@@ -46,6 +46,38 @@ if (isset($_SESSION['user_id']) && isset($pdo)) {
     }
 }
 
+// 🔵 Compteur utilisateurs en ligne (chat)
+$_online_users_count = 0;
+if (isset($_SESSION['user_id']) && isset($pdo)) {
+    try {
+        $stmt = $pdo->prepare("
+            SELECT COUNT(*) FROM user_activity 
+            WHERE last_seen >= DATE_SUB(NOW(), INTERVAL 3 MINUTE)
+        ");
+        $stmt->execute();
+        $_online_users_count = (int)$stmt->fetchColumn();
+    } catch (Exception $e) {
+        $_online_users_count = 0;
+    }
+}
+
+// 🔵 Compteur messages non lus (optionnel - si table existe)
+$_unread_messages_count = 0;
+if (isset($_SESSION['user_id']) && isset($pdo)) {
+    try {
+        // Compter les messages des 5 dernières minutes (approximation "non lus")
+        $stmt = $pdo->prepare("
+            SELECT COUNT(*) FROM chat_messages 
+            WHERE created_at >= DATE_SUB(NOW(), INTERVAL 5 MINUTE)
+              AND user_id != ?
+        ");
+        $stmt->execute([$_SESSION['user_id']]);
+        $_unread_messages_count = (int)$stmt->fetchColumn();
+    } catch (Exception $e) {
+        $_unread_messages_count = 0;
+    }
+}
+
 // 🔵 Vérifier si une maintenance est en cours
 $_maintenance_active = null;
 if (isset($pdo)) {
@@ -109,13 +141,15 @@ $open_tickets = $open_tickets ?? 0;
         </a>
         <?php endif; ?>
 
+        <!-- ═══════════════════════════════════════════ -->
+        <!-- 🏠 PRINCIPAL -->
+        <!-- ═══════════════════════════════════════════ -->
         <div class="nav-section">Principal</div>
         
         <a href="/client/" class="nav-item nav-dashboard <?php echo $current_path === '/client/' || $current_path === '/client' ? 'active' : ''; ?>">
             <i class="fas fa-home icon"></i> 
             <span>Tableau de bord</span>
         </a>
-        
         
         <a href="/client/servers/" class="nav-item nav-servers <?php echo cs_active('/client/servers'); ?>">
             <i class="fas fa-server icon"></i> 
@@ -124,8 +158,6 @@ $open_tickets = $open_tickets ?? 0;
             <span class="ml-auto text-[10px] bg-sky-500/15 text-sky-400 border border-sky-500/20 px-2 py-0.5 rounded-full font-bold"><?php echo $_client_servers_count; ?></span>
             <?php endif; ?>
         </a>
-
-     
 
         <?php if ($_notif_count > 0): ?>
         <a href="/client/notifications/" class="nav-item nav-notif <?php echo cs_active('/client/notifications'); ?>">
@@ -137,6 +169,36 @@ $open_tickets = $open_tickets ?? 0;
 
         <div class="nav-separator"></div>
 
+        <!-- ═══════════════════════════════════════════ -->
+        <!-- 💬 COMMUNAUTÉ -->
+        <!-- ═══════════════════════════════════════════ -->
+        <div class="nav-section">Communauté</div>
+        
+        <a href="/client/community/" class="nav-item nav-community <?php echo cs_active('/client/community'); ?>">
+            <i class="fas fa-comments icon"></i> 
+            <span>Chat communautaire</span>
+            <?php if ($_online_users_count > 0): ?>
+            <span class="ml-auto flex items-center gap-1 text-[10px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full font-bold">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <?php echo $_online_users_count; ?> en ligne
+            </span>
+            <?php elseif ($_unread_messages_count > 0): ?>
+            <span class="ml-auto text-[10px] bg-sky-500/15 text-sky-400 border border-sky-500/20 px-2 py-0.5 rounded-full font-bold">
+                <?php echo $_unread_messages_count; ?>
+            </span>
+            <?php endif; ?>
+        </a>
+
+        <a href="/client/partners/" class="nav-item nav-partners <?php echo cs_active('/client/partners'); ?>">
+            <i class="fas fa-handshake icon"></i> 
+            <span>Partenaires</span>
+        </a>
+
+        <div class="nav-separator"></div>
+
+        <!-- ═══════════════════════════════════════════ -->
+        <!-- 🛒 BOUTIQUE -->
+        <!-- ═══════════════════════════════════════════ -->
         <div class="nav-section">Boutique</div>
         
         <a href="/offres/" class="nav-item nav-offers <?php echo cs_active('/offres'); ?>">
@@ -151,18 +213,23 @@ $open_tickets = $open_tickets ?? 0;
 
         <div class="nav-separator"></div>
 
+        <!-- ═══════════════════════════════════════════ -->
+        <!-- 👤 COMPTE -->
+        <!-- ═══════════════════════════════════════════ -->
         <div class="nav-section">Compte</div>
         
         <a href="/client/profil/" class="nav-item nav-profile <?php echo cs_active('/client/profil'); ?>">
             <i class="fas fa-user icon"></i> 
             <span>Mon profil</span>
         </a>
-          <a href="/client/profil/" class="nav-item nav-profile <?php echo cs_active('/client/cards'); ?>">
+        
+        <a href="/client/profil/#payment" class="nav-item nav-cards <?php echo cs_active('/client/cards'); ?>">
             <i class="fas fa-credit-card icon"></i> 
-            <span>Mes Moyens Payments</span>
+            <span>Moyens de paiement</span>
         </a>
-           <a href="/client/profil/" class="nav-item nav-profile <?php echo cs_active('/client/oauth-providers'); ?>">
-            <i class="fas fa-user icon"></i> 
+        
+        <a href="/client/profil/#oauth" class="nav-item nav-oauth <?php echo cs_active('/client/oauth-providers'); ?>">
+            <i class="fas fa-link icon"></i> 
             <span>Comptes connectés</span>
         </a>
         
@@ -192,6 +259,9 @@ $open_tickets = $open_tickets ?? 0;
 
         <div class="nav-separator"></div>
 
+        <!-- ═══════════════════════════════════════════ -->
+        <!-- 🔧 OUTILS EXTERNES -->
+        <!-- ═══════════════════════════════════════════ -->
         <div class="nav-section">Outils externes</div>
         
         <a href="<?php echo htmlspecialchars($panel_url); ?>" target="_blank" rel="noopener noreferrer" class="nav-item nav-external group">
@@ -214,6 +284,9 @@ $open_tickets = $open_tickets ?? 0;
 
     </nav>
 
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- 👤 FOOTER SIDEBAR -->
+    <!-- ═══════════════════════════════════════════ -->
     <div class="sidebar-footer">
         
         <div class="mb-3 px-1">
@@ -265,4 +338,56 @@ $open_tickets = $open_tickets ?? 0;
 </aside>
 
 <script src="/inc/clients_sidebar.js" defer></script>
-<script src="/inc/lang_switcher.js"></script> 
+<script src="/inc/lang_switcher.js"></script>
+
+<style>
+/* ═══════════════════════════════════════════ */
+/* 🎨 STYLES POUR LE LIEN COMMUNITY */
+/* ═══════════════════════════════════════════ */
+.nav-community {
+    position: relative;
+    background: linear-gradient(90deg, rgba(16, 185, 129, 0.05) 0%, transparent 100%);
+    border: 1px solid rgba(16, 185, 129, 0.1);
+}
+
+.nav-community:hover {
+    background: linear-gradient(90deg, rgba(16, 185, 129, 0.1) 0%, transparent 100%);
+    border-color: rgba(16, 185, 129, 0.3);
+}
+
+.nav-community.active {
+    background: linear-gradient(90deg, rgba(16, 185, 129, 0.15) 0%, transparent 100%);
+    border-color: rgba(16, 185, 129, 0.4);
+    color: #10b981 !important;
+}
+
+.nav-community .icon {
+    color: #10b981;
+}
+
+/* Animation pulse pour indicateur en ligne */
+@keyframes pulse-online {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(1.2); }
+}
+
+.nav-community .animate-pulse {
+    animation: pulse-online 2s ease-in-out infinite;
+}
+
+/* Séparateurs de section visuels */
+.nav-separator {
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.05) 50%, transparent 100%);
+    margin: 12px 8px;
+}
+
+/* Badges compteurs */
+.nav-item .ml-auto {
+    transition: all 0.2s;
+}
+
+.nav-item:hover .ml-auto {
+    transform: scale(1.05);
+}
+</style>
