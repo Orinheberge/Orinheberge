@@ -1,7 +1,7 @@
 <?php
 /**
- * OrinHeberge — Service d'authentification (v2)
- * Gère : login local, register, OAuth Discord/Google, Pterodactyl, emails
+ * OrinHeberge — Service d'authentification (v3 multi-providers)
+ * Gère : login local, register, OAuth Discord/Google (multi), Pterodactyl, emails
  */
 
 class AuthService {
@@ -47,13 +47,18 @@ class AuthService {
             return ['success' => false, 'error' => 'invalid_credentials'];
         }
 
-        if (($user['oauth_provider'] ?? 'local') !== 'local') {
-            return [
-                'success' => false, 
-                'error' => 'oauth_account', 
-                'provider' => $user['oauth_provider'],
-                'hint' => "Utilisez la connexion " . ucfirst($user['oauth_provider'])
-            ];
+        // Vérifier si le compte a UNIQUEMENT un provider OAuth (pas de mot de passe)
+        if (empty($user['password'])) {
+            $providers = $this->getUserOAuthProviders($user['id']);
+            if (!empty($providers)) {
+                $providerNames = array_map(fn($p) => ucfirst($p['provider']), $providers);
+                return [
+                    'success'   => false,
+                    'error'     => 'oauth_only_account',
+                    'providers' => $providerNames,
+                    'hint'      => "Utilisez la connexion " . implode(' ou ', $providerNames)
+                ];
+            }
         }
 
         // Login réussi → reset des tentatives
@@ -126,9 +131,9 @@ class AuthService {
             }
 
             return [
-                'success'       => true,
-                'user'          => $this->sanitizeUser($user),
-                'panel_created' => $panelCreated,
+                'success'        => true,
+                'user'           => $this->sanitizeUser($user),
+                'panel_created'  => $panelCreated,
                 'plain_password' => $password
             ];
 
@@ -143,17 +148,13 @@ class AuthService {
         }
     }
 
-        // ============================================
+    // ============================================
     // 🔑 RÉINITIALISATION MOT DE PASSE
     // ============================================
 
-    /**
-     * Demande de reset : génère un token et envoie l'email
-     * Retourne toujours success (même si email inexistant) pour éviter l'énumération
-     */
     public function requestPasswordReset($email) {
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            return ['success' => true]; // Ne pas révéler si email existe
+            return ['success' => true];
         }
 
         // Rate limiting : max 3 demandes par email par heure
@@ -167,7 +168,7 @@ class AuthService {
         
         $_SESSION[$key][] = time();
 
-        $stmt = $this->pdo->prepare("SELECT id, oauth_provider FROM users WHERE email = ?");
+        $stmt = $this->pdo->prepare("SELECT id, password FROM users WHERE email = ?");
         $stmt->execute([$email]);
         $user = $stmt->fetch();
 
@@ -175,14 +176,17 @@ class AuthService {
             return ['success' => true]; // Silencieux
         }
 
-        // Si compte OAuth, pas de reset password
-        if (($user['oauth_provider'] ?? 'local') !== 'local') {
-            return [
-                'success' => false,
-                'error' => 'oauth_account',
-                'provider' => $user['oauth_provider'],
-                'hint' => "Utilisez la connexion " . ucfirst($user['oauth_provider'])
-            ];
+        // Si compte OAuth-only (pas de password), bloquer le reset
+        if (empty($user['password'])) {
+            $providers = $this->getUserOAuthProviders($user['id']);
+            if (!empty($providers)) {
+                return [
+                    'success'   => false,
+                    'error'     => 'oauth_only_account',
+                    'providers' => array_map(fn($p) => $p['provider'], $providers),
+                    'hint'      => "Utilisez la connexion OAuth"
+                ];
+            }
         }
 
         // Nettoyer anciens tokens inutilisés
@@ -204,24 +208,18 @@ class AuthService {
             return ['success' => false, 'error' => 'db_error'];
         }
 
-        // Envoyer email
         $this->sendPasswordResetEmail($email, $token);
 
-        return ['success' => true, 'token' => $token]; // token retourné pour debug/dev uniquement
+        return ['success' => true, 'token' => $token];
     }
 
-    /**
-     * Valide le token et applique le nouveau mot de passe
-     */
     public function resetPassword($token, $newPassword) {
         if (!$token || strlen($token) !== 64) {
             return ['success' => false, 'error' => 'invalid_token'];
         }
-
         if (strlen($newPassword) < 8) {
             return ['success' => false, 'error' => 'password_too_short'];
         }
-
         if (!preg_match('/[A-Za-z]/', $newPassword) || !preg_match('/[0-9]/', $newPassword)) {
             return ['success' => false, 'error' => 'password_too_weak'];
         }
@@ -246,17 +244,14 @@ class AuthService {
             $this->pdo->prepare("UPDATE users SET password = ? WHERE id = ?")
                       ->execute([$hash, $row['user_id']]);
 
-            // Marquer token comme utilisé
             $this->pdo->prepare("UPDATE password_resets SET used = 1 WHERE id = ?")
                       ->execute([$row['id']]);
 
-            // Invalider tous les autres tokens de ce user
             $this->pdo->prepare("UPDATE password_resets SET used = 1 WHERE user_id = ? AND id != ?")
                       ->execute([$row['user_id'], $row['id']]);
 
             $this->pdo->commit();
 
-            // Envoyer email de confirmation
             $this->sendPasswordChangedEmail($row['email']);
 
             return ['success' => true, 'user_id' => $row['user_id']];
@@ -268,9 +263,6 @@ class AuthService {
         }
     }
 
-    /**
-     * Vérifie si un token est valide (sans le consommer)
-     */
     public function validateResetToken($token) {
         if (!$token || strlen($token) !== 64) {
             return ['valid' => false, 'error' => 'invalid_token'];
@@ -315,17 +307,10 @@ class AuthService {
                     ⏱️ Ce lien expirera dans <strong>1 heure</strong>.<br>
                     Si vous n\'êtes pas à l\'origine de cette demande, ignorez cet email.
                 </p>
-                <p style="font-size:11px;color:#9ca3af;margin-top:24px;border-top:1px solid #e5e7eb;padding-top:16px;">
-                    Lien direct : <a href="' . htmlspecialchars($resetLink) . '" style="color:#0284c7;">' . htmlspecialchars($resetLink) . '</a>
-                </p>
             ';
 
             if (function_exists('send_smtp_mail') && function_exists('email_layout')) {
-                send_smtp_mail(
-                    $email,
-                    '🔐 Réinitialisation de votre mot de passe - OrinHeberge',
-                    email_layout('Réinitialisation mot de passe', $body)
-                );
+                send_smtp_mail($email, '🔐 Réinitialisation de votre mot de passe - OrinHeberge', email_layout('Réinitialisation mot de passe', $body));
             }
         } catch (Throwable $e) {
             error_log('[Auth] Reset email error: ' . $e->getMessage());
@@ -349,11 +334,7 @@ class AuthService {
             ';
 
             if (function_exists('send_smtp_mail') && function_exists('email_layout')) {
-                send_smtp_mail(
-                    $email,
-                    '✅ Mot de passe modifié - OrinHeberge',
-                    email_layout('Sécurité du compte', $body)
-                );
+                send_smtp_mail($email, '✅ Mot de passe modifié - OrinHeberge', email_layout('Sécurité du compte', $body));
             }
         } catch (Throwable $e) {
             error_log('[Auth] Password changed email error: ' . $e->getMessage());
@@ -380,11 +361,11 @@ class AuthService {
     }
 
     // ============================================
-    // 🌐 OAUTH - DISCORD & GOOGLE
+    // 🌐 OAUTH MULTI-PROVIDERS (Discord + Google)
     // ============================================
 
     /**
-     * Login ou register via OAuth
+     * Login ou register via OAuth - Supporte plusieurs providers par user
      */
     public function loginWithOAuth($provider, $oauthData, $sendWelcomeEmail = true) {
         $providerId = (string)($oauthData['id'] ?? '');
@@ -398,53 +379,74 @@ class AuthService {
             return ['success' => false, 'error' => 'invalid_oauth_data'];
         }
 
-        // 1. Chercher par provider+id
-        $stmt = $this->pdo->prepare("SELECT * FROM users WHERE oauth_provider = ? AND oauth_id = ?");
-        $stmt->execute([$provider, $providerId]);
-        $user = $stmt->fetch();
-
-        if ($user) {
-            // Mettre à jour données OAuth
-            $stmt = $this->pdo->prepare("
-                UPDATE users 
-                SET oauth_avatar = ?, oauth_data = ?, oauth_email = ?,
-                    firstname = COALESCE(NULLIF(?, ''), firstname),
-                    avatar = COALESCE(?, avatar)
-                WHERE id = ?
-            ");
-            $stmt->execute([$avatar, json_encode($rawData), $email, $firstname, $avatar, $user['id']]);
-
-            $this->startSession($user);
-            $this->updateLastLogin($user['id']);
-
-            return ['success' => true, 'user' => $this->sanitizeUser($user), 'is_new' => false];
-        }
-
-        // 2. Chercher par email (compte local existant) → liaison auto
-        if ($email) {
-            $stmt = $this->pdo->prepare("SELECT * FROM users WHERE email = ?");
-            $stmt->execute([$email]);
-            $existingUser = $stmt->fetch();
-
-            if ($existingUser && ($existingUser['oauth_provider'] ?? 'local') === 'local') {
-                $stmt = $this->pdo->prepare("
-                    UPDATE users 
-                    SET oauth_provider = ?, oauth_id = ?, oauth_email = ?, oauth_avatar = ?, oauth_data = ?
-                    WHERE id = ?
-                ");
-                $stmt->execute([$provider, $providerId, $email, $avatar, json_encode($rawData), $existingUser['id']]);
-
-                $this->startSession($existingUser);
-                $this->updateLastLogin($existingUser['id']);
-
-                return ['success' => true, 'user' => $this->sanitizeUser($existingUser), 'is_new' => false, 'linked' => true];
-            }
-        }
-
-        // 3. Créer nouveau compte OAuth
-        $pseudo = $this->generateUniquePseudo($firstname, $oauthData['username'] ?? null);
-
         try {
+            $this->pdo->beginTransaction();
+
+            // ── 1. Chercher par provider+id dans user_oauth_providers ──
+            $user = $this->findUserByOAuthProvider($provider, $providerId);
+
+            if ($user) {
+                // ✅ Compte trouvé via ce provider → update data
+                $this->updateOAuthProvider($user['id'], $provider, $providerId, $email, $avatar, $rawData);
+                
+                // Refresh user data
+                $stmt = $this->pdo->prepare("SELECT * FROM users WHERE id = ?");
+                $stmt->execute([$user['id']]);
+                $user = $stmt->fetch();
+
+                // Update avatar principal si fourni et absent
+                if ($avatar && empty($user['avatar'])) {
+                    $this->pdo->prepare("UPDATE users SET avatar = ? WHERE id = ?")
+                              ->execute([$avatar, $user['id']]);
+                }
+
+                $this->startSession($user);
+                $this->updateLastLogin($user['id']);
+                
+                $this->pdo->commit();
+                return ['success' => true, 'user' => $this->sanitizeUser($user), 'is_new' => false];
+            }
+
+            // ── 2. Chercher par email (compte existant) → lier ce provider ──
+            if ($email) {
+                $stmt = $this->pdo->prepare("SELECT * FROM users WHERE email = ? LIMIT 1");
+                $stmt->execute([$email]);
+                $existingUser = $stmt->fetch();
+
+                if ($existingUser) {
+                    // ✅ Lier ce nouveau provider au compte existant
+                    $this->linkOAuthProviderToUser(
+                        $existingUser['id'], 
+                        $provider, 
+                        $providerId, 
+                        $email, 
+                        $avatar, 
+                        $rawData
+                    );
+                    
+                    // Mettre à jour avatar si absent
+                    if (empty($existingUser['avatar']) && $avatar) {
+                        $this->pdo->prepare("UPDATE users SET avatar = ? WHERE id = ?")
+                                  ->execute([$avatar, $existingUser['id']]);
+                    }
+
+                    $this->startSession($existingUser);
+                    $this->updateLastLogin($existingUser['id']);
+                    
+                    $this->pdo->commit();
+                    return [
+                        'success' => true, 
+                        'user' => $this->sanitizeUser($existingUser), 
+                        'is_new' => false, 
+                        'linked' => true,
+                        'message' => "Compte lié avec " . ucfirst($provider)
+                    ];
+                }
+            }
+
+            // ── 3. Créer nouveau compte ──
+            $pseudo = $this->generateUniquePseudo($firstname, $oauthData['username'] ?? null);
+
             $stmt = $this->pdo->prepare("
                 INSERT INTO users (
                     firstname, lastname, email, pseudo, avatar,
@@ -459,6 +461,9 @@ class AuthService {
 
             $userId = (int)$this->pdo->lastInsertId();
 
+            // Ajouter dans la table dédiée aussi
+            $this->linkOAuthProviderToUser($userId, $provider, $providerId, $email, $avatar, $rawData);
+
             $stmt = $this->pdo->prepare("SELECT * FROM users WHERE id = ?");
             $stmt->execute([$userId]);
             $user = $stmt->fetch();
@@ -466,33 +471,200 @@ class AuthService {
             $this->startSession($user);
             $this->updateLastLogin($user['id']);
 
-            // Email de bienvenue OAuth
+            // Email de bienvenue
             if ($sendWelcomeEmail && $email) {
                 $this->sendOAuthWelcomeEmail($user, $provider);
             }
 
+            $this->pdo->commit();
             return ['success' => true, 'user' => $this->sanitizeUser($user), 'is_new' => true];
 
         } catch (Exception $e) {
+            if ($this->pdo->inTransaction()) $this->pdo->rollBack();
             error_log("[Auth] Erreur OAuth $provider : " . $e->getMessage());
+            return ['success' => false, 'error' => 'db_error', 'details' => $e->getMessage()];
+        }
+    }
+
+    /**
+     * Trouver un user par provider+id (table dédiée OU legacy)
+     */
+    private function findUserByOAuthProvider($provider, $providerId) {
+        // 1. Essayer la table dédiée d'abord
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT u.* FROM users u
+                JOIN user_oauth_providers uop ON u.id = uop.user_id
+                WHERE uop.provider = ? AND uop.provider_id = ?
+                LIMIT 1
+            ");
+            $stmt->execute([$provider, $providerId]);
+            $user = $stmt->fetch();
+            if ($user) return $user;
+        } catch (Exception $e) {
+            // Table peut ne pas exister encore
+        }
+
+        // 2. Fallback : colonne legacy oauth_provider + oauth_id
+        $stmt = $this->pdo->prepare("SELECT * FROM users WHERE oauth_provider = ? AND oauth_id = ? LIMIT 1");
+        $stmt->execute([$provider, $providerId]);
+        return $stmt->fetch() ?: null;
+    }
+
+    /**
+     * Lier un provider OAuth à un utilisateur existant
+     */
+    private function linkOAuthProviderToUser($userId, $provider, $providerId, $email, $avatar, $rawData) {
+        try {
+            $stmt = $this->pdo->prepare("
+                INSERT INTO user_oauth_providers (user_id, provider, provider_id, provider_email, provider_data, linked_at)
+                VALUES (?, ?, ?, ?, ?, NOW())
+                ON DUPLICATE KEY UPDATE 
+                    provider_email = VALUES(provider_email),
+                    provider_data = VALUES(provider_data),
+                    linked_at = NOW()
+            ");
+            $stmt->execute([$userId, $provider, $providerId, $email, json_encode($rawData)]);
+        } catch (Exception $e) {
+            // Table peut ne pas exister, on essaie de la créer
+            error_log('[Auth] linkOAuthProviderToUser error: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Mettre à jour les données d'un provider existant
+     */
+    private function updateOAuthProvider($userId, $provider, $providerId, $email, $avatar, $rawData) {
+        try {
+            $stmt = $this->pdo->prepare("
+                UPDATE user_oauth_providers 
+                SET provider_email = ?, provider_data = ?, linked_at = NOW()
+                WHERE user_id = ? AND provider = ? AND provider_id = ?
+            ");
+            $stmt->execute([$email, json_encode($rawData), $userId, $provider, $providerId]);
+        } catch (Exception $e) {
+            error_log('[Auth] updateOAuthProvider error: ' . $e->getMessage());
+        }
+        
+        // Update avatar principal si fourni
+        if ($avatar) {
+            $this->pdo->prepare("UPDATE users SET avatar = ? WHERE id = ? AND (avatar IS NULL OR avatar = '')")
+                      ->execute([$avatar, $userId]);
+        }
+    }
+
+    /**
+     * Récupérer tous les providers liés à un utilisateur
+     */
+    public function getUserOAuthProviders($userId) {
+        $providers = [];
+        
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT provider, provider_id, provider_email, linked_at
+                FROM user_oauth_providers
+                WHERE user_id = ?
+                ORDER BY linked_at ASC
+            ");
+            $stmt->execute([$userId]);
+            $providers = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            // Table peut ne pas exister
+        }
+        
+        // Fallback : vérifier la colonne legacy
+        if (empty($providers)) {
+            $stmt = $this->pdo->prepare("SELECT oauth_provider, oauth_id, oauth_email FROM users WHERE id = ?");
+            $stmt->execute([$userId]);
+            $user = $stmt->fetch();
+            
+            if ($user && !empty($user['oauth_provider']) && $user['oauth_provider'] !== 'local' && !empty($user['oauth_id'])) {
+                $providers[] = [
+                    'provider'       => $user['oauth_provider'],
+                    'provider_id'    => $user['oauth_id'],
+                    'provider_email' => $user['oauth_email'],
+                    'linked_at'      => null
+                ];
+            }
+        }
+        
+        return $providers;
+    }
+
+    /**
+     * Dissocier un provider d'un utilisateur
+     */
+    public function unlinkOAuthProvider($userId, $provider) {
+        // Compter providers actuels
+        $currentProviders = $this->getUserOAuthProviders($userId);
+        $oauthCount = count($currentProviders);
+        
+        // Vérifier si mot de passe local existe
+        $stmt = $this->pdo->prepare("SELECT password FROM users WHERE id = ?");
+        $stmt->execute([$userId]);
+        $user = $stmt->fetch();
+        $hasPassword = !empty($user['password']);
+        
+        // Empêcher la déconnexion du dernier moyen
+        if ($oauthCount <= 1 && !$hasPassword) {
+            return ['success' => false, 'error' => 'cannot_unlink_last_provider'];
+        }
+        
+        try {
+            $stmt = $this->pdo->prepare("
+                DELETE FROM user_oauth_providers 
+                WHERE user_id = ? AND provider = ?
+            ");
+            $stmt->execute([$userId, $provider]);
+            $deleted = $stmt->rowCount();
+            
+            // Si c'était le provider principal (legacy), nettoyer
+            $stmt = $this->pdo->prepare("
+                UPDATE users 
+                SET oauth_provider = 'local', oauth_id = NULL, oauth_email = NULL, oauth_avatar = NULL, oauth_data = NULL
+                WHERE id = ? AND oauth_provider = ?
+            ");
+            $stmt->execute([$userId, $provider]);
+            
+            return ['success' => true, 'unlinked' => $deleted > 0];
+        } catch (Exception $e) {
+            error_log('[Auth] unlinkOAuthProvider error: ' . $e->getMessage());
             return ['success' => false, 'error' => 'db_error'];
         }
+    }
+
+    /**
+     * Lier manuellement un provider OAuth à un compte existant (API publique)
+     */
+    public function linkOAuthProvider($userId, $provider, $oauthData) {
+        // Vérifier que ce provider n'est pas déjà lié à un autre user
+        $existing = $this->findUserByOAuthProvider($provider, (string)$oauthData['id']);
+        if ($existing && $existing['id'] != $userId) {
+            return ['success' => false, 'error' => 'provider_already_linked'];
+        }
+        
+        $this->linkOAuthProviderToUser(
+            $userId, 
+            $provider, 
+            (string)$oauthData['id'],
+            $oauthData['email'] ?? null,
+            $oauthData['avatar'] ?? null,
+            $oauthData['raw'] ?? []
+        );
+        
+        return ['success' => true];
     }
 
     // ============================================
     // 🦅 PTERODACTYL
     // ============================================
 
-    /**
-     * Crée un utilisateur sur le panel Pterodactyl
-     */
     private function createPterodactylUser($userId, $email, $pseudo, $firstname, $lastname, $password) {
         if (!$this->pterodactylEnabled || !function_exists('pterodactylApi')) {
             return false;
         }
 
         try {
-            // Vérifier si existe déjà
             $search = pterodactylApi($this->pterodactylUrl, $this->pterodactylHeaders, 'users?filter[email]=' . urlencode($email));
             $panelUid = $search['data'][0]['attributes']['id'] ?? null;
 
@@ -508,8 +680,6 @@ class AuthService {
             }
 
             if ($panelUid) {
-                // Stocker le mot de passe en clair pour affichage/email UNIQUEMENT
-                // (à supprimer après premier affichage dans une vraie implémentation)
                 $this->pdo->prepare('UPDATE users SET panel_password = ? WHERE id = ?')->execute([$password, $userId]);
                 return true;
             }
@@ -521,12 +691,9 @@ class AuthService {
     }
 
     // ============================================
-    // 📧 EMAILS
+    // 📧 EMAILS BIENVENUE
     // ============================================
 
-    /**
-     * Email de bienvenue pour inscription classique
-     */
     private function sendWelcomeEmail($user, $plainPassword, $panelCreated) {
         try {
             require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/smtp.php';
@@ -549,7 +716,6 @@ class AuthService {
             $body = '
                 <p>Bonjour <strong>' . htmlspecialchars($user['firstname'] . ' ' . $user['lastname']) . '</strong>,</p>
                 <p>Votre compte OrinHeberge a été créé avec succès !</p>
-                
                 <h3 style="color:#38bdf8;">🔐 Identifiants OrinHeberge</h3>
                 <div class="box">
                     <div class="row"><span class="label">Pseudo</span><span class="val mono">' . htmlspecialchars($user['pseudo']) . '</span></div>
@@ -560,27 +726,16 @@ class AuthService {
                 <p style="margin-top:24px;">
                     <a href="https://heberge.orinstone.deepstone.fr/login/" class="btn">Se connecter →</a>
                 </p>
-                <p style="font-size:12px;color:#4b5563;margin-top:24px;">
-                    🔒 Pour votre sécurité, changez votre mot de passe après votre première connexion.
-                </p>
             ';
 
             if (function_exists('send_smtp_mail') && function_exists('email_layout')) {
-                send_smtp_mail(
-                    $user['email'], 
-                    '🎉 Bienvenue sur OrinHeberge — vos identifiants', 
-                    email_layout('Bienvenue !', $body)
-                );
+                send_smtp_mail($user['email'], '🎉 Bienvenue sur OrinHeberge — vos identifiants', email_layout('Bienvenue !', $body));
             }
         } catch (Throwable $e) {
             error_log('[Auth] Email error: ' . $e->getMessage());
-            // Ne pas faire échouer l'inscription si l'email échoue
         }
     }
 
-    /**
-     * Email de bienvenue OAuth (pas de mot de passe)
-     */
     private function sendOAuthWelcomeEmail($user, $provider) {
         try {
             require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/smtp.php';
@@ -589,11 +744,6 @@ class AuthService {
             $body = '
                 <p>Bonjour <strong>' . htmlspecialchars($user['firstname']) . '</strong>,</p>
                 <p>Votre compte OrinHeberge a été créé via <strong>' . $providerName . '</strong> !</p>
-                <div class="box">
-                    <div class="row"><span class="label">Pseudo</span><span class="val mono">' . htmlspecialchars($user['pseudo']) . '</span></div>
-                    <div class="row"><span class="label">Email</span><span class="val mono">' . htmlspecialchars($user['email']) . '</span></div>
-                    <div class="row"><span class="label">Provider</span><span class="val">' . $providerName . '</span></div>
-                </div>
                 <p>Vous pouvez désormais vous connecter en un clic avec votre compte ' . $providerName . '.</p>
                 <p style="margin-top:24px;">
                     <a href="https://heberge.orinstone.deepstone.fr/login/" class="btn">Accéder à mon compte →</a>
@@ -601,11 +751,7 @@ class AuthService {
             ';
 
             if (function_exists('send_smtp_mail') && function_exists('email_layout')) {
-                send_smtp_mail(
-                    $user['email'],
-                    "🎉 Bienvenue sur OrinHeberge via $providerName",
-                    email_layout('Bienvenue !', $body)
-                );
+                send_smtp_mail($user['email'], "🎉 Bienvenue sur OrinHeberge via $providerName", email_layout('Bienvenue !', $body));
             }
         } catch (Throwable $e) {
             error_log('[Auth] OAuth email error: ' . $e->getMessage());
@@ -620,7 +766,7 @@ class AuthService {
         $key = 'login_attempts_' . md5($email);
         $attempts = $_SESSION[$key] ?? [];
         $recentAttempts = array_filter($attempts, fn($t) => $t > time() - 900);
-        return count($recentAttempts) >= 5; // 5 tentatives max par 15 min
+        return count($recentAttempts) >= 5;
     }
 
     private function recordFailedAttempt($email) {
@@ -638,7 +784,6 @@ class AuthService {
     // ============================================
 
     private function startSession($user, $remember = false) {
-        // Régénérer l'ID de session pour prévenir le fixation
         if (session_status() === PHP_SESSION_ACTIVE) {
             session_regenerate_id(true);
         }
@@ -652,14 +797,12 @@ class AuthService {
         $_SESSION['login_time']     = time();
         $_SESSION['ip']             = $_SERVER['REMOTE_ADDR'] ?? '';
 
-        // Cookie "remember me" optionnel (30 jours)
         if ($remember) {
             $token = bin2hex(random_bytes(32));
             $expires = time() + (30 * 24 * 3600);
             
             setcookie('remember_token', $token, $expires, '/', '', true, true);
             
-            // Stocker en BDD (table remember_tokens à créer)
             try {
                 $stmt = $this->pdo->prepare("
                     INSERT INTO remember_tokens (user_id, token, expires_at)
@@ -667,7 +810,7 @@ class AuthService {
                 ");
                 $stmt->execute([$user['id'], hash('sha256', $token), $expires]);
             } catch (Exception $e) {
-                // Table peut ne pas exister, silencieux
+                // Silencieux
             }
         }
     }
@@ -721,26 +864,5 @@ class AuthService {
 
     public function isAdmin() {
         return !empty($_SESSION['is_admin']);
-    }
-
-    /**
-     * Lier manuellement un provider OAuth à un compte existant
-     */
-    public function linkOAuthProvider($userId, $provider, $oauthData) {
-        $stmt = $this->pdo->prepare("
-            UPDATE users 
-            SET oauth_provider = ?, oauth_id = ?, oauth_email = ?, oauth_avatar = ?, oauth_data = ?
-            WHERE id = ? AND oauth_provider = 'local'
-        ");
-        $stmt->execute([
-            $provider,
-            $oauthData['id'],
-            $oauthData['email'] ?? null,
-            $oauthData['avatar'] ?? null,
-            json_encode($oauthData['raw'] ?? []),
-            $userId
-        ]);
-        
-        return $stmt->rowCount() > 0;
     }
 }

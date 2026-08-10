@@ -35,6 +35,20 @@ CREATE TABLE IF NOT EXISTS `user_activity` (
         REFERENCES `users`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS `user_oauth_providers` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `user_id` INT UNSIGNED NOT NULL,
+    `provider` ENUM('discord', 'google') NOT NULL,
+    `provider_id` VARCHAR(255) NOT NULL,
+    `provider_email` VARCHAR(255) DEFAULT NULL,
+    `provider_data` JSON DEFAULT NULL,
+    `linked_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE INDEX `idx_provider_unique` (`provider`, `provider_id`),
+    INDEX `idx_user` (`user_id`),
+    CONSTRAINT `fk_oauth_user` FOREIGN KEY (`user_id`) 
+        REFERENCES `users`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Ajouter colonnes OAuth si pas existantes
 ALTER TABLE `users`
 ADD COLUMN IF NOT EXISTS `oauth_provider` ENUM('local','discord','google') DEFAULT 'local' AFTER `avatar`,
