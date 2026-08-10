@@ -1,14 +1,26 @@
 <?php
+/**
+ * OrinHeberge — Callback OAuth Discord (v2 debug)
+ */
+
 // 🔍 DEBUG MODE
 error_log('[OAuth Discord] === DÉBUT CALLBACK ===');
 error_log('[OAuth Discord] GET params: ' . json_encode($_GET));
 error_log('[OAuth Discord] URI: ' . $_SERVER['REQUEST_URI']);
 error_log('[OAuth Discord] HTTPS: ' . ($_SERVER['HTTPS'] ?? 'off'));
 
-// Démarrer la session AVANT tout
+// ⚠️ Session AVANT tout include (auth.php la démarre aussi, mais on force ici)
 if (session_status() === PHP_SESSION_NONE) {
+    session_set_cookie_params([
+        'lifetime' => 3600,
+        'path' => '/',
+        'secure' => isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
+        'httponly' => true,
+        'samesite' => 'Lax'
+    ]);
     session_start();
 }
+
 error_log('[OAuth Discord] Session ID: ' . session_id());
 error_log('[OAuth Discord] Session data: ' . json_encode($_SESSION));
 
@@ -19,7 +31,7 @@ require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/OAuthProvider.php';
 // Vérifier si Discord a renvoyé une erreur
 if (isset($_GET['error'])) {
     error_log('[OAuth Discord] ❌ Erreur Discord: ' . $_GET['error']);
-    header('Location: /login/?error=oauth_cancelled&discord_error=' . $_GET['error']);
+    header('Location: /login/?error=oauth_cancelled&discord_error=' . urlencode($_GET['error']));
     exit;
 }
 
@@ -33,23 +45,40 @@ if (!$code || !$state) {
     error_log('[OAuth Discord] ❌ Code ou state manquant');
     error_log('[OAuth Discord] $_GET complet: ' . print_r($_GET, true));
     
-    // Afficher une page debug au lieu de rediriger
-    echo '<pre style="background:#111;color:#0f0;padding:20px;font-family:monospace;">';
-    echo "<h2>🔍 DEBUG OAuth Discord</h2>";
-    echo "<strong>GET params:</strong>\n";
-    print_r($_GET);
-    echo "\n<strong>Session:</strong>\n";
-    print_r($_SESSION);
-    echo "\n<strong>Server:</strong>\n";
-    echo "REQUEST_URI: " . $_SERVER['REQUEST_URI'] . "\n";
-    echo "QUERY_STRING: " . ($_SERVER['QUERY_STRING'] ?? 'none') . "\n";
-    echo "HTTPS: " . ($_SERVER['HTTPS'] ?? 'off') . "\n";
-    echo '</pre>';
-    echo '<p><a href="/api/auth/discord.php">🔄 Réessayer</a> | <a href="/login/">Retour login</a></p>';
+    // 🔍 Page debug visuelle (à retirer en prod)
+    ?>
+    <!DOCTYPE html>
+    <html>
+    <head><title>Debug OAuth</title></head>
+    <body style="background:#111;color:#0f0;padding:20px;font-family:monospace;">
+        <h2>🔍 DEBUG OAuth Discord</h2>
+        <p><strong>Code:</strong> <?= $code ? '✅ présent (' . strlen($code) . ' chars)' : '❌ MANQUANT' ?></p>
+        <p><strong>State:</strong> <?= $state ? '✅ présent' : '❌ MANQUANT' ?></p>
+        
+        <h3>GET params:</h3>
+        <pre><?= htmlspecialchars(print_r($_GET, true)) ?></pre>
+        
+        <h3>Session:</h3>
+        <pre><?= htmlspecialchars(print_r($_SESSION, true)) ?></pre>
+        
+        <h3>Server:</h3>
+        <pre>
+REQUEST_URI: <?= htmlspecialchars($_SERVER['REQUEST_URI']) ?>
+QUERY_STRING: <?= htmlspecialchars($_SERVER['QUERY_STRING'] ?? 'none') ?>
+HTTPS: <?= htmlspecialchars($_SERVER['HTTPS'] ?? 'off') ?>
+HTTP_HOST: <?= htmlspecialchars($_SERVER['HTTP_HOST']) ?>
+        </pre>
+        
+        <p>
+            <a href="/api/auth/discord.php" style="color:#38bdf8;">🔄 Réessayer</a> | 
+            <a href="/login/" style="color:#38bdf8;">Retour login</a>
+        </p>
+    </body>
+    </html>
+    <?php
     exit;
 }
 
-// ... reste du code original ...
 try {
     $config = require $_SERVER['DOCUMENT_ROOT'] . '/config/oauth.php';
     error_log('[OAuth Discord] Config chargée: ' . json_encode([
@@ -71,14 +100,28 @@ try {
     
     if ($result['success']) {
         error_log('[OAuth Discord] ✅ Login réussi, user ID: ' . $result['user']['id']);
+        
+        // Email de bienvenue si nouveau compte
+        if (!empty($result['is_new']) && !empty($oauthData['email'])) {
+            try {
+                require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/smtp.php';
+                $body = "Bonjour {$oauthData['firstname']},\n\n"
+                      . "Votre compte OrinHeberge a été créé via Discord.\n\n"
+                      . "À bientôt sur OrinHeberge !";
+                @send_smtp_mail($oauthData['email'], '🎉 Bienvenue via Discord', $body);
+            } catch (Throwable $e) {
+                error_log('[OAuth Discord] Email error: ' . $e->getMessage());
+            }
+        }
+        
         header('Location: /client/');
     } else {
         error_log('[OAuth Discord] ❌ Login échoué: ' . json_encode($result));
-        header('Location: /login/?error=oauth_failed&reason=' . ($result['error'] ?? 'unknown'));
+        header('Location: /login/?error=oauth_failed&reason=' . urlencode($result['error'] ?? 'unknown'));
     }
 } catch (Exception $e) {
     error_log('[OAuth Discord] ❌ Exception: ' . $e->getMessage());
     error_log('[OAuth Discord] Stack trace: ' . $e->getTraceAsString());
-    header('Location: /login/?error=oauth_error');
+    header('Location: /login/?error=oauth_error&msg=' . urlencode($e->getMessage()));
 }
 exit;
