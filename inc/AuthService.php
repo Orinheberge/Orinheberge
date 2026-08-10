@@ -1,7 +1,6 @@
 <?php
 /**
- * OrinHeberge — Service d'authentification (v3 multi-providers)
- * Gère : login local, register, OAuth Discord/Google (multi), Pterodactyl, emails
+ * OrinHeberge — Service d'authentification (v4 - avec logging)
  */
 
 class AuthService {
@@ -13,7 +12,6 @@ class AuthService {
     public function __construct($pdo) {
         $this->pdo = $pdo;
         
-        // Initialisation Pterodactyl si disponible
         if (!empty($GLOBALS['panel_url']) && !empty($GLOBALS['api_key_admin'])) {
             $this->pterodactylEnabled = true;
             $this->pterodactylUrl     = rtrim($GLOBALS['panel_url'], '/');
@@ -25,15 +23,11 @@ class AuthService {
     // 🔐 AUTHENTIFICATION LOCALE
     // ============================================
 
-    /**
-     * Login avec email + mot de passe
-     */
     public function login($email, $password, $remember = false) {
         if (!$email || !$password) {
             return ['success' => false, 'error' => 'missing_fields'];
         }
 
-        // Protection anti-bruteforce
         if ($this->isRateLimited($email)) {
             return ['success' => false, 'error' => 'too_many_attempts', 'retry_after' => 900];
         }
@@ -44,10 +38,13 @@ class AuthService {
 
         if (!$user || !password_verify($password, $user['password'] ?? '')) {
             $this->recordFailedAttempt($email);
+            // 🔥 LOG : tentative échouée
+            if ($user) {
+                $this->logLoginAttempt($user['id'], 'failed', 'local', 'invalid_credentials');
+            }
             return ['success' => false, 'error' => 'invalid_credentials'];
         }
 
-        // Vérifier si le compte a UNIQUEMENT un provider OAuth (pas de mot de passe)
         if (empty($user['password'])) {
             $providers = $this->getUserOAuthProviders($user['id']);
             if (!empty($providers)) {
@@ -61,20 +58,18 @@ class AuthService {
             }
         }
 
-        // Login réussi → reset des tentatives
         $this->resetFailedAttempts($email);
         
         $this->startSession($user, $remember);
         $this->updateLastLogin($user['id']);
+        
+        // 🔥 LOG : connexion réussie
+        $this->logLoginAttempt($user['id'], 'success', 'local');
 
         return ['success' => true, 'user' => $this->sanitizeUser($user)];
     }
 
-    /**
-     * Inscription complète avec Pterodactyl + email
-     */
     public function register($firstname, $lastname, $email, $password, $sendWelcomeEmail = true) {
-        // ── Validation ──
         if (!$firstname || !$lastname || !$email || !$password) {
             return ['success' => false, 'error' => 'missing_fields'];
         }
@@ -88,7 +83,6 @@ class AuthService {
             return ['success' => false, 'error' => 'password_too_weak'];
         }
 
-        // Vérifier email déjà utilisé
         $stmt = $this->pdo->prepare("SELECT id FROM users WHERE email = ?");
         $stmt->execute([$email]);
         if ($stmt->fetch()) {
@@ -108,7 +102,6 @@ class AuthService {
             $stmt->execute([$firstname, $lastname, $email, $hash, $pseudo]);
             $userId = (int)$this->pdo->lastInsertId();
 
-            // ── Création compte Pterodactyl ──
             $panelCreated = false;
             if ($this->pterodactylEnabled) {
                 $panelCreated = $this->createPterodactylUser($userId, $email, $pseudo, $firstname, $lastname, $password);
@@ -116,16 +109,16 @@ class AuthService {
 
             $this->pdo->commit();
 
-            // ── Récupérer user complet ──
             $stmt = $this->pdo->prepare("SELECT * FROM users WHERE id = ?");
             $stmt->execute([$userId]);
             $user = $stmt->fetch();
 
-            // ── Login auto ──
             $this->startSession($user);
             $this->updateLastLogin($user['id']);
+            
+            // 🔥 LOG : première connexion après register
+            $this->logLoginAttempt($user['id'], 'success', 'local');
 
-            // ── Email de bienvenue ──
             if ($sendWelcomeEmail) {
                 $this->sendWelcomeEmail($user, $password, $panelCreated);
             }
@@ -148,128 +141,137 @@ class AuthService {
         }
     }
 
+    // ============================================
+    // 📊 LOGGING & HISTORIQUE
+    // ============================================
+
     /**
- * Logger une tentative de connexion
- */
-public function logLoginAttempt($userId, $status = 'success', $authMethod = 'local', $failureReason = null) {
-    try {
-        $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
-        $ua = substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 500);
-        
-        $stmt = $this->pdo->prepare("
-            INSERT INTO user_login_history 
-            (user_id, ip_address, user_agent, auth_method, status, failure_reason, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, NOW())
-        ");
-        $stmt->execute([$userId, $ip, $ua, $authMethod, $status, $failureReason]);
-        
-        // Géolocalisation IP asynchrone (optionnel)
-        $this->geolocateIpAsync($this->pdo->lastInsertId(), $ip);
-        
-    } catch (Exception $e) {
-        error_log('[Auth] Login log error: ' . $e->getMessage());
-    }
-}
-
-/**
- * Géolocaliser une IP (version simple sans API externe)
- */
-private function geolocateIpAsync($logId, $ip) {
-    // Version simple : on laisse NULL, à remplir plus tard avec une BDD GeoIP
-    // Ou via API : file_get_contents("http://ip-api.com/json/$ip")
-}
-
-/**
- * Récupérer l'historique des connexions
- */
-public function getLoginHistory($userId, $limit = 20) {
-    try {
-        $stmt = $this->pdo->prepare("
-            SELECT * FROM user_login_history
-            WHERE user_id = ?
-            ORDER BY created_at DESC
-            LIMIT ?
-        ");
-        $stmt->execute([$userId, $limit]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    } catch (Exception $e) {
-        error_log('[Auth] Get login history error: ' . $e->getMessage());
-        return [];
-    }
-}
-
-/**
- * Récupérer les préférences de notifications
- */
-public function getNotificationPreferences($userId) {
-    try {
-        $stmt = $this->pdo->prepare("SELECT * FROM user_notification_preferences WHERE user_id = ?");
-        $stmt->execute([$userId]);
-        $prefs = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if (!$prefs) {
-            // Créer avec valeurs par défaut
-            $this->pdo->prepare("INSERT INTO user_notification_preferences (user_id) VALUES (?)")
-                      ->execute([$userId]);
-            return [
-                'user_id' => $userId,
-                'newsletter' => 1,
-                'security_alerts' => 1,
-                'payment_notifications' => 1,
-                'support_tickets' => 1,
-                'maintenance_alerts' => 1,
-                'marketing_emails' => 0,
-                'product_updates' => 1,
-                'email_digest' => 'none'
-            ];
+     * Logger une tentative de connexion
+     */
+    public function logLoginAttempt($userId, $status = 'success', $authMethod = 'local', $failureReason = null) {
+        try {
+            $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+            $ua = substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 500);
+            
+            // Géolocalisation IP (synchrone simple, 1-2s max)
+            $country = null;
+            $city = null;
+            try {
+                $geoData = @json_decode(@file_get_contents("http://ip-api.com/json/{$ip}?fields=country,city,status", false, 
+                    stream_context_create(['http' => ['timeout' => 2]])
+                ), true);
+                if (($geoData['status'] ?? '') === 'success') {
+                    $country = $geoData['country'] ?? null;
+                    $city    = $geoData['city']    ?? null;
+                }
+            } catch (Throwable $e) {
+                // Silencieux si API indisponible
+            }
+            
+            $stmt = $this->pdo->prepare("
+                INSERT INTO user_login_history 
+                (user_id, ip_address, user_agent, auth_method, status, failure_reason, 
+                 location_country, location_city, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
+            ");
+            $stmt->execute([
+                $userId, $ip, $ua, $authMethod, $status, $failureReason,
+                $country, $city
+            ]);
+            
+        } catch (Exception $e) {
+            error_log('[Auth] Login log error: ' . $e->getMessage());
         }
-        
-        return $prefs;
-    } catch (Exception $e) {
-        error_log('[Auth] Get notif prefs error: ' . $e->getMessage());
-        return [];
     }
-}
 
-/**
- * Sauvegarder les préférences de notifications
- */
-public function saveNotificationPreferences($userId, $prefs) {
-    try {
-        $stmt = $this->pdo->prepare("
-            INSERT INTO user_notification_preferences 
-            (user_id, newsletter, security_alerts, payment_notifications, 
-             support_tickets, maintenance_alerts, marketing_emails, product_updates, email_digest)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON DUPLICATE KEY UPDATE
-                newsletter = VALUES(newsletter),
-                security_alerts = VALUES(security_alerts),
-                payment_notifications = VALUES(payment_notifications),
-                support_tickets = VALUES(support_tickets),
-                maintenance_alerts = VALUES(maintenance_alerts),
-                marketing_emails = VALUES(marketing_emails),
-                product_updates = VALUES(product_updates),
-                email_digest = VALUES(email_digest),
-                updated_at = NOW()
-        ");
-        $stmt->execute([
-            $userId,
-            isset($prefs['newsletter']) ? 1 : 0,
-            isset($prefs['security_alerts']) ? 1 : 0,
-            isset($prefs['payment_notifications']) ? 1 : 0,
-            isset($prefs['support_tickets']) ? 1 : 0,
-            isset($prefs['maintenance_alerts']) ? 1 : 0,
-            isset($prefs['marketing_emails']) ? 1 : 0,
-            isset($prefs['product_updates']) ? 1 : 0,
-            $prefs['email_digest'] ?? 'none'
-        ]);
-        
-        return ['success' => true];
-    } catch (Exception $e) {
-        error_log('[Auth] Save notif prefs error: ' . $e->getMessage());
-        return ['success' => false, 'error' => $e->getMessage()];
+    /**
+     * Récupérer l'historique des connexions
+     */
+    public function getLoginHistory($userId, $limit = 20) {
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT * FROM user_login_history
+                WHERE user_id = ?
+                ORDER BY created_at DESC
+                LIMIT ?
+            ");
+            $stmt->execute([$userId, $limit]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            error_log('[Auth] Get login history error: ' . $e->getMessage());
+            return [];
+        }
     }
-}
+
+    // ============================================
+    // 🔔 NOTIFICATIONS
+    // ============================================
+
+    public function getNotificationPreferences($userId) {
+        try {
+            $stmt = $this->pdo->prepare("SELECT * FROM user_notification_preferences WHERE user_id = ?");
+            $stmt->execute([$userId]);
+            $prefs = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$prefs) {
+                $this->pdo->prepare("INSERT INTO user_notification_preferences (user_id) VALUES (?)")
+                          ->execute([$userId]);
+                return [
+                    'user_id' => $userId,
+                    'newsletter' => 1,
+                    'security_alerts' => 1,
+                    'payment_notifications' => 1,
+                    'support_tickets' => 1,
+                    'maintenance_alerts' => 1,
+                    'marketing_emails' => 0,
+                    'product_updates' => 1,
+                    'email_digest' => 'none'
+                ];
+            }
+            
+            return $prefs;
+        } catch (Exception $e) {
+            error_log('[Auth] Get notif prefs error: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    public function saveNotificationPreferences($userId, $prefs) {
+        try {
+            $stmt = $this->pdo->prepare("
+                INSERT INTO user_notification_preferences 
+                (user_id, newsletter, security_alerts, payment_notifications, 
+                 support_tickets, maintenance_alerts, marketing_emails, product_updates, email_digest)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON DUPLICATE KEY UPDATE
+                    newsletter = VALUES(newsletter),
+                    security_alerts = VALUES(security_alerts),
+                    payment_notifications = VALUES(payment_notifications),
+                    support_tickets = VALUES(support_tickets),
+                    maintenance_alerts = VALUES(maintenance_alerts),
+                    marketing_emails = VALUES(marketing_emails),
+                    product_updates = VALUES(product_updates),
+                    email_digest = VALUES(email_digest),
+                    updated_at = NOW()
+            ");
+            $stmt->execute([
+                $userId,
+                isset($prefs['newsletter']) ? 1 : 0,
+                isset($prefs['security_alerts']) ? 1 : 0,
+                isset($prefs['payment_notifications']) ? 1 : 0,
+                isset($prefs['support_tickets']) ? 1 : 0,
+                isset($prefs['maintenance_alerts']) ? 1 : 0,
+                isset($prefs['marketing_emails']) ? 1 : 0,
+                isset($prefs['product_updates']) ? 1 : 0,
+                $prefs['email_digest'] ?? 'none'
+            ]);
+            
+            return ['success' => true];
+        } catch (Exception $e) {
+            error_log('[Auth] Save notif prefs error: ' . $e->getMessage());
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
+    }
 
     // ============================================
     // 🔑 RÉINITIALISATION MOT DE PASSE
@@ -280,7 +282,6 @@ public function saveNotificationPreferences($userId, $prefs) {
             return ['success' => true];
         }
 
-        // Rate limiting : max 3 demandes par email par heure
         $key = 'reset_attempts_' . md5($email);
         $attempts = $_SESSION[$key] ?? [];
         $recentAttempts = array_filter($attempts, fn($t) => $t > time() - 3600);
@@ -296,10 +297,9 @@ public function saveNotificationPreferences($userId, $prefs) {
         $user = $stmt->fetch();
 
         if (!$user) {
-            return ['success' => true]; // Silencieux
+            return ['success' => true];
         }
 
-        // Si compte OAuth-only (pas de password), bloquer le reset
         if (empty($user['password'])) {
             $providers = $this->getUserOAuthProviders($user['id']);
             if (!empty($providers)) {
@@ -312,11 +312,9 @@ public function saveNotificationPreferences($userId, $prefs) {
             }
         }
 
-        // Nettoyer anciens tokens inutilisés
         $this->pdo->prepare("DELETE FROM password_resets WHERE user_id = ? AND used = 0")
                   ->execute([$user['id']]);
 
-        // Générer nouveau token (1 heure)
         $token = bin2hex(random_bytes(32));
         $expires = date('Y-m-d H:i:s', time() + 3600);
 
@@ -375,6 +373,9 @@ public function saveNotificationPreferences($userId, $prefs) {
 
             $this->pdo->commit();
 
+            // 🔥 LOG : changement de mot de passe
+            $this->logLoginAttempt($row['user_id'], 'success', 'local', 'password_reset');
+            
             $this->sendPasswordChangedEmail($row['email']);
 
             return ['success' => true, 'user_id' => $row['user_id']];
@@ -419,7 +420,6 @@ public function saveNotificationPreferences($userId, $prefs) {
             $body = '
                 <p>Bonjour,</p>
                 <p>Une demande de réinitialisation de mot de passe a été effectuée pour votre compte OrinHeberge.</p>
-                <p>Cliquez sur le bouton ci-dessous pour définir un nouveau mot de passe :</p>
                 <p style="text-align:center;margin:24px 0;">
                     <a href="' . htmlspecialchars($resetLink) . '" 
                        style="display:inline-block;padding:14px 28px;background:#0284c7;color:white;text-decoration:none;border-radius:12px;font-weight:bold;">
@@ -464,9 +464,6 @@ public function saveNotificationPreferences($userId, $prefs) {
         }
     }
 
-    /**
-     * Déconnexion complète
-     */
     public function logout() {
         $_SESSION = [];
 
@@ -484,12 +481,9 @@ public function saveNotificationPreferences($userId, $prefs) {
     }
 
     // ============================================
-    // 🌐 OAUTH MULTI-PROVIDERS (Discord + Google)
+    // 🌐 OAUTH MULTI-PROVIDERS
     // ============================================
 
-    /**
-     * Login ou register via OAuth - Supporte plusieurs providers par user
-     */
     public function loginWithOAuth($provider, $oauthData, $sendWelcomeEmail = true) {
         $providerId = (string)($oauthData['id'] ?? '');
         $email      = $oauthData['email'] ?? null;
@@ -505,19 +499,15 @@ public function saveNotificationPreferences($userId, $prefs) {
         try {
             $this->pdo->beginTransaction();
 
-            // ── 1. Chercher par provider+id dans user_oauth_providers ──
             $user = $this->findUserByOAuthProvider($provider, $providerId);
 
             if ($user) {
-                // ✅ Compte trouvé via ce provider → update data
                 $this->updateOAuthProvider($user['id'], $provider, $providerId, $email, $avatar, $rawData);
                 
-                // Refresh user data
                 $stmt = $this->pdo->prepare("SELECT * FROM users WHERE id = ?");
                 $stmt->execute([$user['id']]);
                 $user = $stmt->fetch();
 
-                // Update avatar principal si fourni et absent
                 if ($avatar && empty($user['avatar'])) {
                     $this->pdo->prepare("UPDATE users SET avatar = ? WHERE id = ?")
                               ->execute([$avatar, $user['id']]);
@@ -526,28 +516,23 @@ public function saveNotificationPreferences($userId, $prefs) {
                 $this->startSession($user);
                 $this->updateLastLogin($user['id']);
                 
+                // 🔥 LOG : connexion OAuth réussie (existant)
+                $this->logLoginAttempt($user['id'], 'success', $provider);
+                
                 $this->pdo->commit();
                 return ['success' => true, 'user' => $this->sanitizeUser($user), 'is_new' => false];
             }
 
-            // ── 2. Chercher par email (compte existant) → lier ce provider ──
             if ($email) {
                 $stmt = $this->pdo->prepare("SELECT * FROM users WHERE email = ? LIMIT 1");
                 $stmt->execute([$email]);
                 $existingUser = $stmt->fetch();
 
                 if ($existingUser) {
-                    // ✅ Lier ce nouveau provider au compte existant
                     $this->linkOAuthProviderToUser(
-                        $existingUser['id'], 
-                        $provider, 
-                        $providerId, 
-                        $email, 
-                        $avatar, 
-                        $rawData
+                        $existingUser['id'], $provider, $providerId, $email, $avatar, $rawData
                     );
                     
-                    // Mettre à jour avatar si absent
                     if (empty($existingUser['avatar']) && $avatar) {
                         $this->pdo->prepare("UPDATE users SET avatar = ? WHERE id = ?")
                                   ->execute([$avatar, $existingUser['id']]);
@@ -555,6 +540,9 @@ public function saveNotificationPreferences($userId, $prefs) {
 
                     $this->startSession($existingUser);
                     $this->updateLastLogin($existingUser['id']);
+                    
+                    // 🔥 LOG : connexion OAuth après liaison
+                    $this->logLoginAttempt($existingUser['id'], 'success', $provider);
                     
                     $this->pdo->commit();
                     return [
@@ -567,7 +555,6 @@ public function saveNotificationPreferences($userId, $prefs) {
                 }
             }
 
-            // ── 3. Créer nouveau compte ──
             $pseudo = $this->generateUniquePseudo($firstname, $oauthData['username'] ?? null);
 
             $stmt = $this->pdo->prepare("
@@ -584,7 +571,6 @@ public function saveNotificationPreferences($userId, $prefs) {
 
             $userId = (int)$this->pdo->lastInsertId();
 
-            // Ajouter dans la table dédiée aussi
             $this->linkOAuthProviderToUser($userId, $provider, $providerId, $email, $avatar, $rawData);
 
             $stmt = $this->pdo->prepare("SELECT * FROM users WHERE id = ?");
@@ -593,8 +579,10 @@ public function saveNotificationPreferences($userId, $prefs) {
 
             $this->startSession($user);
             $this->updateLastLogin($user['id']);
+            
+            // 🔥 LOG : première connexion OAuth (nouveau compte)
+            $this->logLoginAttempt($user['id'], 'success', $provider);
 
-            // Email de bienvenue
             if ($sendWelcomeEmail && $email) {
                 $this->sendOAuthWelcomeEmail($user, $provider);
             }
@@ -609,11 +597,7 @@ public function saveNotificationPreferences($userId, $prefs) {
         }
     }
 
-    /**
-     * Trouver un user par provider+id (table dédiée OU legacy)
-     */
     private function findUserByOAuthProvider($provider, $providerId) {
-        // 1. Essayer la table dédiée d'abord
         try {
             $stmt = $this->pdo->prepare("
                 SELECT u.* FROM users u
@@ -628,15 +612,11 @@ public function saveNotificationPreferences($userId, $prefs) {
             // Table peut ne pas exister encore
         }
 
-        // 2. Fallback : colonne legacy oauth_provider + oauth_id
         $stmt = $this->pdo->prepare("SELECT * FROM users WHERE oauth_provider = ? AND oauth_id = ? LIMIT 1");
         $stmt->execute([$provider, $providerId]);
         return $stmt->fetch() ?: null;
     }
 
-    /**
-     * Lier un provider OAuth à un utilisateur existant
-     */
     private function linkOAuthProviderToUser($userId, $provider, $providerId, $email, $avatar, $rawData) {
         try {
             $stmt = $this->pdo->prepare("
@@ -649,14 +629,10 @@ public function saveNotificationPreferences($userId, $prefs) {
             ");
             $stmt->execute([$userId, $provider, $providerId, $email, json_encode($rawData)]);
         } catch (Exception $e) {
-            // Table peut ne pas exister, on essaie de la créer
             error_log('[Auth] linkOAuthProviderToUser error: ' . $e->getMessage());
         }
     }
 
-    /**
-     * Mettre à jour les données d'un provider existant
-     */
     private function updateOAuthProvider($userId, $provider, $providerId, $email, $avatar, $rawData) {
         try {
             $stmt = $this->pdo->prepare("
@@ -669,16 +645,12 @@ public function saveNotificationPreferences($userId, $prefs) {
             error_log('[Auth] updateOAuthProvider error: ' . $e->getMessage());
         }
         
-        // Update avatar principal si fourni
         if ($avatar) {
             $this->pdo->prepare("UPDATE users SET avatar = ? WHERE id = ? AND (avatar IS NULL OR avatar = '')")
                       ->execute([$avatar, $userId]);
         }
     }
 
-    /**
-     * Récupérer tous les providers liés à un utilisateur
-     */
     public function getUserOAuthProviders($userId) {
         $providers = [];
         
@@ -695,7 +667,6 @@ public function saveNotificationPreferences($userId, $prefs) {
             // Table peut ne pas exister
         }
         
-        // Fallback : vérifier la colonne legacy
         if (empty($providers)) {
             $stmt = $this->pdo->prepare("SELECT oauth_provider, oauth_id, oauth_email FROM users WHERE id = ?");
             $stmt->execute([$userId]);
@@ -714,21 +685,15 @@ public function saveNotificationPreferences($userId, $prefs) {
         return $providers;
     }
 
-    /**
-     * Dissocier un provider d'un utilisateur
-     */
     public function unlinkOAuthProvider($userId, $provider) {
-        // Compter providers actuels
         $currentProviders = $this->getUserOAuthProviders($userId);
         $oauthCount = count($currentProviders);
         
-        // Vérifier si mot de passe local existe
         $stmt = $this->pdo->prepare("SELECT password FROM users WHERE id = ?");
         $stmt->execute([$userId]);
         $user = $stmt->fetch();
         $hasPassword = !empty($user['password']);
         
-        // Empêcher la déconnexion du dernier moyen
         if ($oauthCount <= 1 && !$hasPassword) {
             return ['success' => false, 'error' => 'cannot_unlink_last_provider'];
         }
@@ -741,7 +706,6 @@ public function saveNotificationPreferences($userId, $prefs) {
             $stmt->execute([$userId, $provider]);
             $deleted = $stmt->rowCount();
             
-            // Si c'était le provider principal (legacy), nettoyer
             $stmt = $this->pdo->prepare("
                 UPDATE users 
                 SET oauth_provider = 'local', oauth_id = NULL, oauth_email = NULL, oauth_avatar = NULL, oauth_data = NULL
@@ -756,11 +720,7 @@ public function saveNotificationPreferences($userId, $prefs) {
         }
     }
 
-    /**
-     * Lier manuellement un provider OAuth à un compte existant (API publique)
-     */
     public function linkOAuthProvider($userId, $provider, $oauthData) {
-        // Vérifier que ce provider n'est pas déjà lié à un autre user
         $existing = $this->findUserByOAuthProvider($provider, (string)$oauthData['id']);
         if ($existing && $existing['id'] != $userId) {
             return ['success' => false, 'error' => 'provider_already_linked'];
