@@ -1,3 +1,4 @@
+
 <?php
 /**
  * OrinHeberge — Navbar partagée améliorée (v4 avec Community)
@@ -48,6 +49,32 @@ if (isset($_SESSION['user_id']) && isset($pdo)) {
     } catch (Exception $e) {
         $_online_users_count = 0;
     }
+}
+
+// Afficher message de déconnexion
+if (isset($_GET['msg']) && $_GET['msg'] === 'logout_success') {
+    echo '<div id="logoutMessage" class="fixed top-4 right-4 z-[100] bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-6 py-3 rounded-xl shadow-2xl backdrop-blur-md animate-slide-in-right">
+        <i class="fas fa-check-circle mr-2"></i>
+        Vous avez été déconnecté avec succès.
+    </div>
+    <script>
+        setTimeout(() => {
+            const msg = document.getElementById("logoutMessage");
+            if (msg) {
+                msg.style.transition = "all 0.3s";
+                msg.style.opacity = "0";
+                msg.style.transform = "translateX(20px)";
+                setTimeout(() => msg.remove(), 300);
+            }
+        }, 4000);
+    </script>
+    <style>
+        @keyframes slide-in-right {
+            from { opacity: 0; transform: translateX(100%); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        .animate-slide-in-right { animation: slide-in-right 0.3s ease-out; }
+    </style>';
 }
 ?>
 
