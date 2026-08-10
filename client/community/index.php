@@ -88,25 +88,44 @@ $active_nav = 'community';
                     </div>
                 </div>
 
-                <!-- Emoji Picker -->
-                <div id="emojiPicker" class="hidden absolute bottom-24 right-6 bg-[#11151d] border border-white/10 rounded-xl shadow-2xl p-4 z-50 w-80 max-h-96 overflow-y-auto">
+                <!-- Emoji Picker avec onglets -->
+                <div id="emojiPicker" class="hidden absolute bottom-24 right-6 bg-[#11151d] border border-white/10 rounded-xl shadow-2xl p-4 z-50 w-96 max-h-[500px] overflow-hidden">
+                    
+                    <!-- Recherche -->
                     <div class="mb-3">
-                        <input type="text" id="emojiSearch" placeholder="<?php echo t('chat.search_emoji'); ?>" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-sky-500/50">
-                    </div>
-                    <div class="mb-2">
-                        <h3 class="text-xs font-bold text-gray-400 uppercase mb-2">
-                            <i class="fas fa-star mr-1"></i><?php echo t('chat.custom_emojis'); ?>
-                        </h3>
-                        <div id="customEmojis" class="grid grid-cols-6 gap-2 max-h-32 overflow-y-auto custom-scrollbar">
+                        <div class="relative">
+                            <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm"></i>
+                            <input type="text" id="emojiSearch" 
+                                placeholder="<?php echo t('chat.search_emoji'); ?>" 
+                                class="w-full bg-white/5 border border-white/10 rounded-lg pl-9 pr-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-sky-500/50">
                         </div>
                     </div>
+                    
+                    <!-- Section Custom -->
+                    <div id="customEmojisSection" class="mb-3">
+                        <h3 class="text-xs font-bold text-gray-400 uppercase mb-2 flex items-center gap-1">
+                            <i class="fas fa-star text-amber-400"></i>
+                            <?php echo t('chat.custom_emojis'); ?>
+                        </h3>
+                        <div id="customEmojis" class="grid grid-cols-8 gap-1 max-h-24 overflow-y-auto custom-scrollbar pr-1">
+                        </div>
+                    </div>
+                    
                     <hr class="border-white/10 my-3">
-                    <div>
-                        <h3 class="text-xs font-bold text-gray-400 uppercase mb-2">
-                            <i class="far fa-smile mr-1"></i><?php echo t('chat.standard_emojis'); ?>
+                    
+                    <!-- Onglets catégories -->
+                    <div class="mb-2">
+                        <h3 class="text-xs font-bold text-gray-400 uppercase mb-2 flex items-center gap-1">
+                            <i class="far fa-smile text-sky-400"></i>
+                            <?php echo t('chat.standard_emojis'); ?>
                         </h3>
-                        <div id="standardEmojis" class="grid grid-cols-8 gap-1 max-h-32 overflow-y-auto custom-scrollbar">
+                        <div id="emojiCategoryTabs" class="flex gap-1 overflow-x-auto custom-scrollbar pb-2 mb-2">
+                            <!-- Rempli par JS -->
                         </div>
+                    </div>
+                    
+                    <!-- Grille emojis standards -->
+                    <div id="standardEmojis" class="grid grid-cols-8 gap-1 max-h-48 overflow-y-auto custom-scrollbar pr-1">
                     </div>
                 </div>
 
