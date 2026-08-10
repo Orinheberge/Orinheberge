@@ -1,5 +1,23 @@
 <?php
-session_start();
+/**
+ * OrinHeberge — Page d'erreur (anti-boucle v2)
+ */
+
+// ═══════════════════════════════════════════
+// 🛡️ PROTECTION ANTI-BOUCLE ULTIME
+// ═══════════════════════════════════════════
+if (isset($_COOKIE['error_loop']) && $_COOKIE['error_loop'] > time() - 10) {
+    // Casse la boucle : page HTML statique minimale
+    http_response_code(500);
+    die('<!DOCTYPE html><html><head><title>Erreur système</title><style>body{font-family:system-ui,sans-serif;background:#0f172a;color:white;padding:40px;text-align:center;min-height:100vh;display:flex;align-items:center;justify-content:center;margin:0;}a{color:#38bdf8;text-decoration:none;font-weight:bold;}h1{font-size:3em;margin-bottom:10px;}p{color:#94a3b8;}</style></head><body><div><h1>🚨 Erreur système</h1><p>Une erreur inattendue s\'est produite.</p><p style="margin-top:30px;"><a href="/">→ Retour à l\'accueil</a></p><p style="margin-top:10px;font-size:12px;color:#64748b;">Si le problème persiste, contactez le support.</p></div></body></html>');
+}
+setcookie('error_loop', time(), time() + 10, '/');
+
+// Démarrer session seulement si pas déjà fait
+if (session_status() === PHP_SESSION_NONE) {
+    @session_start();
+}
+
 require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/lang.php';
 
 // ── Détection du code d'erreur ─────────────────────────────────────────────────
@@ -158,6 +176,11 @@ if (!isset($error['actions'])) {
 
 $is_logged_in = isset($_SESSION['user_id']);
 $active_nav = '';
+
+// Nettoyer le cookie anti-boucle en fin de script
+register_shutdown_function(function() {
+    setcookie('error_loop', '', time() - 3600, '/');
+});
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -273,7 +296,16 @@ $active_nav = '';
 </div>
 
 <!-- Navigation -->
-<?php include __DIR__ . $_SERVER['DOCUMENT_ROOT'] . '/inc/navbar.php'; ?>
+<?php 
+// ✅ CHEMIN CORRIGÉ (sans __DIR__ en double)
+try {
+    include $_SERVER['DOCUMENT_ROOT'] . '/inc/navbar.php';
+} catch (Throwable $e) {
+    error_log('[Error page] Navbar include failed: ' . $e->getMessage());
+    // Affichage fallback minimal
+    echo '<nav class="sticky top-0 z-50 bg-[#070a13]/80 backdrop-blur-md border-b border-white/5 p-4"><div class="max-w-7xl mx-auto flex items-center justify-between"><a href="/" class="font-black text-white text-xl">Orin<span class="text-sky-500">Heberge</span></a><a href="/" class="text-sm text-sky-400 hover:text-sky-300">← Accueil</a></div></nav>';
+}
+?>
 
 <!-- Contenu principal -->
 <main class="flex-grow flex items-center justify-center px-4 py-16 relative z-10">
@@ -348,7 +380,14 @@ $active_nav = '';
 </main>
 
 <!-- Footer -->
-<?php include __DIR__ . $_SERVER['DOCUMENT_ROOT'] . '/inc/footer.php'; ?>
+<?php 
+// ✅ CHEMIN CORRIGÉ + try/catch
+try {
+    include $_SERVER['DOCUMENT_ROOT'] . '/inc/footer.php';
+} catch (Throwable $e) {
+    error_log('[Error page] Footer include failed: ' . $e->getMessage());
+}
+?>
 
 </body>
 </html>
