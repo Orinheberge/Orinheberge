@@ -1,6 +1,6 @@
 <?php
 /**
- * OrinHeberge — Navbar partagée améliorée (v3 FINAL i18n)
+ * OrinHeberge — Navbar partagée améliorée (v4 avec Community)
  */
 $active_nav = $active_nav ?? '';
 
@@ -33,6 +33,21 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
         $notif_stmt->execute([$_SESSION['user_id']]);
         $notif_count = (int)$notif_stmt->fetchColumn();
     } catch (Exception $e) { $notif_count = 0; }
+}
+
+// 🔵 Compteur utilisateurs en ligne (pour le lien Community)
+$_online_users_count = 0;
+if (isset($_SESSION['user_id']) && isset($pdo)) {
+    try {
+        $stmt = $pdo->prepare("
+            SELECT COUNT(*) FROM user_activity 
+            WHERE last_seen >= DATE_SUB(NOW(), INTERVAL 3 MINUTE)
+        ");
+        $stmt->execute();
+        $_online_users_count = (int)$stmt->fetchColumn();
+    } catch (Exception $e) {
+        $_online_users_count = 0;
+    }
 }
 ?>
 
@@ -118,6 +133,22 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
                 </div>
             </div>
 
+            <!-- ═══════════════════════════════════════════ -->
+            <!-- 💬 COMMUNITY (NOUVEAU) -->
+            <!-- ═══════════════════════════════════════════ -->
+            <?php if (isset($_SESSION['user_id'])): ?>
+            <a href="/client/community/" class="nav-community-btn <?php echo $active_nav === 'community' ? 'active bg-emerald-600/30 text-emerald-400 border-emerald-500/50 font-bold' : 'bg-emerald-600/10 text-emerald-400/80 hover:text-emerald-300 border-emerald-500/20 hover:bg-emerald-600/20'; ?> px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium shadow-md border whitespace-nowrap relative">
+                <i class="fas fa-comments"></i>
+                <span><?php echo t('nav.community', 'Communauté'); ?></span>
+                <?php if ($_online_users_count > 0): ?>
+                <span class="flex items-center gap-1 ml-1 bg-emerald-500/20 border border-emerald-500/30 px-1.5 py-0.5 rounded-full">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse-online"></span>
+                    <span class="text-[10px] font-bold"><?php echo $_online_users_count; ?></span>
+                </span>
+                <?php endif; ?>
+            </a>
+            <?php endif; ?>
+
             <a href="/client/support/" class="<?php echo $active_nav === 'support' ? 'bg-purple-600/30 text-purple-400 border-purple-500/50 font-bold' : 'bg-purple-600/5 text-purple-400/70 hover:text-purple-300 border-purple-500/10 hover:bg-purple-600/20'; ?> px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium shadow-md border whitespace-nowrap">
                 <i class="fas fa-headset"></i> <?php echo t('nav.support'); ?>
             </a>
@@ -151,6 +182,15 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
                         </a>
                         <a href="/client/servers/" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white">
                             <i class="fas fa-server w-4"></i> <?php echo t('nav.my_servers'); ?>
+                        </a>
+                        <a href="/client/community/" class="flex items-center gap-2 px-4 py-2 text-sm text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300">
+                            <i class="fas fa-comments w-4"></i> <?php echo t('nav.community', 'Communauté'); ?>
+                            <?php if ($_online_users_count > 0): ?>
+                            <span class="ml-auto flex items-center gap-1 text-[10px] bg-emerald-500/20 border border-emerald-500/30 px-1.5 py-0.5 rounded-full">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse-online"></span>
+                                <?php echo $_online_users_count; ?>
+                            </span>
+                            <?php endif; ?>
                         </a>
                         <a href="/client/" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white">
                             <i class="fas fa-home w-4"></i> <?php echo t('nav.my_space'); ?>
@@ -207,6 +247,18 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
             <?php if (isset($_SESSION['user_id'])): ?>
             <a href="/client/servers/" class="block py-3.5 px-4 rounded-xl flex items-center gap-3 text-base font-medium border transition-all <?php echo $active_nav === 'servers' ? 'bg-slate-600/20 border-slate-500/40 text-slate-300 shadow-lg shadow-slate-900/20' : 'bg-white/[0.02] border-white/5 text-gray-300 hover:bg-white/5'; ?>">
                 <i class="fas fa-server w-6 text-center text-lg"></i> <?php echo t('nav.servers'); ?>
+            </a>
+            
+            <!-- 💬 Community Mobile -->
+            <a href="/client/community/" class="block py-3.5 px-4 rounded-xl flex items-center gap-3 text-base font-medium border transition-all <?php echo $active_nav === 'community' ? 'bg-emerald-600/20 border-emerald-500/40 text-emerald-400 shadow-lg shadow-emerald-900/20' : 'bg-emerald-600/5 border-emerald-500/20 text-emerald-400/80 hover:bg-emerald-600/10'; ?>">
+                <i class="fas fa-comments w-6 text-center text-lg"></i>
+                <span><?php echo t('nav.community', 'Communauté'); ?></span>
+                <?php if ($_online_users_count > 0): ?>
+                <span class="ml-auto flex items-center gap-1 text-xs bg-emerald-500/20 border border-emerald-500/30 px-2 py-0.5 rounded-full font-bold">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse-online"></span>
+                    <?php echo $_online_users_count; ?> en ligne
+                </span>
+                <?php endif; ?>
             </a>
             <?php endif; ?>
 
@@ -300,3 +352,33 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
 
 <script src="/inc/navbar.js?v=<?php echo filemtime($_SERVER['DOCUMENT_ROOT'] . '/inc/navbar.js'); ?>"></script>
 <script src="/inc/lang_switcher.js?v=<?php echo filemtime($_SERVER['DOCUMENT_ROOT'] . '/inc/lang_switcher.js'); ?>"></script>
+
+<style>
+/* ═══════════════════════════════════════════ */
+/* 🎨 STYLES COMMUNITY NAVBAR */
+/* ═══════════════════════════════════════════ */
+@keyframes pulse-online {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(1.3); }
+}
+
+.animate-pulse-online {
+    animation: pulse-online 2s ease-in-out infinite;
+}
+
+/* Style distinctif pour le bouton Community */
+.nav-community-btn {
+    position: relative;
+    background: linear-gradient(90deg, rgba(16, 185, 129, 0.1) 0%, rgba(6, 182, 212, 0.05) 100%);
+}
+
+.nav-community-btn:hover {
+    background: linear-gradient(90deg, rgba(16, 185, 129, 0.2) 0%, rgba(6, 182, 212, 0.15) 100%);
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+}
+
+.nav-community-btn.active {
+    background: linear-gradient(90deg, rgba(16, 185, 129, 0.3) 0%, rgba(6, 182, 212, 0.2) 100%);
+    box-shadow: 0 0 25px rgba(16, 185, 129, 0.4);
+}
+</style>

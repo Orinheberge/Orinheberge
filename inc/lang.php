@@ -309,7 +309,27 @@ $translations = [
     'cookie.pp'          => ['fr' => 'Politique de Confidentialité', 'en' => 'Privacy Policy', 'de' => 'Datenschutz'],
     'cookie.accept'      => ['fr' => 'Tout accepter', 'en' => 'Accept all', 'de' => 'Alle akzeptieren'],
     'cookie.deny'        => ['fr' => 'Refuser', 'en' => 'Decline', 'de' => 'Ablehnen'],
-];
+    / ═══════════════════════════════════════════
+    // COMMUNITY
+    // ═══════════════════════════════════════════
+    'nav.community' => [
+        'fr' => 'Communauté',
+        'en' => 'Community',
+        'de' => 'Gemeinschaft'
+    ],
+    'nav.community_online' => [
+        'fr' => 'en ligne',
+        'en' => 'online',
+        'de' => 'online'
+    ],
+    'nav.community_chat' => [
+        'fr' => 'Chat communautaire',
+        'en' => 'Community Chat',
+        'de' => 'Gemeinschaft Chat'
+    ],
+
+
+    ];
 
 /**
  * Retourne le texte traduit pour la clé donnée.

@@ -105,3 +105,30 @@ CREATE TABLE IF NOT EXISTS `user_login_history` (
 -- ═══════════════════════════════════════════
 INSERT IGNORE INTO user_notification_preferences (user_id)
 SELECT id FROM users;
+
+-- ═══════════════════════════════════════════
+-- TABLE : Réactions aux messages
+-- ═══════════════════════════════════════════
+CREATE TABLE IF NOT EXISTS `message_reactions` (
+    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `message_id` BIGINT UNSIGNED NOT NULL,
+    `user_id` INT UNSIGNED NOT NULL,
+    `emoji` VARCHAR(50) NOT NULL,
+    `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE INDEX `idx_unique_reaction` (`message_id`, `user_id`, `emoji`),
+    INDEX `idx_message` (`message_id`),
+    INDEX `idx_user` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ═══════════════════════════════════════════
+-- TABLE : Messages épinglés
+-- ═══════════════════════════════════════════
+CREATE TABLE IF NOT EXISTS `pinned_messages` (
+    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `message_id` BIGINT UNSIGNED NOT NULL,
+    `channel` VARCHAR(50) NOT NULL,
+    `pinned_by` INT UNSIGNED NOT NULL,
+    `pinned_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE INDEX `idx_unique_pin` (`message_id`),
+    INDEX `idx_channel` (`channel`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
