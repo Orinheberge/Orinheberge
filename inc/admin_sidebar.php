@@ -156,7 +156,7 @@ $_critical_maintenance = $pdo->query("
       <?php endif; ?>
     </a>
 
-    <a href="/support/admin_tickets/" class="nav-item <?= $active_nav === 'tickets' ? 'active' : '' ?>">
+    <a href="/admin/admin_tickets/" class="nav-item <?= $active_nav === 'tickets' ? 'active' : '' ?>">
       <i class="fas fa-ticket-alt icon"></i> Tickets
       <?php if ($_tickets_count > 0): ?>
         <span class="ml-auto text-[10px] bg-rose-500/15 text-rose-400 border border-rose-500/20 px-1.5 py-0.5 rounded-full font-bold"><?= $_tickets_count ?></span>
@@ -225,7 +225,7 @@ $_critical_maintenance = $pdo->query("
       <?php endif; ?>
     </div>
 
-    <a href="/profil/" class="flex items-center gap-2.5 mb-2 group">
+    <a href="/client/profil/" class="flex items-center gap-2.5 mb-2 group">
       <?php if (!empty($admin['avatar']) && file_exists($_SERVER['DOCUMENT_ROOT'].'/'.$admin['avatar'])): ?>
         <img src="/<?= htmlspecialchars($admin['avatar']) ?>" class="w-8 h-8 rounded-full object-cover border border-white/10">
       <?php else: ?>

@@ -62,3 +62,46 @@ ADD UNIQUE INDEX `idx_oauth` (`oauth_provider`, `oauth_id`);
 
 -- Rendre password nullable pour OAuth
 ALTER TABLE `users` MODIFY `password` VARCHAR(255) DEFAULT NULL;
+
+
+-- ═══════════════════════════════════════════
+-- TABLE : Préférences de notifications
+-- ═══════════════════════════════════════════
+CREATE TABLE IF NOT EXISTS `user_notification_preferences` (
+    `user_id` INT UNSIGNED NOT NULL PRIMARY KEY,
+    `newsletter` TINYINT(1) DEFAULT 1,
+    `security_alerts` TINYINT(1) DEFAULT 1,
+    `payment_notifications` TINYINT(1) DEFAULT 1,
+    `support_tickets` TINYINT(1) DEFAULT 1,
+    `maintenance_alerts` TINYINT(1) DEFAULT 1,
+    `marketing_emails` TINYINT(1) DEFAULT 0,
+    `product_updates` TINYINT(1) DEFAULT 1,
+    `email_digest` ENUM('none','daily','weekly') DEFAULT 'none',
+    `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_notif_user` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ═══════════════════════════════════════════
+-- TABLE : Historique des connexions
+-- ═══════════════════════════════════════════
+CREATE TABLE IF NOT EXISTS `user_login_history` (
+    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `user_id` INT UNSIGNED NOT NULL,
+    `ip_address` VARCHAR(45) NOT NULL,
+    `user_agent` VARCHAR(500) DEFAULT NULL,
+    `auth_method` ENUM('local','discord','google','remember_token') DEFAULT 'local',
+    `status` ENUM('success','failed','blocked') DEFAULT 'success',
+    `failure_reason` VARCHAR(100) DEFAULT NULL,
+    `location_country` VARCHAR(100) DEFAULT NULL,
+    `location_city` VARCHAR(100) DEFAULT NULL,
+    `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX `idx_user_date` (`user_id`, `created_at`),
+    INDEX `idx_ip` (`ip_address`),
+    INDEX `idx_created` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ═══════════════════════════════════════════
+-- Initialiser les préférences pour tous les users existants
+-- ═══════════════════════════════════════════
+INSERT IGNORE INTO user_notification_preferences (user_id)
+SELECT id FROM users;

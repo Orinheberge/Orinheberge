@@ -118,7 +118,7 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
                 </div>
             </div>
 
-            <a href="/support/" class="<?php echo $active_nav === 'support' ? 'bg-purple-600/30 text-purple-400 border-purple-500/50 font-bold' : 'bg-purple-600/5 text-purple-400/70 hover:text-purple-300 border-purple-500/10 hover:bg-purple-600/20'; ?> px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium shadow-md border whitespace-nowrap">
+            <a href="/client/support/" class="<?php echo $active_nav === 'support' ? 'bg-purple-600/30 text-purple-400 border-purple-500/50 font-bold' : 'bg-purple-600/5 text-purple-400/70 hover:text-purple-300 border-purple-500/10 hover:bg-purple-600/20'; ?> px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium shadow-md border whitespace-nowrap">
                 <i class="fas fa-headset"></i> <?php echo t('nav.support'); ?>
             </a>
 
@@ -146,7 +146,7 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
                     </button>
 
                     <div class="dropdown-menu absolute right-0 mt-2 w-56 rounded-2xl border border-white/10 bg-[#11151d] shadow-2xl shadow-black/30 py-2 hidden group-hover:block group-focus-within:block z-50">
-                        <a href="/profil/" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white">
+                        <a href="/client/profil/" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white">
                             <i class="fas fa-user w-4"></i> <?php echo t('nav.my_profile'); ?>
                         </a>
                         <a href="/client/servers/" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white">
@@ -234,7 +234,7 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
                 </div>
             </div>
 
-            <a href="/support/" class="block py-3.5 px-4 rounded-xl flex items-center gap-3 text-base font-medium border transition-all <?php echo $active_nav === 'support' ? 'bg-purple-600/20 border-purple-500/40 text-purple-400 shadow-lg shadow-purple-900/20' : 'bg-white/[0.02] border-white/5 text-gray-300 hover:bg-white/5'; ?>">
+            <a href="/client/support/" class="block py-3.5 px-4 rounded-xl flex items-center gap-3 text-base font-medium border transition-all <?php echo $active_nav === 'support' ? 'bg-purple-600/20 border-purple-500/40 text-purple-400 shadow-lg shadow-purple-900/20' : 'bg-white/[0.02] border-white/5 text-gray-300 hover:bg-white/5'; ?>">
                 <i class="fas fa-headset w-6 text-center text-lg"></i> <?php echo t('nav.support'); ?>
             </a>
 
@@ -257,7 +257,7 @@ if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc
             <?php endif; ?>
 
             <?php if (isset($_SESSION['user_id'])): ?>
-                <a href="/profil/" class="block py-3.5 px-4 rounded-xl flex items-center gap-3 text-base font-medium bg-white/[0.02] border border-white/5 text-gray-300 hover:bg-white/5 transition-all">
+                <a href="/client/profil/" class="block py-3.5 px-4 rounded-xl flex items-center gap-3 text-base font-medium bg-white/[0.02] border border-white/5 text-gray-300 hover:bg-white/5 transition-all">
                     <i class="fas fa-user w-6 text-center text-lg"></i> <?php echo t('nav.my_profile'); ?>
                 </a>
                 <a href="/client/servers/" class="block py-3.5 px-4 rounded-xl flex items-center gap-3 text-base font-medium bg-white/[0.02] border border-white/5 text-gray-300 hover:bg-white/5 transition-all">

@@ -125,10 +125,7 @@ $open_tickets = $open_tickets ?? 0;
             <?php endif; ?>
         </a>
 
-        <a href="/client/oauth-providers/" class="nav-item nav-profile <?php echo cs_active('/client/oauth-providers'); ?>">
-            <i class="fas fa-user icon"></i> 
-            <span>Comptes connectés</span>
-        </a>
+     
 
         <?php if ($_notif_count > 0): ?>
         <a href="/client/notifications/" class="nav-item nav-notif <?php echo cs_active('/client/notifications'); ?>">
@@ -156,13 +153,17 @@ $open_tickets = $open_tickets ?? 0;
 
         <div class="nav-section">Compte</div>
         
-        <a href="/profil/" class="nav-item nav-profile <?php echo cs_active('/profil'); ?>">
+        <a href="/client/profil/" class="nav-item nav-profile <?php echo cs_active('/client/profil'); ?>">
             <i class="fas fa-user icon"></i> 
             <span>Mon profil</span>
         </a>
-          <a href="/client/cards/" class="nav-item nav-profile <?php echo cs_active('/client/cards'); ?>">
+          <a href="/client/profil/" class="nav-item nav-profile <?php echo cs_active('/client/cards'); ?>">
             <i class="fas fa-credit-card icon"></i> 
             <span>Mes Moyens Payments</span>
+        </a>
+           <a href="/client/profil/" class="nav-item nav-profile <?php echo cs_active('/client/oauth-providers'); ?>">
+            <i class="fas fa-user icon"></i> 
+            <span>Comptes connectés</span>
         </a>
         
         <a href="/client/billing/" class="nav-item nav-billing <?php echo cs_active('/client/billing'); ?>">
@@ -173,7 +174,7 @@ $open_tickets = $open_tickets ?? 0;
             <?php endif; ?>
         </a>
         
-        <a href="/support/" class="nav-item nav-support <?php echo cs_active('/support'); ?>">
+        <a href="/client/support/" class="nav-item nav-support <?php echo cs_active('/support'); ?>">
             <i class="fas fa-headset icon"></i> 
             <span>Support</span>
             <?php if ((int)$open_tickets > 0): ?>
@@ -233,7 +234,7 @@ $open_tickets = $open_tickets ?? 0;
         </a>
         <?php endif; ?>
         
-        <a href="/profil/" class="flex items-center gap-2.5 group mb-2 px-2 py-1.5 rounded-xl hover:bg-white/5 transition">
+        <a href="/client/profil/" class="flex items-center gap-2.5 group mb-2 px-2 py-1.5 rounded-xl hover:bg-white/5 transition">
             <?php if (!empty($_SESSION['avatar']) && file_exists($_SERVER['DOCUMENT_ROOT'].'/'.$_SESSION['avatar'])): ?>
                 <img src="/<?php echo htmlspecialchars($_SESSION['avatar']); ?>" class="w-8 h-8 rounded-full object-cover border border-white/10 shrink-0" alt="Avatar">
             <?php else: ?>

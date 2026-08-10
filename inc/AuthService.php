@@ -148,6 +148,129 @@ class AuthService {
         }
     }
 
+    /**
+ * Logger une tentative de connexion
+ */
+public function logLoginAttempt($userId, $status = 'success', $authMethod = 'local', $failureReason = null) {
+    try {
+        $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+        $ua = substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 500);
+        
+        $stmt = $this->pdo->prepare("
+            INSERT INTO user_login_history 
+            (user_id, ip_address, user_agent, auth_method, status, failure_reason, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, NOW())
+        ");
+        $stmt->execute([$userId, $ip, $ua, $authMethod, $status, $failureReason]);
+        
+        // Géolocalisation IP asynchrone (optionnel)
+        $this->geolocateIpAsync($this->pdo->lastInsertId(), $ip);
+        
+    } catch (Exception $e) {
+        error_log('[Auth] Login log error: ' . $e->getMessage());
+    }
+}
+
+/**
+ * Géolocaliser une IP (version simple sans API externe)
+ */
+private function geolocateIpAsync($logId, $ip) {
+    // Version simple : on laisse NULL, à remplir plus tard avec une BDD GeoIP
+    // Ou via API : file_get_contents("http://ip-api.com/json/$ip")
+}
+
+/**
+ * Récupérer l'historique des connexions
+ */
+public function getLoginHistory($userId, $limit = 20) {
+    try {
+        $stmt = $this->pdo->prepare("
+            SELECT * FROM user_login_history
+            WHERE user_id = ?
+            ORDER BY created_at DESC
+            LIMIT ?
+        ");
+        $stmt->execute([$userId, $limit]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Exception $e) {
+        error_log('[Auth] Get login history error: ' . $e->getMessage());
+        return [];
+    }
+}
+
+/**
+ * Récupérer les préférences de notifications
+ */
+public function getNotificationPreferences($userId) {
+    try {
+        $stmt = $this->pdo->prepare("SELECT * FROM user_notification_preferences WHERE user_id = ?");
+        $stmt->execute([$userId]);
+        $prefs = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$prefs) {
+            // Créer avec valeurs par défaut
+            $this->pdo->prepare("INSERT INTO user_notification_preferences (user_id) VALUES (?)")
+                      ->execute([$userId]);
+            return [
+                'user_id' => $userId,
+                'newsletter' => 1,
+                'security_alerts' => 1,
+                'payment_notifications' => 1,
+                'support_tickets' => 1,
+                'maintenance_alerts' => 1,
+                'marketing_emails' => 0,
+                'product_updates' => 1,
+                'email_digest' => 'none'
+            ];
+        }
+        
+        return $prefs;
+    } catch (Exception $e) {
+        error_log('[Auth] Get notif prefs error: ' . $e->getMessage());
+        return [];
+    }
+}
+
+/**
+ * Sauvegarder les préférences de notifications
+ */
+public function saveNotificationPreferences($userId, $prefs) {
+    try {
+        $stmt = $this->pdo->prepare("
+            INSERT INTO user_notification_preferences 
+            (user_id, newsletter, security_alerts, payment_notifications, 
+             support_tickets, maintenance_alerts, marketing_emails, product_updates, email_digest)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE
+                newsletter = VALUES(newsletter),
+                security_alerts = VALUES(security_alerts),
+                payment_notifications = VALUES(payment_notifications),
+                support_tickets = VALUES(support_tickets),
+                maintenance_alerts = VALUES(maintenance_alerts),
+                marketing_emails = VALUES(marketing_emails),
+                product_updates = VALUES(product_updates),
+                email_digest = VALUES(email_digest),
+                updated_at = NOW()
+        ");
+        $stmt->execute([
+            $userId,
+            isset($prefs['newsletter']) ? 1 : 0,
+            isset($prefs['security_alerts']) ? 1 : 0,
+            isset($prefs['payment_notifications']) ? 1 : 0,
+            isset($prefs['support_tickets']) ? 1 : 0,
+            isset($prefs['maintenance_alerts']) ? 1 : 0,
+            isset($prefs['marketing_emails']) ? 1 : 0,
+            isset($prefs['product_updates']) ? 1 : 0,
+            $prefs['email_digest'] ?? 'none'
+        ]);
+        
+        return ['success' => true];
+    } catch (Exception $e) {
+        error_log('[Auth] Save notif prefs error: ' . $e->getMessage());
+        return ['success' => false, 'error' => $e->getMessage()];
+    }
+}
+
     // ============================================
     // 🔑 RÉINITIALISATION MOT DE PASSE
     // ============================================
