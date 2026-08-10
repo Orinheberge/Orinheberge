@@ -1,9 +1,9 @@
 <?php return array(
     'root' => array(
         'name' => 'orinstone/orinheberge',
-        'pretty_version' => 'dev-main',
-        'version' => 'dev-main',
-        'reference' => '071ec5744ced18d716e39fe7724010d24eb1d0c6',
+        'pretty_version' => '1.0.0+no-version-set',
+        'version' => '1.0.0.0',
+        'reference' => null,
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -11,18 +11,18 @@
     ),
     'versions' => array(
         'orinstone/orinheberge' => array(
-            'pretty_version' => 'dev-main',
-            'version' => 'dev-main',
-            'reference' => '071ec5744ced18d716e39fe7724010d24eb1d0c6',
+            'pretty_version' => '1.0.0+no-version-set',
+            'version' => '1.0.0.0',
+            'reference' => null,
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
             'dev_requirement' => false,
         ),
         'stripe/stripe-php' => array(
-            'pretty_version' => 'v21.0.0',
-            'version' => '21.0.0.0',
-            'reference' => '0498d20d0c33490c38df956dd7cef49b3a2ad6f0',
+            'pretty_version' => 'v21.1.1',
+            'version' => '21.1.1.0',
+            'reference' => '5f68d5a285d206a757ebbd9bf0e037759a61c379',
             'type' => 'library',
             'install_path' => __DIR__ . '/../stripe/stripe-php',
             'aliases' => array(),
