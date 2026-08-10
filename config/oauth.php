@@ -18,8 +18,8 @@ return [
     ],
 
     'google' => [
-        'client_id'     => '1078240315010-cb3tp200fscifjqn3orp26f17k51h8a9.apps.googleusercontent.com',
-        'client_secret' => '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',
+        'client_id'     => '1078240315010-7nn5u5t952e3vogo6d9thsppqf624s59.apps.googleusercontent.com',
+        'client_secret' => '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',
         'authorize_url' => 'https://accounts.google.com/o/oauth2/v2/auth',
         'token_url'     => 'https://oauth2.googleapis.com/token',
         'user_info_url' => 'https://www.googleapis.com/oauth2/v3/userinfo',
