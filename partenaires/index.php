@@ -8,7 +8,7 @@ $is_logged_in = isset($_SESSION['user_id']);
 $partners = [
     [
         'name'        => 'NitroHebergeur',
-        'logo'        => '/img/partners/nitrohebergeur.png', // À ajouter
+        'logo'        => '/assets/img/partners/nitrohebergeur.png', // À ajouter
         'url'         => 'https://www.nitrohebergeur.fr/',
         'description' => 'Hébergement web haute performance et infrastructure cloud professionnelle. Solutions adaptées aux besoins des développeurs et entreprises.',
         'services'    => ['Hébergement Web', 'Serveurs Cloud', 'VPS'],

@@ -537,7 +537,7 @@ function getCardStyle($tier_key) {
             <div class="glass p-6 rounded-2xl border border-white/[0.05] text-center flex flex-col items-center group hover:border-sky-500/30 transition">
                 <div class="relative mb-4">
                     <div class="w-20 h-20 bg-gradient-to-tr from-sky-400 to-purple-500 rounded-full p-0.5 shadow-xl group-hover:scale-105 transition">
-                        <img src="/img/staff/Mathéo-Favier.jpg" alt="Avatar de Mathéo Favier" class="w-full h-full object-cover rounded-full bg-[#060911]">
+                        <img src="/assets/img/staff/Mathéo-Favier.jpg" alt="Avatar de Mathéo Favier" class="w-full h-full object-cover rounded-full bg-[#060911]">
                     </div>
                     <span class="absolute bottom-0 right-1 h-3 w-3 rounded-full bg-green-400 border-2 border-[#060911]" title="Online"></span>
                 </div>
@@ -565,7 +565,7 @@ function getCardStyle($tier_key) {
             <div class="glass p-6 rounded-2xl border border-white/[0.05] text-center flex flex-col items-center group hover:border-purple-500/30 transition">
                 <div class="relative mb-4">
                     <div class="w-20 h-20 bg-gradient-to-tr from-purple-500 to-pink-500 rounded-full p-0.5 shadow-xl group-hover:scale-105 transition">
-                        <img src="/img/staff/WixyMc.png" alt="Avatar de WixyMc" class="w-full h-full object-cover rounded-full bg-[#060911]">
+                        <img src="/assets/img/staff/WixyMc.png" alt="Avatar de WixyMc" class="w-full h-full object-cover rounded-full bg-[#060911]">
                     </div>
                     <span class="absolute bottom-0 right-1 h-3 w-3 rounded-full bg-green-400 border-2 border-[#060911]" title="Online"></span>
                 </div>
@@ -583,7 +583,7 @@ function getCardStyle($tier_key) {
                 <div class="text-center flex flex-col items-center">
                     <div class="relative mb-4">
                         <div class="w-20 h-20 bg-gradient-to-tr from-amber-400 to-orange-500 rounded-full p-0.5 shadow-xl group-hover:scale-105 transition">
-                            <img src="/img/staff/Nexium.webp" alt="Avatar de Nexium" class="w-full h-full object-cover rounded-full bg-[#060911]">
+                            <img src="/assets/img/staff/Nexium.webp" alt="Avatar de Nexium" class="w-full h-full object-cover rounded-full bg-[#060911]">
                         </div>
                         <span class="absolute bottom-0 right-1 h-3 w-3 rounded-full bg-green-400 border-2 border-[#060911]" title="Online"></span>
                     </div>
@@ -791,7 +791,7 @@ function getCardStyle($tier_key) {
 <script>
     window.categoryLabels = <?php echo json_encode(array_map(fn($cat) => t($cat['name_key']), $dynamic_categories), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
 </script>
-<script src="/inc/accueil.js"></script>
+<script src="/assets/js/accueil.js"></script>
 <!-- 🚀 Enregistrement du Service Worker -->
 <script>
 (function() {

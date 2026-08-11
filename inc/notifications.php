@@ -1,7 +1,7 @@
 <?php
 // notifications include: outputs the bell button and polling JS for announcements
 ?>
-<link href="/inc/notifications.css?v=<?php echo filemtime($_SERVER['DOCUMENT_ROOT'] . '/inc/notifications.css'); ?>" rel="stylesheet">
+<link href="/assets/css/notifications.css?v=<?php echo filemtime($_SERVER['DOCUMENT_ROOT'] . '/inc/notifications.css'); ?>" rel="stylesheet">
 <div id="notificationRoot" class="relative">
     <button id="notifBtn" class="glass px-3 py-2 rounded-full text-xs flex items-center gap-2 hover:bg-white/5 transition relative">
         <i class="fas fa-bell"></i>
@@ -27,4 +27,4 @@
 
 
 
-<script src='inc/notifications.js'></script>
+<script src='assets/js/notifications.js'></script>

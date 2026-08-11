@@ -351,8 +351,8 @@ if (isset($_SESSION['user_id']) && isset($pdo)) {
     </div>
 </nav>
 
-<script src="/inc/navbar.js?v=<?php echo filemtime($_SERVER['DOCUMENT_ROOT'] . '/inc/navbar.js'); ?>"></script>
-<script src="/inc/lang_switcher.js?v=<?php echo filemtime($_SERVER['DOCUMENT_ROOT'] . '/inc/lang_switcher.js'); ?>"></script>
+<script src="/assets/js/navbar.js?v=<?php echo filemtime($_SERVER['DOCUMENT_ROOT'] . '/inc/navbar.js'); ?>"></script>
+<script src="/assets/js/lang_switcher.js?v=<?php echo filemtime($_SERVER['DOCUMENT_ROOT'] . '/inc/lang_switcher.js'); ?>"></script>
 
 <style>
 /* ═══════════════════════════════════════════ */

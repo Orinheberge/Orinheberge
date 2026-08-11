@@ -147,13 +147,13 @@
                     <div class="flex flex-wrap items-center justify-center xl:justify-start gap-3">
                         <?php
                         $payment_methods = [
-                            ['src' => 'https://azurhosts.com/assets/images/logos/psrl/card-icons/card_cb.svg', 'alt' => 'CB'],
-                            ['src' => 'https://azurhosts.com/assets/images/logos/psrl/card-icons/card_visa.svg', 'alt' => 'Visa'],
-                            ['src' => 'https://azurhosts.com/assets/images/logos/psrl/card-icons/card_mastercard.svg', 'alt' => 'Mastercard'],
-                          //  ['src' => 'https://azurhosts.com/assets/images/logos/psrl/card-icons/card_paypal.svg', 'alt' => 'PayPal'],
-                            ['src' => 'https://heberge.orinstone.deepstone.fr/img/moyen_pay/google_pay.png', 'alt' => 'Google Pay'],
-                            ['src' => 'https://heberge.orinstone.deepstone.fr/img/moyen_pay/apple_pay.png', 'alt' => 'Apple Pay'],
-                            ['src' => 'https://heberge.orinstone.deepstone.fr/img/moyen_pay/revolut_pay.png', 'alt' => 'Revolut']
+                            ['src' => '/assets/img/moyen_pay/card_cb.svg', 'alt' => 'CB'],
+                            ['src' => '/assets/img/moyen_pay/card_visa.svg', 'alt' => 'Visa'],
+                            ['src' => '/assets/img/moyen_pay/card_mastercard.svg', 'alt' => 'Mastercard'],
+                          //  ['src' => '/assets/img/moyen_pay/card_paypal.svg', 'alt' => 'PayPal'],
+                            ['src' => '/assets/img/moyen_pay/google_pay.png', 'alt' => 'Google Pay'],
+                            ['src' => '/assets/img/moyen_pay/apple_pay.png', 'alt' => 'Apple Pay'],
+                            ['src' => '/assets/img/moyen_pay/revolut_pay.png', 'alt' => 'Revolut']
                         ];
                         foreach($payment_methods as $pm): ?>
                             <div class="bg-white/[0.03] border border-white/5 rounded-lg p-2 h-10 flex items-center justify-center hover:bg-white/[0.08] hover:border-white/10 transition duration-300 grayscale hover:grayscale-0">

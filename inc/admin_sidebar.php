@@ -52,7 +52,7 @@ $_critical_maintenance = $pdo->query("
 
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
-<link href="/inc/admin_sidebar.css" rel="stylesheet">
+<link href="/assets/css/admin_sidebar.css" rel="stylesheet">
 
 
 
@@ -276,5 +276,5 @@ $_critical_maintenance = $pdo->query("
   </div>
 </aside>
 <!-- Inclusion du script -->
-<script src="/inc/admin_sidebar.js"></script>
-<script src="/inc/lang_switcher.js"></script> 
+<script src="/assets/js/admin_sidebar.js"></script>
+<script src="/assets/js/lang_switcher.js"></script> 

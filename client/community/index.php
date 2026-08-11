@@ -21,8 +21,8 @@ $active_nav = 'community';
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     
-    <link href="/inc/navbar.css?v=<?php echo filemtime($_SERVER['DOCUMENT_ROOT'] . '/inc/navbar.css'); ?>" rel="stylesheet">
-    <link href="/inc/chat.css?v=<?php echo filemtime($_SERVER['DOCUMENT_ROOT'] . '/inc/chat.css'); ?>" rel="stylesheet">
+    <link href="/assets/css/navbar.css?v=<?php echo filemtime($_SERVER['DOCUMENT_ROOT'] . '/inc/navbar.css'); ?>" rel="stylesheet">
+    <link href="/assets/css/chat.css?v=<?php echo filemtime($_SERVER['DOCUMENT_ROOT'] . '/inc/chat.css'); ?>" rel="stylesheet">
     
     <style>
         /* ═══════════════════════════════════════════ */
@@ -389,8 +389,8 @@ $active_nav = 'community';
     </div>
 
     <!-- Scripts -->
-    <script src="/inc/navbar.js?v=<?php echo filemtime($_SERVER['DOCUMENT_ROOT'] . '/inc/navbar.js'); ?>"></script>
-    <script src="/inc/lang_switcher.js?v=<?php echo filemtime($_SERVER['DOCUMENT_ROOT'] . '/inc/lang_switcher.js'); ?>"></script>
-    <script src="/inc/chat.js?v=<?php echo filemtime($_SERVER['DOCUMENT_ROOT'] . '/inc/chat.js'); ?>"></script>
+    <script src="/assets/js/navbar.js?v=<?php echo filemtime($_SERVER['DOCUMENT_ROOT'] . '/assets/js/navbar.js'); ?>"></script>
+    <script src="/assets/js/lang_switcher.js?v=<?php echo filemtime($_SERVER['DOCUMENT_ROOT'] . '/assets/js/lang_switcher.js'); ?>"></script>
+    <script src="/assets/js/chat.js?v=<?php echo filemtime($_SERVER['DOCUMENT_ROOT'] . '/assets/js/chat.js'); ?>"></script>
 </body>
 </html>

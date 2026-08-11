@@ -32,14 +32,14 @@ const ChatApp = {
     // 📍 CHEMINS API
     // ═══════════════════════════════════════════
     API: {
-        SEND:    '/client/community/api/send_message.php',
-        GET:     '/client/community/api/get_messages.php',
-        EMOJIS:  '/client/community/api/get_emojis.php',
-        ONLINE:  '/client/community/api/get_online.php',
-        DELETE:  '/client/community/api/delete_message.php',
-        REACT:   '/client/community/api/react_message.php',
-        PIN:     '/client/community/api/pin_message.php',
-        PINNED:  '/client/community/api/get_pinned_messages.php'
+        SEND:    '/api/send_message.php',
+        GET:     '/api/get_messages.php',
+        EMOJIS:  '/api/get_emojis.php',
+        ONLINE:  '/api/get_online.php',
+        DELETE:  '/api/delete_message.php',
+        REACT:   '/api/react_message.php',
+        PIN:     '/api/pin_message.php',
+        PINNED:  '/api/get_pinned_messages.php'
     },
 
     // ═══════════════════════════════════════════

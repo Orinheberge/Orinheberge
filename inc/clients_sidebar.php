@@ -101,7 +101,7 @@ $open_tickets = $open_tickets ?? 0;
 ?>
 
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-<link href="/inc/clients_sidebar.css?v=<?php echo time(); ?>" rel="stylesheet">
+<link href="/assets/css/clients_sidebar.css?v=<?php echo time(); ?>" rel="stylesheet">
 
 <button id="sidebar-toggle" aria-label="Ouvrir le menu">
     <i class="fas fa-bars" id="sidebar-toggle-icon"></i>
@@ -337,8 +337,8 @@ $open_tickets = $open_tickets ?? 0;
     </div>
 </aside>
 
-<script src="/inc/clients_sidebar.js" defer></script>
-<script src="/inc/lang_switcher.js"></script>
+<script src="/assets/js/clients_sidebar.js" defer></script>
+<script src="/assets/js/lang_switcher.js"></script>
 
 <style>
 /* ═══════════════════════════════════════════ */

@@ -6,7 +6,7 @@ header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: public, max-age=300'); // Cache 5min (emojis changent rarement)
 
 try {
-    $emojiDir = $_SERVER['DOCUMENT_ROOT'] . '/assets/emoji-orinheberge/';
+    $emojiDir = $_SERVER['DOCUMENT_ROOT'] . '/assets/img/emoji-orinheberge/';
     $emojis = [];
     
     if (is_dir($emojiDir)) {
@@ -18,7 +18,7 @@ try {
                 $cleanName = preg_replace('/[^a-zA-Z0-9_-]/', '_', $name);
                 $emojis[] = [
                     'name' => $name,
-                    'url' => '/assets/emoji-orinheberge/' . rawurlencode($file),
+                    'url' => '/assets/img/emoji-orinheberge/' . rawurlencode($file),
                     'shortcode' => ':' . $cleanName . ':'
                 ];
             }
