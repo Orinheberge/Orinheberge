@@ -614,8 +614,160 @@ $active_nav = 'community';
     </div>
 
     <!-- Scripts -->
-    <script src="/inc/navbar.js?v=<?php echo filemtime($_SERVER['DOCUMENT_ROOT'] . '/inc/navbar.js'); ?>"></script>
-    <script src="/inc/lang_switcher.js?v=<?php echo filemtime($_SERVER['DOCUMENT_ROOT'] . '/inc/lang_switcher.js'); ?>"></script>
-    <script src="/inc/chat.js?v=<?php echo filemtime($_SERVER['DOCUMENT_ROOT'] . '/inc/chat.js'); ?>"></script>
+    <script src="/assets/js/navbar.js?v=<?php echo filemtime($_SERVER['DOCUMENT_ROOT'] . '/inc/navbar.js'); ?>"></script>
+    <script src="/assets/js/lang_switcher.js?v=<?php echo filemtime($_SERVER['DOCUMENT_ROOT'] . '/inc/lang_switcher.js'); ?>"></script>
+    <script src="/assets/js/chat.js?v=<?php echo filemtime($_SERVER['DOCUMENT_ROOT'] . '/inc/chat.js'); ?>"></script>
+    
+    <script>
+    // ═══════════════════════════════════════════
+    // 📱 GESTION SIDEBAR MOBILE
+    // ═══════════════════════════════════════════
+    (function() {
+        const sidebar = document.getElementById('chatSidebar');
+        const overlay = document.getElementById('mobileSidebarOverlay');
+        const openBtn = document.getElementById('openSidebarBtn');
+        const closeBtn = document.getElementById('closeSidebarBtn');
+        
+        function openSidebar() {
+            sidebar.classList.add('open');
+            overlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function closeSidebar() {
+            sidebar.classList.remove('open');
+            overlay.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+        
+        if (openBtn) openBtn.addEventListener('click', openSidebar);
+        if (closeBtn) closeBtn.addEventListener('click', closeSidebar);
+        if (overlay) overlay.addEventListener('click', closeSidebar);
+        
+        // Fermer sidebar quand on change de canal (mobile)
+        document.querySelectorAll('.channel-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (window.innerWidth < 1024) {
+                    setTimeout(closeSidebar, 150);
+                }
+            });
+        });
+        
+        // Swipe to open (depuis le bord gauche)
+        let touchStartX = 0;
+        let touchEndX = 0;
+        
+        document.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+        }, { passive: true });
+        
+        document.addEventListener('touchend', (e) => {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        }, { passive: true });
+        
+        function handleSwipe() {
+            const swipeDistance = touchEndX - touchStartX;
+            // Swipe droite depuis bord gauche (< 30px du bord)
+            if (touchStartX < 30 && swipeDistance > 80 && window.innerWidth < 1024) {
+                openSidebar();
+            }
+            // Swipe gauche pour fermer
+            if (sidebar.classList.contains('open') && swipeDistance < -80) {
+                closeSidebar();
+            }
+        }
+        
+        // ESC pour fermer
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && sidebar.classList.contains('open')) {
+                closeSidebar();
+            }
+        });
+    })();
+    
+    // ═══════════════════════════════════════════
+    // 📱 TEXTAREA AUTO-RESIZE
+    // ═══════════════════════════════════════════
+    (function() {
+        const textarea = document.getElementById('messageInput');
+        if (!textarea) return;
+        
+        function autoResize() {
+            textarea.style.height = 'auto';
+            textarea.style.height = Math.min(textarea.scrollHeight, 128) + 'px';
+        }
+        
+        textarea.addEventListener('input', autoResize);
+        
+        // Envoyer avec Entrée (Shift+Entrée = nouvelle ligne)
+        textarea.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                document.getElementById('messageForm').dispatchEvent(new Event('submit'));
+            }
+        });
+    })();
+    
+    // ═══════════════════════════════════════════
+    // ⬇️ SCROLL TO BOTTOM BUTTON
+    // ═══════════════════════════════════════════
+    (function() {
+        const container = document.getElementById('messagesContainer');
+        const btn = document.getElementById('scrollToBottomBtn');
+        if (!container || !btn) return;
+        
+        container.addEventListener('scroll', () => {
+            const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+            if (distanceFromBottom > 200) {
+                btn.classList.add('visible');
+            } else {
+                btn.classList.remove('visible');
+            }
+        });
+        
+        btn.addEventListener('click', () => {
+            container.scrollTo({
+                top: container.scrollHeight,
+                behavior: 'smooth'
+            });
+        });
+    })();
+    
+    // ═══════════════════════════════════════════
+    // 📱 PRÉVENTION ZOOM DOUBLE-TAP
+    // ═══════════════════════════════════════════
+    (function() {
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', (e) => {
+            const now = Date.now();
+            if (now - lastTouchEnd <= 300) {
+                e.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, { passive: false });
+    })();
+    
+    // ═══════════════════════════════════════════
+    // 📱 SCROLL AUTO VERS LE BAS (nouveau message)
+    // ═══════════════════════════════════════════
+    (function() {
+        const container = document.getElementById('messagesContainer');
+        if (!container) return;
+        
+        const observer = new MutationObserver((mutations) => {
+            const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+            // Auto-scroll seulement si on est déjà proche du bas
+            if (distanceFromBottom < 150) {
+                container.scrollTo({
+                    top: container.scrollHeight,
+                    behavior: 'smooth'
+                });
+            }
+        });
+        
+        observer.observe(container, { childList: true, subtree: true });
+    })();
+    </script>
 </body>
 </html>
