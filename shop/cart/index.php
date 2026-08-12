@@ -608,3 +608,4 @@ if (!empty($_SESSION['checkout_error'])) {
 
 </body>
 </html>
+<?php ob_end_flush(); ?>
