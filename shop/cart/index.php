@@ -223,23 +223,65 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($quantity <= 0) continue;
 
                 $product = loadCartProduct($pdo, $slug);
-                if (!$product) continue;
+                if (!$product) {
+                    // Produit introuvable/désactivé : on le signale au lieu de
+                    // le faire disparaître silencieusement (c'était la cause
+                    // du "la redirection ne fait rien" quand TOUT le panier
+                    // finissait par être ignoré ici).
+                    error_log('[Cart] Checkout: produit introuvable pour slug=' . $slug);
+                    continue;
+                }
 
                 $bundle_items[] = ['slug' => $slug, 'product' => $product, 'quantity' => $quantity];
                 $bundle_slugs[] = $slug;
             }
 
             if (empty($bundle_items)) {
+                $_SESSION['checkout_error'] = 'Aucun des articles de votre panier n\'est disponible actuellement. Veuillez le vider et réessayer.';
                 safeRedirect('/shop/cart/');
             }
 
-            $_SESSION['checkout_bundle'] = ['items' => $bundle_items];
+            // ─── Calcul du total du bundle (avec promo éventuelle) ───
+            $bundle_subtotal = 0.0;
+            foreach ($bundle_items as $bi) {
+                $bundle_subtotal += (float)$bi['product']['price'] * (int)$bi['quantity'];
+            }
+
+            $checkout_promo_code   = trim($_SESSION['promo_code'] ?? '');
+            $checkout_active_promo = getActiveAutoPromo($promos);
+            $checkout_applied_promo = null;
+            if ($checkout_promo_code !== '') {
+                $checkout_applied_promo = checkPromoCode($promos, $checkout_promo_code, 'cart');
+            }
+            $checkout_promo = $checkout_applied_promo ?? $checkout_active_promo;
+            $checkout_prices = $checkout_promo
+                ? applyPromo($bundle_subtotal, $checkout_promo)
+                : [
+                    'original_price' => $bundle_subtotal,
+                    'reduction'      => 0,
+                    'final_price'    => $bundle_subtotal,
+                    'label'          => null,
+                ];
+
+            // Référence lisible pour le récap / PayPal.me, générée une seule fois.
+            $bundle_ref = 'CMD-' . strtoupper(bin2hex(random_bytes(4)));
+
+            $_SESSION['checkout_bundle'] = [
+                'ref'         => $bundle_ref,
+                'items'       => $bundle_items,
+                'promo_code'  => $checkout_applied_promo ? $checkout_promo_code : null,
+                'promo_label' => $checkout_prices['label'],
+                'subtotal'    => $bundle_subtotal,
+                'discount'    => $checkout_prices['reduction'],
+                'total'       => $checkout_prices['final_price'],
+                'created_at'  => time(),
+            ];
 
             $target_url = '/shop/order/payment-choice/?plan=' . urlencode(implode(',', $bundle_slugs));
-            
+
             // Log de debug pour tracer la redirection
-            error_log('[Cart] Checkout redirect → ' . $target_url . ' (bundle: ' . implode(',', $bundle_slugs) . ')');
-            
+            error_log('[Cart] Checkout redirect → ' . $target_url . ' (bundle: ' . implode(',', $bundle_slugs) . ', ref: ' . $bundle_ref . ')');
+
             safeRedirect($target_url);
 
         } catch (Throwable $e) {
