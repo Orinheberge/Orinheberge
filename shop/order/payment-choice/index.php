@@ -1,15 +1,10 @@
 <?php
 /**
  * /shop/order/payment-choice/ — Choix du moyen de paiement
- * L'utilisateur choisit entre PayPal.me et Carte bancaire.
  *
  * Supporte deux modes :
- *  - Mode "commande unique" : ?id=X ou $_SESSION['current_pending_order_id']
- *    pointant vers une ligne existante dans `orders` (ex: achat direct
- *    depuis /offres/).
- *  - Mode "bundle panier" : $_SESSION['checkout_bundle'] posé par
- *    /shop/cart/ lors du clic sur "Finaliser ma commande". C'est le mode
- *    utilisé par le panier multi-articles.
+ *  - Mode "commande unique" : ?id=X (ligne existante dans `orders`)
+ *  - Mode "bundle panier"   : $_SESSION['checkout_bundle'] (depuis /shop/cart/)
  */
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
@@ -23,6 +18,7 @@ if (!isset($_SESSION['user_id'])) {
 require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/db.php';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/lang.php';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/security.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/shop/order/lib/promo/promo.php';
 
 $order = null;
 $bundle = null;
@@ -56,7 +52,7 @@ if ($order_row_id) {
 }
 
 // ═══════════════════════════════════════════
-// MODE 2 : bundle venant du panier (/shop/cart/)
+// MODE 2 : bundle venant du panier
 // ═══════════════════════════════════════════
 if (!$order) {
     $candidate = $_SESSION['checkout_bundle'] ?? null;
@@ -66,35 +62,86 @@ if (!$order) {
     }
 }
 
-// Si vraiment rien d'exploitable, retour au panier.
 if (!$order && !$is_bundle_mode) {
     header('Location: /shop/cart/');
     exit();
 }
 
 // ═══════════════════════════════════════════
-// PRIX & RÉFÉRENCE (unifiés pour les deux modes)
+// CALCUL DES PRIX (unifié pour les deux modes)
 // ═══════════════════════════════════════════
+$price       = 0.0;
+$subtotal    = 0.0;
+$discount    = 0.0;
+$promo_label = null;
+$promo_code  = null;
+$order_ref   = '';
+$is_renewal  = false;
+$item_count  = 0;
+
 if ($is_bundle_mode) {
-    $price       = (float)($bundle['total'] ?? 0);
-    $subtotal    = (float)($bundle['subtotal'] ?? $price);
-    $discount    = (float)($bundle['discount'] ?? 0);
-    $promo_label = $bundle['promo_label'] ?? null;
-    $order_ref   = $bundle['ref'] ?? ('CMD-' . strtoupper(substr(session_id(), 0, 8)));
-    $is_renewal  = false;
+    // ── Calcul du sous-total depuis les items ──
+    $subtotal = 0.0;
+    $item_count = 0;
+    foreach ($bundle['items'] as $bi) {
+        $qty = (int)($bi['quantity'] ?? 0);
+        $unit_price = (float)($bi['product']['price'] ?? 0);
+        $subtotal += $unit_price * $qty;
+        $item_count += $qty;
+    }
+
+    // ── Application du code promo (même logique que /shop/cart/) ──
+    $promo_code_session = trim($_SESSION['promo_code'] ?? '');
+    $active_promo = getActiveAutoPromo($promos);
+    $applied_promo = null;
+
+    if ($promo_code_session !== '') {
+        $applied_promo = checkPromoCode($promos, $promo_code_session, 'cart');
+    }
+
+    $promo = $applied_promo ?? $active_promo;
+
+    if ($promo) {
+        $prices = applyPromo($subtotal, $promo);
+        $discount    = (float)$prices['reduction'];
+        $price       = (float)$prices['final_price'];
+        $promo_label = $prices['label'] ?? $promo['name'];
+        $promo_code  = $applied_promo ? $promo_code_session : null;
+    } else {
+        $price = $subtotal;
+    }
+
+    // ── Référence unique pour le bundle ──
+    $order_ref = 'BND-' . strtoupper(substr(md5(session_id() . time()), 0, 8));
+
+    // ── Stocker le bundle enrichi en session pour le checkout ──
+    $_SESSION['checkout_bundle']['computed'] = [
+        'subtotal'    => $subtotal,
+        'discount'    => $discount,
+        'total'       => $price,
+        'promo_code'  => $promo_code,
+        'promo_label' => $promo_label,
+        'item_count'  => $item_count,
+        'ref'         => $order_ref,
+        'computed_at' => time(),
+    ];
+
+    $is_renewal = false;
 } else {
+    // ── Mode commande unique ──
     $price       = (float)($order['renewal_price'] ?? 0);
     $subtotal    = $price;
     $discount    = 0.0;
     $promo_label = null;
-    $order_ref   = $order['order_id'] ?? $order_row_id;
+    $order_ref   = $order['order_id'] ?? ('ORD-' . $order_row_id);
     $is_renewal  = ($order['type'] ?? 'new') === 'renewal';
+    $item_count  = 1;
 }
 
 // ═══════════════════════════════════════════
 // RÉCUPÉRATION CONFIG PAYPAL.ME
 // ═══════════════════════════════════════════
-$paypalme_username = 'metal544002009'; // fallback
+$paypalme_username = 'metal544002009';
 try {
     $ext_settings_raw = $pdo->query("
         SELECT e.slug, es.key, es.value 
@@ -114,14 +161,13 @@ try {
 $paypalme_url = "https://paypal.me/" . $paypalme_username . "/" . number_format($price, 2, '.', '');
 
 // ═══════════════════════════════════════════
-// LIEN "CARTE BANCAIRE" (Stripe)
+// URL DE CHECKOUT (Stripe Elements)
 // ═══════════════════════════════════════════
-// ⚠️ En mode bundle, /shop/order/checkout/ doit être capable de lire
-// $_SESSION['checkout_bundle'] via ?ref=... — ce fichier n'a pas été fourni,
-// il faudra probablement l'adapter en cohérence avec ce nouveau flux.
+// Le checkout lira $_SESSION['checkout_bundle'] en mode bundle,
+// ou la commande depuis la BDD en mode unique.
 $checkout_url = $is_bundle_mode
-    ? '/shop/order/checkout/?ref=' . urlencode($order_ref)
-    : '/shop/order/checkout/?id=' . $order_row_id;
+    ? '/shop/order/checkout/?mode=bundle&ref=' . urlencode($order_ref)
+    : '/shop/order/checkout/?mode=order&id=' . $order_row_id;
 
 $page_title = $is_renewal ? 'Renouvellement' : 'Finaliser la commande';
 ?>
@@ -130,17 +176,13 @@ $page_title = $is_renewal ? 'Renouvellement' : 'Finaliser la commande';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= $page_title ?> — Choix du paiement | OrinHeberge</title>
+    <title><?= htmlspecialchars($page_title) ?> — Choix du paiement | OrinHeberge</title>
     <link rel="icon" type="image/png" href="/favicon.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         body { background: #070a13; }
-        .glass { 
-            background: rgba(255,255,255,0.03); 
-            backdrop-filter: blur(14px); 
-            border: 1px solid rgba(255,255,255,0.06); 
-        }
+        .glass { background: rgba(255,255,255,0.03); backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,0.06); }
         .payment-option {
             background: rgba(255,255,255,0.02);
             border: 2px solid rgba(255,255,255,0.08);
@@ -150,6 +192,8 @@ $page_title = $is_renewal ? 'Renouvellement' : 'Finaliser la commande';
             cursor: pointer;
             position: relative;
             overflow: hidden;
+            text-decoration: none;
+            display: block;
         }
         .payment-option::before {
             content: '';
@@ -164,9 +208,7 @@ $page_title = $is_renewal ? 'Renouvellement' : 'Finaliser la commande';
             transform: translateY(-3px);
             box-shadow: 0 10px 40px rgba(56, 189, 248, 0.1);
         }
-        .payment-option:hover::before {
-            opacity: 1;
-        }
+        .payment-option:hover::before { opacity: 1; }
         .payment-option.stripe:hover {
             border-color: rgba(99, 91, 255, 0.5);
             box-shadow: 0 10px 40px rgba(99, 91, 255, 0.15);
@@ -224,7 +266,7 @@ $page_title = $is_renewal ? 'Renouvellement' : 'Finaliser la commande';
             <div class="space-y-3 mb-4">
                 <div class="flex justify-between text-sm">
                     <span class="text-gray-400">Commande</span>
-                    <span class="text-white font-mono">#<?= htmlspecialchars((string)$order_ref) ?></span>
+                    <span class="text-white font-mono">#<?= htmlspecialchars($order_ref) ?></span>
                 </div>
 
                 <?php if ($is_bundle_mode): ?>
@@ -236,7 +278,7 @@ $page_title = $is_renewal ? 'Renouvellement' : 'Finaliser la commande';
                     <div class="flex justify-between text-sm gap-3">
                         <span class="text-gray-400 truncate">
                             <?= htmlspecialchars($bi_product['name']) ?>
-                            <?php if ($bi_qty > 1): ?><span class="text-gray-500">×<?= $bi_qty ?></span><?php endif; ?>
+                            <?php if ($bi_qty > 1): ?><span class="text-gray-500"> ×<?= $bi_qty ?></span><?php endif; ?>
                         </span>
                         <span class="text-white shrink-0"><?= number_format($bi_line, 2, ',', '') ?>€</span>
                     </div>
@@ -272,32 +314,20 @@ $page_title = $is_renewal ? 'Renouvellement' : 'Finaliser la commande';
 
                 <div class="border-t border-white/10 my-3"></div>
 
-                <?php if ($is_bundle_mode && $discount > 0): ?>
+                <?php if ($discount > 0): ?>
                 <div class="flex justify-between text-sm">
-                    <span class="text-gray-400">Sous-total</span>
+                    <span class="text-gray-400">Sous-total (<?= $item_count ?> art.)</span>
                     <span class="text-gray-400"><?= number_format($subtotal, 2, ',', '') ?>€</span>
                 </div>
                 <div class="flex justify-between text-sm">
                     <span class="text-emerald-400">
                         <i class="fas fa-tag text-xs"></i>
-                        Réduction<?= $promo_label ? ' (' . htmlspecialchars($promo_label) . ')' : '' ?>
+                        <?= $promo_code ? 'Code promo' : 'Réduction auto' ?>
+                        <?php if ($promo_label): ?>
+                            <span class="font-mono text-xs">(<?= htmlspecialchars($promo_label) ?>)</span>
+                        <?php endif; ?>
                     </span>
-                    <span class="text-emerald-400 font-mono text-xs">-<?= number_format($discount, 2, ',', '') ?>€</span>
-                </div>
-                <?php elseif (!$is_bundle_mode && !empty($order['coupon_code'])): ?>
-                <div class="flex justify-between text-sm">
-                    <span class="text-gray-400">Sous-total</span>
-                    <span class="text-gray-400 line-through">
-                        <?= number_format((float)($order['original_price'] ?? $price), 2, ',', '') ?>€
-                    </span>
-                </div>
-                <div class="flex justify-between text-sm">
-                    <span class="text-emerald-400">
-                        <i class="fas fa-tag text-xs"></i> Code promo
-                    </span>
-                    <span class="text-emerald-400 font-mono text-xs">
-                        <?= htmlspecialchars($order['coupon_code']) ?>
-                    </span>
+                    <span class="text-emerald-400 font-bold">-<?= number_format($discount, 2, ',', '') ?>€</span>
                 </div>
                 <?php endif; ?>
 
@@ -314,7 +344,6 @@ $page_title = $is_renewal ? 'Renouvellement' : 'Finaliser la commande';
                 </div>
             </div>
 
-            <!-- Info sécurité -->
             <div class="bg-emerald-500/5 border border-emerald-500/10 rounded-xl p-3 flex items-start gap-2 text-xs text-emerald-300">
                 <i class="fas fa-shield-alt mt-0.5 shrink-0"></i>
                 <span>Paiement 100% sécurisé. Vos données bancaires ne transitent jamais par nos serveurs.</span>
@@ -339,7 +368,7 @@ $page_title = $is_renewal ? 'Renouvellement' : 'Finaliser la commande';
 
             <!-- Option 1 : Carte bancaire (Stripe) -->
             <a href="<?= htmlspecialchars($checkout_url) ?>" 
-               class="payment-option stripe block animate-in-delay">
+               class="payment-option stripe animate-in-delay">
                 <div class="recommended-badge">
                     <i class="fas fa-bolt text-[8px]"></i> Recommandé
                 </div>
@@ -348,9 +377,7 @@ $page_title = $is_renewal ? 'Renouvellement' : 'Finaliser la commande';
                         <i class="fas fa-credit-card"></i>
                     </div>
                     <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-2 mb-1">
-                            <h3 class="text-lg font-bold text-white">Carte bancaire</h3>
-                        </div>
+                        <h3 class="text-lg font-bold text-white mb-1">Carte bancaire</h3>
                         <p class="text-sm text-gray-400 mb-3">
                             Paiement instantané et sécurisé via Stripe. Votre serveur est activé immédiatement après paiement.
                         </p>
@@ -375,15 +402,13 @@ $page_title = $is_renewal ? 'Renouvellement' : 'Finaliser la commande';
             <!-- Option 2 : PayPal.me -->
             <a href="<?= htmlspecialchars($paypalme_url) ?>" 
                target="_blank"
-               class="payment-option paypal block animate-in-delay2">
+               class="payment-option paypal animate-in-delay2">
                 <div class="flex items-start gap-4">
                     <div class="payment-icon bg-[#003087]/15 text-[#0070f3] border border-[#0070f3]/20">
                         <i class="fab fa-paypal"></i>
                     </div>
                     <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-2 mb-1">
-                            <h3 class="text-lg font-bold text-white">PayPal.me</h3>
-                        </div>
+                        <h3 class="text-lg font-bold text-white mb-1">PayPal.me</h3>
                         <p class="text-sm text-gray-400 mb-3">
                             Payez via PayPal.me en indiquant votre numéro de commande en référence. 
                             <span class="text-amber-400 font-semibold">Activation manuelle sous 24h.</span>
@@ -395,7 +420,7 @@ $page_title = $is_renewal ? 'Renouvellement' : 'Finaliser la commande';
                             </div>
                             <ol class="list-decimal ml-4 space-y-0.5 text-gray-400">
                                 <li>Cliquez sur le lien PayPal.me ci-dessous</li>
-                                <li>Indiquez <strong class="text-white">#<?= htmlspecialchars((string)$order_ref) ?></strong> dans la note</li>
+                                <li>Indiquez <strong class="text-white">#<?= htmlspecialchars($order_ref) ?></strong> dans la note</li>
                                 <li>Validez le paiement de <strong class="text-white"><?= number_format($price, 2, ',', '') ?>€</strong></li>
                             </ol>
                         </div>
@@ -448,12 +473,10 @@ $page_title = $is_renewal ? 'Renouvellement' : 'Finaliser la commande';
                     </details>
                 </div>
             </div>
-
         </div>
     </div>
 </div>
 
 <?php include $_SERVER['DOCUMENT_ROOT'] . '/inc/footer.php'; ?>
-
 </body>
 </html>
