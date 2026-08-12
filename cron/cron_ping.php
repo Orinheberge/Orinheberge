@@ -15,7 +15,7 @@ $my_services = [
     'Panel de gestion'       => ['host' => 'panel.orinstone.deepstone.fr',   'type' => 'https'],
     'phpMyAdmin'            => ['host' => 'php.orinstone.deepstone.fr',     'type' => 'https'],
     'Node OrinStone'        => ['host' => 'node.orinstone.deepstone.fr',    'type' => 'node'],
-    'Node DeepStone Global' => ['host' => 'node.deepstone.fr',          'type' => 'node']
+   // 'Node DeepStone Global' => ['host' => 'node.deepstone.fr',          'type' => 'node']
 ];
 
 $today = date('Y-m-d');

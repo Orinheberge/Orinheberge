@@ -150,7 +150,7 @@
                             ['src' => '/assets/img/moyen_pay/card_cb.svg', 'alt' => 'CB'],
                             ['src' => '/assets/img/moyen_pay/card_visa.svg', 'alt' => 'Visa'],
                             ['src' => '/assets/img/moyen_pay/card_mastercard.svg', 'alt' => 'Mastercard'],
-                          //  ['src' => '/assets/img/moyen_pay/card_paypal.svg', 'alt' => 'PayPal'],
+                            ['src' => '/assets/img/moyen_pay/card_paypal.svg', 'alt' => 'PayPal'],
                             ['src' => '/assets/img/moyen_pay/google_pay.png', 'alt' => 'Google Pay'],
                             ['src' => '/assets/img/moyen_pay/apple_pay.png', 'alt' => 'Apple Pay'],
                             ['src' => '/assets/img/moyen_pay/revolut_pay.png', 'alt' => 'Revolut']

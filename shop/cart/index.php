@@ -159,7 +159,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($action === 'clear_promo') {
         unset($_SESSION['promo_code']);
         syncCartWithStorage($pdo, $_SESSION['cart']);
-    } elseif ($action === 'checkout') {
+    }     } elseif ($action === 'checkout') {
         try {
             if (!isset($_SESSION['user_id'])) {
                 header('Location: /login/');
@@ -179,13 +179,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 exit();
             }
 
-            // Tout (gratuit + payant) est désormais géré par /shop/order/ :
-            // il crée immédiatement les serveurs des offres gratuites du bundle,
-            // et démarre le paiement Stripe pour le reste. On ne fait plus
-            // aucun traitement ici, on transmet juste tout le panier.
-            // Le code promo (s'il y en a un en session) est repris tel quel
-            // par order.php, qui applique exactement la même logique promo
-            // (checkPromoCode + applyPromo) que celle utilisée ici pour l'aperçu.
+            // Préparation du bundle pour le tunnel de commande
             $bundle_items = [];
             $bundle_slugs = [];
             foreach ($_SESSION['cart'] as $slug => $item) {
@@ -208,12 +202,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 exit();
             }
 
+            // Stocker le bundle en session pour les étapes suivantes
             $_SESSION['checkout_bundle'] = [
                 'items' => $bundle_items,
             ];
-            $_SESSION['cart'] = [];
-            syncCartWithStorage($pdo, $_SESSION['cart']);
-            header('Location: /shop/order/?plan=' . urlencode(implode(',', $bundle_slugs)));
+
+            // ⚡ CHANGEMENT : Redirection vers payment-choice AU LIEU DE /shop/order/
+            // Le panier ne vide plus le cart ici — il sera vidé après création
+            // de la commande dans /shop/order/ une fois le paiement choisi.
+            header('Location: /shop/order/payment-choice/?plan=' . urlencode(implode(',', $bundle_slugs)));
             exit();
         } catch (Throwable $e) {
             error_log('Cart checkout error: ' . $e->getMessage());
