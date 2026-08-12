@@ -1,0 +1,10 @@
+{
+    "time": 1786557857,
+    "message": "Site en maintenance. Nous reviendrons bientôt !",
+    "retry": 60,
+    "refresh": 0,
+    "status": 503,
+    "allowed": [],
+    "redirect": null,
+    "template": null
+}

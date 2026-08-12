@@ -241,9 +241,8 @@ $total = count($servers);
 // ═══════════════════════════════════════════
 $upgradeable_count = 0;
 foreach ($servers as $s) {
-    $price = (float)($s['renewal_price'] ?? 0);
     $status = $s['status'] ?? 'paid';
-    if ($price > 0 && !in_array($status, ['suspended', 'deleted'])) {
+    if (!in_array($status, ['suspended', 'deleted'])) {
         $upgradeable_count++;
     }
 }
@@ -282,7 +281,7 @@ try {
         SELECT p.id, p.price, cp.category_slug
         FROM products p
         JOIN categories_products cp ON cp.product_id = p.id
-        WHERE p.is_active = 1 AND p.type = 'paid'
+        WHERE p.is_active = 1
     ")->fetchAll();
     
     // Grouper par catégorie
@@ -580,30 +579,13 @@ try {
                 $name       = htmlspecialchars($server['service_name'] ?? 'Serveur');
                 
                 // ═══════════════════════════════════════════
-                // 🎯 LOGIQUE UPGRADE INTELLIGENTE
+                // 🎯 LOGIQUE UPGRADE SIMPLIFIÉE
                 // ═══════════════════════════════════════════
                 $renewal_price = (float)($server['renewal_price'] ?? 0);
                 $product_id = (int)($server['product_id'] ?? 0);
                 
-                // Méthode 1 : Prix > 0 + non suspendu
-                $can_upgrade_basic = $renewal_price > 0 && !$is_suspended;
-                
-                // Méthode 2 : Upgrade disponible dans la même catégorie
-                $can_upgrade_smart = !$is_suspended && isset($products_with_upgrades[$product_id]);
-                
-                // Combiner les deux
-                $can_upgrade = $can_upgrade_basic || $can_upgrade_smart;
-                
-                // Debug info
-                $debug_info = sprintf(
-                    "price=%.2f | status=%s | pid=%d | cat=%s | basic=%s | smart=%s",
-                    $renewal_price,
-                    $db_status,
-                    $product_id,
-                    $product_categories[$product_id]['category_slug'] ?? 'none',
-                    $can_upgrade_basic ? 'Y' : 'N',
-                    $can_upgrade_smart ? 'Y' : 'N'
-                );
+                // Tout serveur non suspendu peut upgrader si des offres supérieures existent
+                $can_upgrade = !$is_suspended && isset($products_with_upgrades[$product_id]);
 
                 $sname_low  = strtolower($server['service_name'] ?? '');
                 $icon_class = 'fas fa-server text-sky-400';
@@ -631,11 +613,6 @@ try {
                         <?php if (!empty($entry['ports'])): ?>
                         <div class="text-[10px] text-gray-600 font-mono mt-0.5 truncate"><?php echo implode(' · ', array_slice($entry['ports'], 0, 2)); ?></div>
                         <?php endif; ?>
-                        
-                        <!-- 🔍 DEBUG (à retirer en prod) -->
-                        <div class="text-[9px] text-gray-700 font-mono mt-1">
-                            <?php echo $debug_info; ?>
-                        </div>
                     </div>
                 </div>
                 <div class="flex items-center" style="flex:1">
@@ -661,11 +638,6 @@ try {
                         <i class="fas fa-rocket text-[10px]"></i>
                         <span class="upgrade-text">Upgrade</span>
                     </a>
-                    <?php elseif (!$is_suspended && $renewal_price == 0): ?>
-                    <span class="btn-sm" style="background:rgba(56,189,248,.05);color:#64748b;border-color:rgba(255,255,255,.05);cursor:not-allowed;" title="Offre gratuite - pas d'upgrade">
-                        <i class="fas fa-gift text-[10px]"></i>
-                        <span class="upgrade-text hidden sm:inline">Gratuit</span>
-                    </span>
                     <?php endif; ?>
                     
                     <a href="<?php echo htmlspecialchars($panel_url); ?>/server/<?php echo htmlspecialchars($short_id); ?>" target="_blank" class="btn-sm" style="background:rgba(255,255,255,.04);color:#9ca3af;border-color:rgba(255,255,255,.08);" title="Panel Pterodactyl"><i class="fas fa-external-link-alt text-[10px]"></i></a>
