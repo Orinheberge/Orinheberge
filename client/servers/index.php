@@ -122,6 +122,16 @@ foreach ($servers as $srv) {
     $server_data[] = $entry;
 }
 $total = count($servers);
+
+// ── Compter serveurs upgradables ──────────────────────────────────────────────
+$upgradeable_count = 0;
+foreach ($servers as $s) {
+    $price = (float)($s['renewal_price'] ?? 0);
+    $status = $s['status'] ?? 'paid';
+    if ($price > 0 && !in_array($status, ['suspended', 'deleted'])) {
+        $upgradeable_count++;
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo $lang ?? 'fr'; ?>">
@@ -132,7 +142,7 @@ $total = count($servers);
     <link rel="icon" type="image/png" href="/favicon.ico">
     <link rel="manifest" href="/manifest.json">
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         :root{--sidebar:240px;}
         *{box-sizing:border-box;}
@@ -151,13 +161,15 @@ $total = count($servers);
         .topbar{background:#111318;border-bottom:1px solid rgba(255,255,255,.06);padding:.875rem 1.75rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:30;}
         .content{padding:1.75rem;flex:1;}
         .card{background:#161a22;border:1px solid rgba(255,255,255,.07);border-radius:.875rem;}
-        .stat-card{background:linear-gradient(135deg,#161a22,#1a1f2a);border:1px solid rgba(255,255,255,.07);border-radius:.875rem;padding:1.25rem;}
+        .stat-card{background:linear-gradient(135deg,#161a22,#1a1f2a);border:1px solid rgba(255,255,255,.07);border-radius:.875rem;padding:1.25rem;transition:all .2s;}
+        .stat-card:hover{border-color:rgba(56,189,248,.2);transform:translateY(-2px);}
         .badge{display:inline-flex;align-items:center;gap:.35rem;padding:.2rem .65rem;border-radius:9999px;font-size:.72rem;font-weight:600;}
         .badge-green{background:rgba(34,197,94,.1);color:#22c55e;border:1px solid rgba(34,197,94,.2);}
         .badge-orange{background:rgba(249,115,22,.1);color:#f97316;border:1px solid rgba(249,115,22,.2);}
         .badge-red{background:rgba(239,68,68,.1);color:#ef4444;border:1px solid rgba(239,68,68,.2);}
         .badge-gray{background:rgba(107,114,128,.1);color:#9ca3af;border:1px solid rgba(107,114,128,.2);}
         .badge-blue{background:rgba(56,189,248,.1);color:#38bdf8;border:1px solid rgba(56,189,248,.2);}
+        .badge-purple{background:rgba(168,85,247,.1);color:#a855f7;border:1px solid rgba(168,85,247,.2);}
         .service-row{display:flex;align-items:center;gap:1rem;padding:.9rem 1.25rem;border-bottom:1px solid rgba(255,255,255,.04);transition:background .15s;}
         .service-row:last-child{border-bottom:none;}
         .service-row:hover{background:rgba(255,255,255,.02);}
@@ -171,6 +183,75 @@ $total = count($servers);
         .btn-red:hover{background:#dc2626;color:#fff;border-color:#dc2626;}
         .btn-amber{background:rgba(245,158,11,.08);color:#f59e0b;border-color:rgba(245,158,11,.15);}
         .btn-amber:hover{background:#d97706;color:#fff;border-color:#d97706;}
+        
+        /* ═══════════════════════════════════════════ */
+        /* 🚀 BOUTON UPGRADE AMÉLIORÉ */
+        /* ═══════════════════════════════════════════ */
+        .upgrade-btn {
+            position: relative;
+            background: linear-gradient(135deg, rgba(168,85,247,.15), rgba(139,92,246,.15));
+            color: #c084fc;
+            border: 1px solid rgba(168,85,247,.3);
+            box-shadow: 0 2px 8px rgba(168,85,247,.1);
+            transition: all 0.25s;
+            overflow: hidden;
+        }
+        .upgrade-btn:hover {
+            background: linear-gradient(135deg, rgba(168,85,247,.25), rgba(139,92,246,.25));
+            color: #d8b4fe;
+            border-color: rgba(168,85,247,.5);
+            box-shadow: 0 4px 16px rgba(168,85,247,.3);
+            transform: translateY(-1px);
+        }
+        .upgrade-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,.1), transparent);
+            transition: left 0.5s;
+        }
+        .upgrade-btn:hover::before {
+            left: 100%;
+        }
+        
+        @keyframes upgrade-pulse {
+            0%, 100% { box-shadow: 0 2px 8px rgba(168,85,247,.1); }
+            50% { box-shadow: 0 2px 16px rgba(168,85,247,.25); }
+        }
+        .upgrade-btn {
+            animation: upgrade-pulse 3s infinite;
+        }
+        
+        /* Badge Upgrade sur le nom */
+        .upgrade-name-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-size: 9px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            background: linear-gradient(135deg, rgba(168,85,247,.15), rgba(139,92,246,.15));
+            color: #c084fc;
+            border: 1px solid rgba(168,85,247,.3);
+        }
+        
+        /* Carte stats upgrade */
+        .stat-upgrade {
+            background: linear-gradient(135deg, rgba(168,85,247,.05), rgba(139,92,246,.05));
+            border: 1px solid rgba(168,85,247,.15);
+            cursor: pointer;
+        }
+        .stat-upgrade:hover {
+            border-color: rgba(168,85,247,.4);
+            background: linear-gradient(135deg, rgba(168,85,247,.1), rgba(139,92,246,.1));
+        }
+        
         .mobile-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:39;}
         @media(max-width:768px){
             .sidebar{transform:translateX(-100%);transition:transform .25s;}
@@ -180,6 +261,8 @@ $total = count($servers);
             .topbar{padding:.75rem 1rem;}
             .content{padding:1rem;}
             .res-cols{display:none;}
+            .upgrade-btn span.upgrade-text { display: none; }
+            .upgrade-btn { padding: .3rem .5rem; }
         }
     </style>
     <script>
@@ -229,7 +312,10 @@ $total = count($servers);
     <div class="content">
         <?php echo $api_message; ?>
 
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <!-- ═══════════════════════════════════════════ -->
+        <!-- 📊 CARTES DE STATISTIQUES -->
+        <!-- ═══════════════════════════════════════════ -->
+        <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
             <div class="stat-card">
                 <div class="flex items-center justify-between mb-2">
                     <span class="text-xs text-gray-500 font-medium">Total</span>
@@ -262,9 +348,24 @@ $total = count($servers);
                 <div class="text-2xl font-black <?php echo $open_tickets > 0 ? 'text-purple-400' : 'text-gray-600'; ?>"><?php echo $open_tickets; ?></div>
                 <div class="text-xs text-gray-500 mt-1">Ouverts</div>
             </div>
+            <?php if ($upgradeable_count > 0): ?>
+            <a href="#servers-list" class="stat-card stat-upgrade block">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-medium" style="color:#c084fc;">Upgrades</span>
+                    <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background:rgba(168,85,247,.15)">
+                        <i class="fas fa-rocket text-xs" style="color:#c084fc"></i>
+                    </div>
+                </div>
+                <div class="text-2xl font-black" style="color:#c084fc"><?php echo $upgradeable_count; ?></div>
+                <div class="text-xs mt-1" style="color:#a855f7">Disponibles</div>
+            </a>
+            <?php endif; ?>
         </div>
 
-        <div class="card overflow-hidden">
+        <!-- ═══════════════════════════════════════════ -->
+        <!-- 📋 LISTE DES SERVEURS -->
+        <!-- ═══════════════════════════════════════════ -->
+        <div class="card overflow-hidden" id="servers-list">
             <div class="flex items-center justify-between px-5 py-4 border-b border-white/[0.05]">
                 <h2 class="text-sm font-bold text-white flex items-center gap-2">
                     <i class="fas fa-server text-sky-400 text-xs"></i> Mes serveurs
@@ -296,6 +397,7 @@ $total = count($servers);
                 'stopping' => ['text' => 'Extinction', 'badge' => 'badge-orange', 'dot' => 'bg-amber-400'],
                 'offline'  => ['text' => 'Hors ligne', 'badge' => 'badge-red',    'dot' => 'bg-red-400'],
             ];
+            
             foreach ($server_data as $entry):
                 $server     = $entry['server'];
                 $status     = $entry['status'];
@@ -308,6 +410,10 @@ $total = count($servers);
                 if ($db_status === 'suspended') $sm = ['text' => 'Suspendu', 'badge' => 'badge-gray', 'dot' => 'bg-gray-500'];
                 if ($db_status === 'deleted')   $sm = ['text' => 'Supprimé', 'badge' => 'badge-red',  'dot' => 'bg-red-500'];
                 $name       = htmlspecialchars($server['service_name'] ?? 'Serveur');
+                
+                // Vérifier si upgrade disponible
+                $renewal_price = (float)($server['renewal_price'] ?? 0);
+                $can_upgrade = $renewal_price > 0 && !$is_suspended;
 
                 $sname_low  = strtolower($server['service_name'] ?? '');
                 $icon_class = 'fas fa-server text-sky-400';
@@ -323,7 +429,14 @@ $total = count($servers);
                         <i class="<?php echo $icon_class; ?> text-sm"></i>
                     </div>
                     <div class="min-w-0">
-                        <div class="text-sm font-semibold text-white truncate"><?php echo $name; ?></div>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <div class="text-sm font-semibold text-white truncate"><?php echo $name; ?></div>
+                            <?php if ($can_upgrade): ?>
+                            <span class="upgrade-name-badge">
+                                <i class="fas fa-rocket" style="font-size:7px"></i> Upgrade
+                            </span>
+                            <?php endif; ?>
+                        </div>
                         <div class="text-[10px] text-gray-500 font-mono"><?php echo htmlspecialchars($short_id); ?></div>
                         <?php if (!empty($entry['ports'])): ?>
                         <div class="text-[10px] text-gray-600 font-mono mt-0.5 truncate"><?php echo implode(' · ', array_slice($entry['ports'], 0, 2)); ?></div>
@@ -345,9 +458,17 @@ $total = count($servers);
                     <a href="?action=restart&uuid=<?php echo urlencode($id); ?>" class="btn-sm btn-amber" title="Redémarrer"><i class="fas fa-rotate text-[10px]"></i></a>
                     <a href="?action=stop&uuid=<?php echo urlencode($id); ?>" class="btn-sm btn-red" title="Arrêter"><i class="fas fa-stop text-[10px]"></i></a>
                     <a href="/client/servers/gérer/?uuid=<?php echo urlencode($id); ?>" class="btn-sm btn-primary"><i class="fas fa-terminal text-[10px]"></i> Console</a>
-                    <?php if(($server['renewal_price']??0)>0): ?>
-                    <a href="/client/servers/upgrade/?uuid=<?php echo urlencode($id); ?>" class="btn-sm" style="background:rgba(168,85,247,.1);color:#a855f7;border:1px solid rgba(168,85,247,.2);" title="Upgrader l'offre"><i class="fas fa-arrow-up text-[10px]"></i> Upgrade</a>
+                    
+                    <?php if ($can_upgrade): ?>
+                    <!-- 🚀 BOUTON UPGRADE AMÉLIORÉ -->
+                    <a href="/client/servers/upgrade/?uuid=<?php echo urlencode($id); ?>" 
+                       class="btn-sm upgrade-btn" 
+                       title="Upgrader l'offre">
+                        <i class="fas fa-rocket text-[10px]"></i>
+                        <span class="upgrade-text">Upgrade</span>
+                    </a>
                     <?php endif; ?>
+                    
                     <a href="<?php echo htmlspecialchars($panel_url); ?>/server/<?php echo htmlspecialchars($short_id); ?>" target="_blank" class="btn-sm" style="background:rgba(255,255,255,.04);color:#9ca3af;border-color:rgba(255,255,255,.08);" title="Panel Pterodactyl"><i class="fas fa-external-link-alt text-[10px]"></i></a>
                     <a href="?action=delete&uuid=<?php echo urlencode($id); ?>" onclick="return confirmDelete('<?php echo addslashes(htmlspecialchars($server['service_name'] ?? '')); ?>')" class="btn-sm" style="background:rgba(239,68,68,.06);color:#6b7280;border-color:rgba(239,68,68,.1);" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#6b7280'" title="Supprimer"><i class="fas fa-trash text-[10px]"></i></a>
                 </div>
@@ -357,5 +478,8 @@ $total = count($servers);
             <?php endif; ?>
         </div>
 
-    </div></div></body>
+    </div>
+</div>
+
+</body>
 </html>

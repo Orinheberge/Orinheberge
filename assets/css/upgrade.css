@@ -1,0 +1,133 @@
+/* ═══════════════════════════════════════════════════════════ */
+/* OrinHeberge — Upgrade Page Styles */
+/* ═══════════════════════════════════════════════════════════ */
+
+.upgrade-page {
+    padding: 1.5rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* Alertes */
+.upgrade-alert {
+    padding: 1rem 1.25rem;
+    border-radius: 0.75rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    font-size: 0.875rem;
+}
+
+.upgrade-alert-success {
+    background: rgba(34, 197, 94, 0.08);
+    color: #4ade80;
+    border: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+.upgrade-alert-error {
+    background: rgba(239, 68, 68, 0.08);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.upgrade-alert-warning {
+    background: rgba(251, 191, 36, 0.08);
+    color: #fbbf24;
+    border: 1px solid rgba(251, 191, 36, 0.2);
+}
+
+/* Cartes */
+.upgrade-card {
+    background: #161a22;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 0.875rem;
+    padding: 1.5rem;
+}
+
+/* Plan cards */
+.plan-card {
+    background: #161a22;
+    border: 2px solid rgba(255, 255, 255, 0.06);
+    border-radius: 1rem;
+    padding: 1.25rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+}
+
+.plan-card:hover:not(.current):not(.disabled) {
+    border-color: rgba(56, 189, 248, 0.4);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(56, 189, 248, 0.1);
+}
+
+.plan-card.selected {
+    border-color: #38bdf8 !important;
+    background: rgba(56, 189, 248, 0.05);
+    box-shadow: 0 0 30px rgba(56, 189, 248, 0.2);
+}
+
+.plan-card.current {
+    border-color: #22c55e;
+    background: rgba(34, 197, 94, 0.04);
+    cursor: default;
+}
+
+.plan-card.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.plan-badge {
+    position: absolute;
+    top: -10px;
+    left: 16px;
+    padding: 0.2rem 0.65rem;
+    border-radius: 9999px;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Barre de confirmation */
+.confirm-bar {
+    position: fixed;
+    bottom: 0;
+    left: 240px;
+    right: 0;
+    background: rgba(17, 19, 24, 0.95);
+    backdrop-filter: blur(12px);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 1rem 1.5rem;
+    z-index: 30;
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5);
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.confirm-bar.active {
+    display: flex;
+    transform: translateY(0);
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+    .confirm-bar { left: 0; padding: 0.875rem 1rem; }
+    .upgrade-page { padding: 1rem; }
+}
+
+/* Animation */
+@keyframes upgrade-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.4); }
+    50% { box-shadow: 0 0 0 8px rgba(56, 189, 248, 0); }
+}
+
+.plan-card.selected {
+    animation: upgrade-pulse 2s infinite;
+}
