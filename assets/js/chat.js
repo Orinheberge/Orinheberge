@@ -34,6 +34,7 @@ const ChatApp = {
     API: {
         SEND:    '/api/message/send_message.php',
         GET:     '/api/message/get_messages.php',
+        
         EMOJIS:  '/api/message/get_emojis.php',
         ONLINE:  '/api/message/get_online.php',
         DELETE:  '/api/message/delete_message.php',

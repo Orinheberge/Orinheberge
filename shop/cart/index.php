@@ -3,7 +3,40 @@
  * /shop/cart/ — Panier utilisateur
  * Gestion des offres sélectionnées, codes promo et redirection vers le tunnel de commande.
  */
-ob_start();
+
+// ═══════════════════════════════════════════
+// ⚡ BUFFER OUTPUT — doit être AVANT tout include
+// ═══════════════════════════════════════════
+if (ob_get_level() === 0) {
+    ob_start();
+}
+
+// ⚡ Fonction de redirection robuste (fallback JS si headers déjà envoyés)
+function safeRedirect(string $url): void {
+    // Nettoyer tous les buffers accumulés
+    while (ob_get_level() > 0) {
+        ob_end_clean();
+    }
+    
+    if (headers_sent($file, $line)) {
+        // Fallback : meta refresh + lien cliquable + debug info
+        $safeUrl = htmlspecialchars($url, ENT_QUOTES, 'UTF-8');
+        echo '<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">';
+        echo '<meta http-equiv="refresh" content="0;url=' . $safeUrl . '">';
+        echo '<title>Redirection…</title>';
+        echo '<style>body{background:#0b0f19;color:#e2e8f0;font-family:system-ui,sans-serif;padding:3rem;text-align:center;}</style>';
+        echo '</head><body>';
+        echo '<h2 style="color:#38bdf8;">⏳ Redirection en cours…</h2>';
+        echo '<p>Si la redirection ne démarre pas, <a href="' . $safeUrl . '" style="color:#38bdf8;text-decoration:underline;">cliquez ici pour continuer</a>.</p>';
+        echo '<hr style="border-color:#1e293b;margin:2rem 0;">';
+        echo '<p style="color:#f87171;font-size:12px;">Debug: Headers already sent in <code>' . htmlspecialchars($file) . '</code> on line <strong>' . $line . '</strong></p>';
+        echo '</body></html>';
+        exit();
+    }
+    
+    header('Location: ' . $url);
+    exit();
+}
 
 session_start();
 require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/lang.php';
@@ -169,21 +202,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($action === 'checkout') {
         try {
             if (!isset($_SESSION['user_id'])) {
-                header('Location: /login/');
-                exit();
+                safeRedirect('/login/');
             }
 
             if (empty($_SESSION['cart'])) {
-                header('Location: /shop/cart/');
-                exit();
+                safeRedirect('/shop/cart/');
             }
 
             $stmt = $pdo->prepare('SELECT * FROM users WHERE id=? LIMIT 1');
             $stmt->execute([$_SESSION['user_id']]);
             $user = $stmt->fetch();
             if (!$user) {
-                header('Location: /login/');
-                exit();
+                safeRedirect('/login/');
             }
 
             $bundle_items = [];
@@ -200,25 +230,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             if (empty($bundle_items)) {
-                header('Location: /shop/cart/');
-                exit();
+                safeRedirect('/shop/cart/');
             }
 
             $_SESSION['checkout_bundle'] = ['items' => $bundle_items];
 
-            header('Location: /shop/order/payment-choice/?plan=' . urlencode(implode(',', $bundle_slugs)));
-            exit();
+            $target_url = '/shop/order/payment-choice/?plan=' . urlencode(implode(',', $bundle_slugs));
+            
+            // Log de debug pour tracer la redirection
+            error_log('[Cart] Checkout redirect → ' . $target_url . ' (bundle: ' . implode(',', $bundle_slugs) . ')');
+            
+            safeRedirect($target_url);
+
         } catch (Throwable $e) {
             error_log('Cart checkout error: ' . $e->getMessage());
             $_SESSION['checkout_error'] = 'La finalisation de la commande a échoué. Veuillez réessayer.';
-            header('Location: /shop/cart/');
-            exit();
+            safeRedirect('/shop/cart/');
         }
     }
 
     // Redirection PRG (Post/Redirect/Get) pour éviter les doubles soumissions
-    header('Location: /shop/cart/');
-    exit();
+    safeRedirect('/shop/cart/');
 }
 
 // ═══════════════════════════════════════════
@@ -608,4 +640,3 @@ if (!empty($_SESSION['checkout_error'])) {
 
 </body>
 </html>
-<?php ob_end_flush(); ?>
