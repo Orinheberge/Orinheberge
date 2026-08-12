@@ -1,8 +1,8 @@
 <?php
 /**
- * /client/servers/upgrade/ — Page d'upgrade d'offre pour un serveur existant
- * Le client choisit un plan supérieur, la diff de prix est calculée,
- * puis il est redirigé vers le checkout Stripe pour payer la différence.
+ * /client/servers/upgrade/ — Page de sélection d'upgrade
+ * Le client choisit un plan supérieur, puis est redirigé vers le checkout Stripe Elements.
+ * L'upgrade n'est appliqué qu'après paiement réussi.
  */
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
@@ -134,137 +134,7 @@ $current_price   = (float)($server['renewal_price'] ?? 0);
 $current_product = $server['product_id'] ?? 0;
 
 // ═══════════════════════════════════════════
-// 6. TRAITEMENT POST : UPGRADE
-// ═══════════════════════════════════════════
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['new_product_id']) && !$flash) {
-    $new_pid  = (int)$_POST['new_product_id'];
-    $new_prod = null;
-    
-    foreach ($available_upgrades as $ap) {
-        if ((int)$ap['id'] === $new_pid) {
-            $new_prod = $ap;
-            break;
-        }
-    }
-    
-    if (!$new_prod) {
-        $flash = '<div class="upgrade-alert upgrade-alert-error"><i class="fas fa-times-circle"></i> Offre invalide.</div>';
-    } elseif ((int)$new_prod['id'] === (int)$current_product) {
-        $flash = '<div class="upgrade-alert upgrade-alert-warning"><i class="fas fa-info-circle"></i> Vous avez déjà cette offre.</div>';
-    } elseif ((float)$new_prod['price'] < $current_price) {
-        $flash = '<div class="upgrade-alert upgrade-alert-error"><i class="fas fa-arrow-down"></i> Le downgrade n\'est pas disponible. Contactez le support.</div>';
-    } else {
-        try {
-            $pdo->beginTransaction();
-            
-            // ─── 1. Mise à jour Pterodactyl ───
-            $server_id = (int)($server['server_id'] ?? 0);
-            $panel_updated = false;
-            
-            if ($server_id && $api_key_admin) {
-                try {
-                    $details = curlAdminApi($panel_url, $headers_admin, "servers/$server_id");
-                    $alloc   = $details['attributes']['allocation'] ?? null;
-                    
-                    if ($alloc) {
-                        $result = curlAdminApi($panel_url, $headers_admin, "servers/$server_id/build", 'PATCH', [
-                            'allocation'     => $alloc,
-                            'memory'         => (int)$new_prod['ram'],
-                            'swap'           => 0,
-                            'disk'           => (int)$new_prod['disk'],
-                            'io'             => 500,
-                            'cpu'            => (int)$new_prod['cpu'],
-                            'threads'        => null,
-                            'feature_limits' => [
-                                'databases'   => (int)$new_prod['databases'],
-                                'backups'     => (int)$new_prod['backups'],
-                                'allocations' => (int)$new_prod['allocations']
-                            ],
-                        ]);
-                        $panel_updated = ($result !== null);
-                    }
-                } catch (Exception $e) {
-                    error_log('[Upgrade] Pterodactyl error: ' . $e->getMessage());
-                }
-            }
-            
-            // ─── 2. Mise à jour BDD ───
-            $pdo->prepare("
-                UPDATE orders 
-                SET product_id = ?, 
-                    service_name = ?, 
-                    ram = ?, 
-                    disk = ?, 
-                    cpu = ?, 
-                    renewal_price = ?,
-                    updated_at = NOW()
-                WHERE uuid = ? AND user_id = ?
-            ")->execute([
-                $new_prod['id'],
-                $new_prod['name'],
-                $new_prod['ram'],
-                $new_prod['disk'],
-                $new_prod['cpu'],
-                $new_prod['price'],
-                $uuid,
-                $_SESSION['user_id']
-            ]);
-            
-            // ─── 3. Log de l'upgrade ───
-            try {
-                $pdo->prepare("
-                    INSERT INTO server_upgrades 
-                    (user_id, order_uuid, from_product_id, to_product_id, old_price, new_price, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, NOW())
-                ")->execute([
-                    $_SESSION['user_id'],
-                    $uuid,
-                    $current_product,
-                    $new_prod['id'],
-                    $current_price,
-                    $new_prod['price']
-                ]);
-            } catch (Exception $e) {
-                // Table peut ne pas exister
-            }
-            
-            $pdo->commit();
-            
-            $diff_price = $new_prod['price'] - $current_price;
-            $panel_status = $panel_updated 
-                ? '✅ Panel mis à jour' 
-                : '⚠️ Panel non mis à jour (sera appliqué au prochain reboot)';
-            
-            $flash = '
-                <div class="upgrade-alert upgrade-alert-success">
-                    <div class="flex items-start gap-3">
-                        <i class="fas fa-check-circle text-xl mt-0.5"></i>
-                        <div class="flex-1">
-                            <div class="font-bold">Upgrade réussi !</div>
-                            <div class="text-sm mt-1">Serveur upgradé vers <strong>' . htmlspecialchars($new_prod['name']) . '</strong></div>
-                            <div class="text-xs mt-2 opacity-80">' . $panel_status . '</div>
-                            <div class="text-xs mt-1 opacity-80">Nouveau prix : ' . number_format($new_prod['price'], 2, ',', '') . '€/mois (+' . number_format($diff_price, 2, ',', '') . '€)</div>
-                        </div>
-                    </div>
-                </div>
-            ';
-            
-            // Recharger le serveur
-            $srv_stmt->execute([$uuid, $_SESSION['user_id']]);
-            $server = $srv_stmt->fetch();
-            $current_price = (float)($server['renewal_price'] ?? 0);
-            $current_product = $server['product_id'] ?? 0;
-            
-        } catch (Exception $e) {
-            if ($pdo->inTransaction()) $pdo->rollBack();
-            error_log('[Upgrade] Error: ' . $e->getMessage());
-            $flash = '<div class="upgrade-alert upgrade-alert-error"><i class="fas fa-times-circle"></i> Erreur lors de l\'upgrade : ' . htmlspecialchars($e->getMessage()) . '</div>';
-        }
-    }
-}
-
-// ═══════════════════════════════════════════
-// 7. TICKETS OUVERTS (pour sidebar)
+// 6. TICKETS OUVERTS (pour sidebar)
 // ═══════════════════════════════════════════
 $open_tickets = 0;
 try {
@@ -274,37 +144,7 @@ try {
 } catch (Exception $e) { /* silencieux */ }
 
 // ═══════════════════════════════════════════
-// 8. HELPER : API PTERODACTYL
-// ═══════════════════════════════════════════
-function curlAdminApi($url, $headers, $ep, $method = 'GET', $data = null) {
-    $ch = curl_init($url . '/api/application/' . $ep);
-    curl_setopt_array($ch, [
-        CURLOPT_HTTPHEADER     => $headers,
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT        => 15,
-        CURLOPT_SSL_VERIFYPEER => false
-    ]);
-    
-    if ($method === 'DELETE') {
-        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'DELETE');
-    } elseif ($method === 'PATCH') {
-        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PATCH');
-        if ($data) curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
-    } elseif ($method === 'POST') {
-        curl_setopt($ch, CURLOPT_POST, true);
-        if ($data) curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
-    }
-    
-    $r = curl_exec($ch);
-    $c = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-    
-    if ($c === 204) return true;
-    return $r ? json_decode($r, true) : null;
-}
-
-// ═══════════════════════════════════════════
-// 9. DONNÉES POUR LE JS
+// 7. DONNÉES POUR LE JS
 // ═══════════════════════════════════════════
 $products_json = [];
 foreach ($available_upgrades as $ap) {
@@ -427,8 +267,10 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php';
             <span class="text-xs text-gray-500 font-normal ml-2">— <?php echo ucfirst(htmlspecialchars($cat)); ?></span>
         </h2>
         
-        <form method="POST" id="upgradeForm">
-            <input type="hidden" name="new_product_id" id="new_product_id" value="">
+        <form method="GET" action="/client/servers/upgrade/checkout/" id="upgradeForm">
+            <input type="hidden" name="uuid" value="<?php echo htmlspecialchars($uuid); ?>">
+            <input type="hidden" name="product_id" id="new_product_id" value="">
+            <input type="hidden" name="billing" value="diff">
             
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6 pb-24">
                 <?php foreach ($available_upgrades as $ap): 
@@ -522,8 +364,8 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php';
                     <div class="text-[10px] text-gray-500 mt-0.5" id="confirmDiff"></div>
                 </div>
                 <button type="submit" id="submitBtn" class="bg-sky-600 hover:bg-sky-500 text-white font-bold px-6 py-3 rounded-xl text-sm transition flex items-center gap-2 shrink-0 shadow-lg shadow-sky-900/30">
-                    <i class="fas fa-rocket text-xs"></i>
-                    <span>Confirmer l'upgrade</span>
+                    <i class="fas fa-credit-card text-xs"></i>
+                    <span>Procéder au paiement</span>
                 </button>
             </div>
         </form>
@@ -567,7 +409,7 @@ if (typeof selectPlan === 'undefined') {
         
         const diffEl = document.getElementById('confirmDiff');
         if (priceDiff > 0) {
-            diffEl.textContent = 'Différence : +' + priceDiff.toFixed(2).replace('.', ',') + '€/mois';
+            diffEl.textContent = 'Différence à payer : +' + priceDiff.toFixed(2).replace('.', ',') + '€';
             diffEl.className = 'text-[10px] text-amber-400 mt-0.5';
         } else {
             diffEl.textContent = '';
@@ -587,7 +429,9 @@ if (typeof selectPlan === 'undefined') {
         }
         
         const name = document.getElementById('confirmName').textContent;
-        if (!confirm('Confirmer l\'upgrade vers "' + name + '" ?\n\nLes nouvelles ressources seront appliquées immédiatement.')) {
+        const price = document.getElementById('confirmPrice').textContent;
+        
+        if (!confirm('Procéder au paiement pour l\'upgrade vers "' + name + '" ?\n\nMontant : ' + price + '\n\nVous serez redirigé vers la page de paiement sécurisée.')) {
             e.preventDefault();
             return false;
         }
