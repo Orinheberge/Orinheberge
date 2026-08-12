@@ -1,0 +1,415 @@
+/* ═══════════════════════════════════════════
+   CART.CSS — Styles pour la page panier
+   OrinHeberge © 2024
+   ═══════════════════════════════════════════ */
+
+/* ─── BASE ─── */
+body {
+    background: #0b0f19;
+    scroll-behavior: smooth;
+}
+
+/* ─── GLASS MORPHISM ─── */
+.glass {
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* ─── GRADIENT TEXT ─── */
+.gradient-text {
+    background: linear-gradient(90deg, #38bdf8, #818cf8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* ─── ANIMATIONS D'ENTRÉE ─── */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes bounce {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+@keyframes pulse-ring {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.4); }
+    50% { box-shadow: 0 0 0 15px rgba(56, 189, 248, 0); }
+}
+
+.animate-in {
+    animation: fadeInUp 0.5s ease-out;
+}
+
+.animate-in-delay {
+    animation: fadeInUp 0.5s ease-out 0.1s both;
+}
+
+.animate-in-delay2 {
+    animation: fadeInUp 0.5s ease-out 0.2s both;
+}
+
+/* ─── ICÔNE PANIER VIDE ─── */
+.cart-empty-icon {
+    animation: bounce 2s ease-in-out infinite;
+}
+
+/* ─── ARTICLE DU PANIER ─── */
+.cart-item {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.cart-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, #38bdf8, #818cf8);
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.cart-item:hover {
+    border-color: rgba(56, 189, 248, 0.2);
+    background: rgba(13, 19, 33, 0.8);
+}
+
+.cart-item:hover::before {
+    opacity: 1;
+}
+
+.cart-item.removing {
+    animation: slideOutRight 0.3s ease-out forwards;
+}
+
+@keyframes slideOutRight {
+    to {
+        opacity: 0;
+        transform: translateX(100%);
+        max-height: 0;
+        padding: 0;
+        margin: 0;
+    }
+}
+
+/* ─── CONTRÔLE DE QUANTITÉ ─── */
+.quantity-control {
+    transition: border-color 0.2s;
+}
+
+.quantity-control:focus-within {
+    border-color: rgba(56, 189, 248, 0.5);
+    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.1);
+}
+
+.qty-btn {
+    transition: all 0.15s ease;
+}
+
+.qty-btn:active {
+    transform: scale(0.9);
+}
+
+.qty-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.qty-input {
+    -moz-appearance: textfield;
+}
+
+.qty-input::-webkit-outer-spin-button,
+.qty-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* ─── BOUTON SUPPRIMER ─── */
+.remove-btn {
+    transition: all 0.2s ease;
+}
+
+.remove-btn:hover {
+    transform: scale(1.05);
+}
+
+.remove-btn:active {
+    transform: scale(0.95);
+}
+
+/* ─── BOUTON CHECKOUT ─── */
+.checkout-btn {
+    position: relative;
+    overflow: hidden;
+}
+
+.checkout-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+    transition: left 0.5s;
+}
+
+.checkout-btn:hover::before {
+    left: 100%;
+}
+
+.checkout-btn:active {
+    transform: scale(0.98);
+}
+
+/* ─── MESSAGE FLASH ─── */
+.flash-message {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    border-radius: 1rem;
+    animation: slideInDown 0.4s ease-out;
+    position: relative;
+}
+
+.flash-success {
+    background: rgba(34, 197, 94, 0.1);
+    border: 1px solid rgba(34, 197, 94, 0.2);
+    color: #4ade80;
+}
+
+.flash-error {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    color: #f87171;
+}
+
+.flash-info {
+    background: rgba(56, 189, 248, 0.1);
+    border: 1px solid rgba(56, 189, 248, 0.2);
+    color: #38bdf8;
+}
+
+.flash-icon {
+    width: 2rem;
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.flash-success .flash-icon {
+    background: rgba(34, 197, 94, 0.2);
+}
+
+.flash-error .flash-icon {
+    background: rgba(239, 68, 68, 0.2);
+}
+
+.flash-info .flash-icon {
+    background: rgba(56, 189, 248, 0.2);
+}
+
+.flash-text {
+    flex: 1;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.flash-close {
+    width: 1.5rem;
+    height: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    opacity: 0.5;
+    transition: all 0.2s;
+    cursor: pointer;
+    background: transparent;
+    border: none;
+    color: inherit;
+}
+
+.flash-close:hover {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* ─── TOTAL DISPLAY ─── */
+.line-total {
+    transition: all 0.3s ease;
+}
+
+.line-total.updating {
+    animation: pulse 0.4s ease;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); color: #38bdf8; }
+}
+
+/* ─── INPUT PROMO ─── */
+#promo_code:focus {
+    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
+}
+
+/* ─── RESPONSIVE ─── */
+@media (max-width: 768px) {
+    .cart-item {
+        padding: 1rem;
+    }
+
+    .quantity-control {
+        order: 2;
+    }
+
+    .line-total {
+        order: 1;
+    }
+
+    .remove-btn {
+        order: 3;
+    }
+}
+
+@media (max-width: 480px) {
+    .checkout-btn {
+        font-size: 0.875rem;
+        padding: 0.875rem 1rem;
+    }
+
+    .gradient-text {
+        font-size: 1.5rem !important;
+    }
+}
+
+/* ─── LOADING STATE ─── */
+.cart-loading {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.cart-loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 2rem;
+    height: 2rem;
+    margin: -1rem 0 0 -1rem;
+    border: 3px solid rgba(56, 189, 248, 0.2);
+    border-top-color: #38bdf8;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ─── SKELETON (pour chargement futur) ─── */
+.skeleton {
+    background: linear-gradient(90deg, 
+        rgba(255,255,255,0.04) 25%, 
+        rgba(255,255,255,0.08) 50%, 
+        rgba(255,255,255,0.04) 75%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s infinite;
+    border-radius: 0.5rem;
+}
+
+@keyframes skeleton-loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* ─── SCROLLBAR CUSTOM ─── */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(56, 189, 248, 0.3);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(56, 189, 248, 0.5);
+}
+
+/* ─── TOOLTIP ─── */
+[data-tooltip] {
+    position: relative;
+}
+
+[data-tooltip]::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-8px);
+    background: #1a1f2e;
+    color: #e2e8f0;
+    font-size: 11px;
+    padding: 0.35rem 0.65rem;
+    border-radius: 0.5rem;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.2s;
+    border: 1px solid rgba(255,255,255,0.1);
+    z-index: 100;
+}
+
+[data-tooltip]:hover::after {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-4px);
+}
+
+/* ─── SELECTION ─── */
+::selection {
+    background: rgba(56, 189, 248, 0.3);
+    color: white;
+}
