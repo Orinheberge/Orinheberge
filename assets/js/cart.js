@@ -199,16 +199,29 @@
         if (!checkoutBtn) return;
 
         checkoutBtn.addEventListener('click', function(e) {
-            // Animation de chargement
-            const originalHTML = this.innerHTML;
-            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Redirection...';
-            this.disabled = true;
+            const btn = this;
 
             // Petite animation avant soumission
-            this.style.transform = 'scale(0.98)';
+            btn.style.transform = 'scale(0.98)';
             setTimeout(() => {
-                this.style.transform = '';
+                btn.style.transform = '';
             }, 150);
+
+            // IMPORTANT : ne PAS désactiver le bouton de façon synchrone ici.
+            // Un bouton submit désactivé (disabled = true) DANS son propre
+            // handler "click" peut faire annuler la soumission du formulaire
+            // par le navigateur (comportement observé notamment sur Safari,
+            // et de façon inconsistante ailleurs), car l'élément qui a
+            // déclenché l'action par défaut n'est plus "actionnable" au
+            // moment où le navigateur traite le submit.
+            // → C'est très probablement la cause du bug "la redirection ne
+            //   se fait pas" : le formulaire ne partait jamais en POST.
+            // On repousse donc le disabled au tick suivant (après que le
+            // submit natif a déjà été déclenché par le navigateur).
+            setTimeout(() => {
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Redirection...';
+                btn.disabled = true;
+            }, 0);
         });
     }
 
