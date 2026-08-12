@@ -10,6 +10,7 @@ session_start();
 require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/lang.php';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/db.php';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/AuthService.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/security.php'; // Doit être AVANT tout output
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: /login/');
@@ -28,25 +29,48 @@ try {
     $cfg = [];
 }
 
-$stripe_secret_key = $cfg['stripe_secret_key'] ?? '';
-$stripe_publishable = $cfg['stripe_publishable_key'] ?? '';
-$success_url_base  = rtrim($cfg['site_url'] ?? 'https://orinstone.deepstone.fr', '/');
-$panel_url         = rtrim($cfg['panel_url'] ?? 'https://panel.orinstone.deepstone.fr', '/');
-$api_key_admin     = $cfg['api_key_admin'] ?? '';
+// Récupérer les clés Stripe depuis extension_settings (priorité)
+$stripe_secret_key = '';
+$stripe_public_key = '';
 
-if (empty($stripe_secret_key) || empty($stripe_publishable)) {
+try {
+    $ext_settings_raw = $pdo->query("SELECT e.slug, es.key, es.value FROM extension_settings es JOIN extensions e ON e.id = es.extension_id WHERE e.slug = 'stripe'")->fetchAll();
+    $ext_cfg = [];
+    foreach ($ext_settings_raw as $r) {
+        $ext_cfg[$r['key']] = $r['value'];
+    }
+    $stripe_secret_key = $ext_cfg['secret_key'] ?? '';
+    $stripe_public_key = $ext_cfg['public_key'] ?? '';
+} catch (Exception $e) {
+    error_log('[Stripe] Error loading extension settings: ' . $e->getMessage());
+}
+
+// Fallback : récupérer depuis settings si non trouvé
+if (empty($stripe_secret_key)) {
+    $stripe_secret_key = $cfg['stripe_secret_key'] ?? '';
+}
+if (empty($stripe_public_key)) {
+    $stripe_public_key = $cfg['stripe_publishable_key'] ?? '';
+}
+
+// Vérification finale
+if (empty($stripe_secret_key) || empty($stripe_public_key)) {
     die('<div style="background:#1a1a2e;color:#f87171;padding:2rem;font-family:monospace;border-radius:12px;max-width:600px;margin:4rem auto;">
         <h2>⚠️ Configuration Stripe manquante</h2>
         <p>Contactez le support : les clés Stripe ne sont pas configurées.</p>
     </div>');
 }
 
+$success_url_base  = rtrim($cfg['site_url'] ?? 'https://heberge.orinstone.deepstone.fr', '/');
+$panel_url         = rtrim($cfg['panel_url'] ?? 'https://panel.orinstone.deepstone.fr', '/');
+$api_key_admin     = $cfg['api_key_admin'] ?? '';
+
 // ═══════════════════════════════════════════
 // 2. RÉCUPÉRATION DU SERVEUR & PRODUIT CIBLE
 // ═══════════════════════════════════════════
-$uuid         = trim($_GET['uuid'] ?? '');
+$uuid           = trim($_GET['uuid'] ?? '');
 $new_product_id = (int)($_GET['product_id'] ?? 0);
-$billing_type = $_GET['billing'] ?? 'diff';
+$billing_type   = $_GET['billing'] ?? 'diff';
 
 if (!$uuid || !$new_product_id) {
     header('Location: /client/servers/');
@@ -95,7 +119,21 @@ if ($new_price <= $current_price) {
 }
 
 // ═══════════════════════════════════════════
-// 3. CALCUL DU MONTANT À FACTURER
+// 3. RÉCUPÉRATION DE L'EMAIL UTILISATEUR
+// ═══════════════════════════════════════════
+$user_email = $_SESSION['email'] ?? '';
+if (empty($user_email)) {
+    try {
+        $email_stmt = $pdo->prepare('SELECT email FROM users WHERE id = ? LIMIT 1');
+        $email_stmt->execute([$_SESSION['user_id']]);
+        $user_email = $email_stmt->fetchColumn() ?: '';
+    } catch (Exception $e) {
+        error_log('[Checkout] Error fetching email: ' . $e->getMessage());
+    }
+}
+
+// ═══════════════════════════════════════════
+// 4. CALCUL DU MONTANT À FACTURER
 // ═══════════════════════════════════════════
 $diff_price = $new_price - $current_price;
 
@@ -113,7 +151,15 @@ $diff_price = max(0.50, round($diff_price, 2));
 $amount_cents = (int)round($diff_price * 100);
 
 // ═══════════════════════════════════════════
-// 4. CRÉATION DU PAYMENTINTENT
+// 5. GÉNÉRATION DU TOKEN CSRF
+// ═══════════════════════════════════════════
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+$csrf_token = $_SESSION['csrf_token'];
+
+// ═══════════════════════════════════════════
+// 6. CRÉATION DU PAYMENTINTENT
 // ═══════════════════════════════════════════
 $payment_intent = null;
 $error_msg = '';
@@ -139,7 +185,7 @@ try {
             'metadata[diff_price]' => $diff_price,
             'metadata[billing_type]' => $billing_type,
             'description'          => 'Upgrade serveur : ' . $new_product['name'],
-            'receipt_email'        => $_SESSION['email'] ?? '',
+            'receipt_email'        => $user_email,
         ]),
     ]);
 
@@ -160,7 +206,7 @@ try {
 }
 
 // ═══════════════════════════════════════════
-// 5. ENREGISTRER LA TRANSACTION EN ATTENTE
+// 7. ENREGISTRER LA TRANSACTION EN ATTENTE
 // ═══════════════════════════════════════════
 $pending_uuid = null;
 if ($payment_intent && !empty($payment_intent['id'])) {
@@ -189,7 +235,7 @@ if ($payment_intent && !empty($payment_intent['id'])) {
 }
 
 // ═══════════════════════════════════════════
-// 6. AFFICHAGE
+// 8. AFFICHAGE
 // ═══════════════════════════════════════════
 if (!$payment_intent) {
     ?>
@@ -300,6 +346,7 @@ $client_secret = $payment_intent['client_secret'];
             color: #f87171;
             font-size: 0.875rem;
             margin-top: 0.5rem;
+            min-height: 1.25rem;
         }
         
         .btn-primary {
@@ -341,6 +388,19 @@ $client_secret = $payment_intent['client_secret'];
             to { opacity: 1; transform: translateY(0); }
         }
         .animate-fade-in { animation: fade-in 0.3s ease-out; }
+        
+        .security-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.2);
+            color: #4ade80;
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body class="min-h-screen">
@@ -359,8 +419,8 @@ $client_secret = $payment_intent['client_secret'];
             </p>
         </div>
         <a href="/client/servers/upgrade/?uuid=<?php echo urlencode($uuid); ?>" 
-           class="text-sm text-gray-400 hover:text-white transition">
-            <i class="fas fa-times"></i>
+           class="text-sm text-gray-400 hover:text-white transition" title="Annuler">
+            <i class="fas fa-times text-xl"></i>
         </a>
     </div>
     
@@ -428,21 +488,34 @@ $client_secret = $payment_intent['client_secret'];
     
     <!-- Formulaire de paiement -->
     <div class="checkout-card">
-        <div class="text-xs text-gray-500 uppercase font-bold mb-4 flex items-center gap-2">
-            <i class="fas fa-lock text-emerald-400"></i>
-            Informations de paiement
+        <div class="flex items-center justify-between mb-4">
+            <div class="text-xs text-gray-500 uppercase font-bold flex items-center gap-2">
+                <i class="fas fa-lock text-emerald-400"></i>
+                Informations de paiement
+            </div>
+            <div class="security-badge">
+                <i class="fas fa-shield-alt"></i>
+                Sécurisé
+            </div>
         </div>
         
         <form id="payment-form">
+            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
+            
             <div class="mb-4">
-                <label class="block text-sm text-gray-300 mb-2">Email</label>
-                <input type="email" id="email" value="<?php echo htmlspecialchars($_SESSION['email'] ?? ''); ?>" 
-                       class="w-full bg-white/[0.05] border border-white/15 rounded-xl px-4 py-3 text-white focus:border-sky-400 focus:outline-none"
+                <label class="block text-sm text-gray-300 mb-2" for="email">
+                    Email <span class="text-gray-500 text-xs">(pour le reçu)</span>
+                </label>
+                <input type="email" id="email" name="email" 
+                       value="<?php echo htmlspecialchars($user_email); ?>" 
+                       class="w-full bg-white/[0.05] border border-white/15 rounded-xl px-4 py-3 text-white focus:border-sky-400 focus:outline-none transition"
                        required>
             </div>
             
             <div class="mb-6">
-                <label class="block text-sm text-gray-300 mb-2">Carte bancaire</label>
+                <label class="block text-sm text-gray-300 mb-2">
+                    Carte bancaire
+                </label>
                 <div id="card-element" class="stripe-element"></div>
                 <div id="card-errors" role="alert"></div>
             </div>
@@ -455,14 +528,15 @@ $client_secret = $payment_intent['client_secret'];
         </form>
         
         <div class="mt-6 pt-6 border-t border-white/10 text-center">
-            <div class="flex items-center justify-center gap-4 text-xs text-gray-500">
+            <div class="flex items-center justify-center gap-4 text-gray-500 mb-3">
                 <i class="fab fa-cc-visa text-2xl"></i>
                 <i class="fab fa-cc-mastercard text-2xl"></i>
                 <i class="fab fa-cc-amex text-2xl"></i>
                 <i class="fab fa-cc-discover text-2xl"></i>
             </div>
-            <div class="text-xs text-gray-600 mt-2">
-                <i class="fas fa-shield-alt"></i> Paiement sécurisé par Stripe
+            <div class="text-xs text-gray-600 flex items-center justify-center gap-2">
+                <i class="fas fa-shield-alt text-emerald-500"></i>
+                Paiement 100% sécurisé par Stripe • Chiffrement SSL 256-bit
             </div>
         </div>
     </div>
@@ -471,7 +545,7 @@ $client_secret = $payment_intent['client_secret'];
 
 <script>
 // Configuration Stripe
-const stripe = Stripe('<?php echo htmlspecialchars($stripe_publishable); ?>');
+const stripe = Stripe('<?php echo htmlspecialchars($stripe_public_key); ?>');
 const elements = stripe.elements();
 const card = elements.create('card', {
     style: {
@@ -511,13 +585,15 @@ form.addEventListener('submit', async function(event) {
     submitBtn.disabled = true;
     buttonText.innerHTML = '<span class="spinner"></span> Traitement en cours...';
     
+    const email = document.getElementById('email').value;
+    
     const {paymentIntent, error} = await stripe.confirmCardPayment(
         '<?php echo htmlspecialchars($client_secret); ?>',
         {
             payment_method: {
                 card: card,
                 billing_details: {
-                    email: document.getElementById('email').value
+                    email: email
                 }
             }
         }
