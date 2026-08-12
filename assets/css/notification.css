@@ -1,0 +1,32 @@
+.notif-item {
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    transition: all 0.15s;
+    border: 1px solid transparent;
+    cursor: pointer;
+}
+.notif-item:hover {
+    background: rgba(255,255,255,0.03);
+    border-color: rgba(255,255,255,0.05);
+}
+.notif-item.unread {
+    background: rgba(244,63,94,0.03);
+    border-color: rgba(244,63,94,0.08);
+}
+.notif-item.unread:hover {
+    background: rgba(244,63,94,0.05);
+}
+.notif-type-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 9999px;
+    font-size: 0.65rem;
+    font-weight: 600;
+}
+.notif-type-info { background: rgba(56,189,248,0.1); color: #38bdf8; border: 1px solid rgba(56,189,248,0.2); }
+.notif-type-warning { background: rgba(249,115,22,0.1); color: #f97316; border: 1px solid rgba(249,115,22,0.2); }
+.notif-type-success { background: rgba(34,197,94,0.1); color: #22c55e; border: 1px solid rgba(34,197,94,0.2); }
+.notif-type-error { background: rgba(239,68,68,0.1); color: #ef4444; border: 1px solid rgba(239,68,68,0.2); }
+.notif-type-announcement { background: rgba(244,63,94,0.1); color: #f43f5e; border: 1px solid rgba(244,63,94,0.2); }

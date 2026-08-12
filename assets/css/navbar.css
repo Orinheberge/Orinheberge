@@ -1,0 +1,560 @@
+/* ============================================
+   NAVBAR ORINHEBERGE - STYLES v4 FINAL
+   ============================================ */
+
+/* 🎨 Variables CSS */
+:root {
+    --navbar-bg: rgba(7, 10, 19, 0.8);
+    --navbar-blur: blur(14px);
+    --sky-400: rgb(56, 189, 248);
+    --sky-500: rgb(14, 165, 233);
+    --sky-600: rgb(2, 132, 199);
+    --overlay-bg: rgba(0, 0, 0, 0.6);
+    --transition-fast: 0.2s ease-in-out;
+    --transition-normal: 0.3s ease-in-out;
+    --transition-slow: 0.5s ease-in-out;
+}
+
+/* ============================================
+   🛡️ Z-INDEX FIX - Navbar au-dessus de tout
+   ============================================ */
+
+nav {
+    z-index: 9999 !important;
+    position: sticky !important;
+    top: 0 !important;
+}
+
+section.relative.z-20,
+section.relative.z-10 {
+    z-index: 20 !important;
+}
+
+#mobileOverlay {
+    z-index: 9998 !important;
+}
+
+.dropdown-menu {
+    z-index: 10000 !important;
+}
+
+.maintenance-banner {
+    z-index: 9999 !important;
+    position: relative;
+}
+
+/* ============================================
+   BASE & RESET
+   ============================================ */
+
+#mobileMenu {
+    transition: max-height var(--transition-normal), opacity var(--transition-fast);
+    will-change: max-height, opacity;
+    position: relative;
+    z-index: 40;
+}
+
+#mobileOverlay {
+    transition: opacity var(--transition-normal);
+    will-change: opacity;
+}
+
+/* ============================================
+   BOUTON BURGER - DOUBLE ICÔNE ANIMÉE
+   ============================================ */
+
+#mobileMenuBtn {
+    transition: background-color var(--transition-fast), 
+                border-color var(--transition-fast),
+                transform var(--transition-fast);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+#mobileMenuBtn:active {
+    transform: scale(0.95);
+}
+
+#menuIconBars,
+#menuIconX {
+    transition: opacity var(--transition-normal), transform var(--transition-normal);
+    will-change: opacity, transform;
+}
+
+#menuIconBars.opacity-0 {
+    opacity: 0;
+    transform: scale(0.5) rotate(-90deg);
+}
+
+#menuIconBars.opacity-100 {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+}
+
+#menuIconX.opacity-0 {
+    opacity: 0;
+    transform: scale(0.5) rotate(90deg);
+}
+
+#menuIconX.opacity-100 {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+}
+
+/* ============================================
+   DROPDOWNS
+   ============================================ */
+
+.dropdown-menu {
+    transition: opacity var(--transition-fast), transform var(--transition-fast);
+    transform-origin: top right;
+    opacity: 0;
+    transform: translateY(-10px);
+    pointer-events: none;
+}
+
+.group:hover .dropdown-menu,
+.group:focus-within .dropdown-menu {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+#shopDropdown {
+    transition: max-height var(--transition-normal);
+    will-change: max-height;
+}
+
+#shopDropdownIcon {
+    transition: transform var(--transition-normal);
+}
+
+/* ============================================
+   BADGES & NOTIFICATIONS
+   ============================================ */
+
+@keyframes pulse-badge {
+    0%, 100% { 
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.7);
+    }
+    50% { 
+        transform: scale(1.1);
+        box-shadow: 0 0 0 8px rgba(244, 63, 94, 0);
+    }
+}
+
+.notif-badge {
+    animation: pulse-badge 2s infinite;
+}
+
+/* ============================================
+   BANDEAU MAINTENANCE
+   ============================================ */
+
+.maintenance-banner {
+    animation: slideDown var(--transition-slow) ease-out;
+}
+
+@keyframes slideDown {
+    from { 
+        transform: translateY(-100%); 
+        opacity: 0; 
+    }
+    to { 
+        transform: translateY(0); 
+        opacity: 1; 
+    }
+}
+
+/* ============================================
+   MENU MOBILE - LIENS & INTERACTIONS
+   ============================================ */
+
+#mobileMenu a {
+    transition: background-color var(--transition-fast), 
+                color var(--transition-fast),
+                transform var(--transition-fast);
+}
+
+#mobileMenu a:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+#mobileMenu a:active {
+    transform: scale(0.98);
+}
+
+#mobileMenu a.bg-white\/\[0\.02\]:hover {
+    background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* ============================================
+   SÉLECTEUR DE LANGUE
+   ============================================ */
+
+.lang-switcher-btn {
+    transition: all var(--transition-fast);
+}
+
+.lang-switcher-btn:hover {
+    border-color: rgba(56, 189, 248, 0.5);
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+.lang-switcher-dropdown {
+    transition: opacity var(--transition-fast), 
+                transform var(--transition-fast),
+                visibility var(--transition-fast);
+    transform: translateY(-10px);
+}
+
+.lang-switcher-dropdown.opacity-100 {
+    transform: translateY(0);
+}
+
+[data-lang-option] {
+    transition: background-color var(--transition-fast),
+                color var(--transition-fast);
+}
+
+[data-lang-option]:hover {
+    background-color: rgba(14, 165, 233, 0.2);
+}
+
+[data-lang-option]:active {
+    background-color: rgba(14, 165, 233, 0.3);
+}
+
+/* ============================================
+   SCROLLBARS PERSONNALISÉES
+   ============================================ */
+
+.custom-scrollbar::-webkit-scrollbar,
+.custom-scrollbar-mobile::-webkit-scrollbar {
+    width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track,
+.custom-scrollbar-mobile::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb,
+.custom-scrollbar-mobile::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 2px;
+    transition: background var(--transition-fast);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover,
+.custom-scrollbar-mobile::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.custom-scrollbar,
+.custom-scrollbar-mobile {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+/* ============================================
+   ANIMATIONS GLOBALES
+   ============================================ */
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from { 
+        transform: translateY(20px); 
+        opacity: 0; 
+    }
+    to { 
+        transform: translateY(0); 
+        opacity: 1; 
+    }
+}
+
+@keyframes slideUpLang {
+    from { 
+        transform: translateY(100%); 
+        opacity: 0; 
+    }
+    to { 
+        transform: translateY(0); 
+        opacity: 1; 
+    }
+}
+
+.animate-fade-in {
+    animation: fadeIn var(--transition-normal) ease-out;
+}
+
+.animate-slide-up {
+    animation: slideUp var(--transition-normal) ease-out;
+}
+
+/* ============================================
+   PERFORMANCES & OPTIMISATIONS
+   ============================================ */
+
+nav[style*="backdrop-filter"] {
+    -webkit-backdrop-filter: var(--navbar-blur);
+    backdrop-filter: var(--navbar-blur);
+}
+
+#mobileMenu,
+#shopDropdown,
+#mobileOverlay,
+.dropdown-menu,
+.lang-switcher-dropdown {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    -webkit-transform: translateZ(0);
+    -webkit-backface-visibility: hidden;
+}
+
+/* ============================================
+   ACCESSIBILITÉ
+   ============================================ */
+
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible {
+    outline: 2px solid var(--sky-500);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+button:focus:not(:focus-visible),
+a:focus:not(:focus-visible),
+[role="button"]:focus:not(:focus-visible) {
+    outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+    
+    .notif-badge {
+        animation: none;
+    }
+}
+
+/* ============================================
+   CORRECTIONS NAVIGATEURS
+   ============================================ */
+
+@supports (-webkit-touch-callout: none) {
+    #mobileMenu,
+    #shopDropdown,
+    #mobileOverlay {
+        -webkit-transform: translateZ(0);
+        -webkit-backface-visibility: hidden;
+    }
+    
+    #mobileMenu {
+        -webkit-overflow-scrolling: touch;
+    }
+}
+
+@-moz-document url-prefix() {
+    .custom-scrollbar,
+    .custom-scrollbar-mobile {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+    }
+}
+
+/* ============================================
+   📱 MOBILE (< 768px) - SCROLL FIX FINAL
+   ============================================ */
+@media (max-width: 767px) {
+    /* 🎯 Menu mobile avec scroll forcé */
+    #mobileMenu {
+        background: linear-gradient(180deg, #070a13 0%, #0b0f17 100%);
+        transform: translateZ(0);
+        backface-visibility: hidden;
+        -webkit-transform: translateZ(0);
+        -webkit-backface-visibility: hidden;
+        
+        /* 🔑 SCROLL FORCÉ */
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        -webkit-overflow-scrolling: touch !important;
+        overscroll-behavior: contain !important;
+        
+        /* Hauteur max = viewport - navbar */
+        max-height: calc(100vh - 80px) !important;
+    }
+    
+    /* Quand ouvert, garder le scroll */
+    #mobileMenu[style*="max-height"]:not([style*="max-height: 0px"]) {
+        max-height: calc(100vh - 80px) !important;
+        overflow-y: auto !important;
+    }
+    
+    /* Override agressif du maxHeight inline */
+   /* ✅ APRÈS (correct) */
+        /* Ne pas override le style inline quand fermé */
+        #mobileMenu[style*="max-height: 0px"] {
+            max-height: 0px !important;
+            overflow: hidden !important;
+        }
+
+        /* Override seulement quand ouvert (maxHeight > 0) */
+        #mobileMenu:not([style*="max-height: 0px"])[style*="max-height"] {
+            max-height: calc(100vh - 80px) !important;
+            overflow-y: auto !important;
+}
+    
+    /* Container interne */
+    #mobileMenu > div {
+        min-height: 100%;
+    }
+    
+    #shopDropdown {
+        transform: translateZ(0);
+        backface-visibility: hidden;
+    }
+    
+    /* Bloquer scroll body */
+    body.menu-open {
+        overflow: hidden !important;
+        position: fixed !important;
+        width: 100% !important;
+        height: 100% !important;
+    }
+    
+    /* Tailles tactiles */
+    #mobileMenu a {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+    }
+    
+    /* 🌐 Dropdown langue bottom sheet */
+    .lang-switcher-dropdown {
+        position: fixed !important;
+        bottom: 1rem !important;
+        left: 1rem !important;
+        right: 1rem !important;
+        top: auto !important;
+        margin-top: 0 !important;
+        max-width: none !important;
+        width: auto !important;
+        z-index: 99999 !important;
+        background: rgba(17, 21, 29, 0.98) !important;
+        backdrop-filter: blur(20px) !important;
+        -webkit-backdrop-filter: blur(20px) !important;
+        border: 1px solid rgba(56, 189, 248, 0.3) !important;
+        box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5) !important;
+        animation: slideUpLang 0.3s ease-out !important;
+    }
+    
+    [data-lang-option] {
+        padding: 1rem !important;
+        font-size: 1rem !important;
+    }
+    
+    [data-lang-option] img {
+        width: 1.5rem !important;
+    }
+    
+    /* Overlay gradient */
+    #mobileOverlay {
+        background: radial-gradient(ellipse at top, rgba(14, 165, 233, 0.1), rgba(0, 0, 0, 0.7)) !important;
+    }
+}
+
+/* ============================================
+   🖥️ DESKTOP (≥ 768px)
+   ============================================ */
+@media (min-width: 768px) {
+    #mobileOverlay {
+        display: none !important;
+    }
+    
+    .lang-switcher-dropdown {
+        position: absolute !important;
+        bottom: auto !important;
+        left: auto !important;
+        right: 0 !important;
+        top: 100% !important;
+        margin-top: 0.5rem !important;
+    }
+}
+
+/* Tablettes */
+@media (min-width: 768px) and (max-width: 1024px) {
+    #mobileMenu a {
+        font-size: 0.95rem;
+    }
+}
+
+/* Grands écrans */
+@media (min-width: 1024px) {
+    .hidden.md\:flex {
+        gap: 0.75rem;
+    }
+}
+
+/* ============================================
+   UTILITAIRES
+   ============================================ */
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+button,
+[role="button"] {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+button,
+a,
+[role="button"],
+.cursor-pointer {
+    cursor: pointer;
+}
+
+button:disabled,
+a[aria-disabled="true"] {
+    cursor: not-allowed;
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+/* ============================================
+   IMPRESSION
+   ============================================ */
+
+@media print {
+    nav,
+    #mobileMenu,
+    #mobileOverlay,
+    .maintenance-banner {
+        display: none !important;
+    }
+}

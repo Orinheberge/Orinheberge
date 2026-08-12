@@ -1,0 +1,328 @@
+/* ============================================
+   VARIABLES DE LA SIDEBAR
+   ============================================ */
+:root {
+    --sidebar-width: 280px;
+    --sidebar-bg: #070a13;
+    --sidebar-border: rgba(255, 255, 255, 0.08);
+    --sidebar-text: #94a3b8;
+    --sidebar-text-hover: #f8fafc;
+}
+
+/* ============================================
+   BOUTON BURGER & OVERLAY MOBILE
+   ============================================ */
+#sidebar-toggle {
+    display: none;
+    position: fixed;
+    top: 1rem;
+    left: 1rem;
+    z-index: 60;
+    width: 44px;
+    height: 44px;
+    background: rgba(7, 10, 19, 0.85);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid var(--sidebar-border);
+    border-radius: 12px;
+    color: #ffffff;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+#sidebar-toggle:hover {
+    background: rgba(14, 165, 233, 0.2);
+    border-color: rgba(14, 165, 233, 0.4);
+    transform: scale(1.03);
+}
+
+#sidebar-toggle i {
+    font-size: 18px;
+    transition: transform 0.3s ease;
+}
+
+#sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 45;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+#sidebar-overlay.active {
+    display: block;
+    opacity: 1;
+}
+
+/* ============================================
+   STRUCTURE GLOBALE DE LA SIDEBAR
+   ============================================ */
+.sidebar {
+    width: var(--sidebar-width);
+    background-color: var(--sidebar-bg);
+    border-right: 1px solid var(--sidebar-border);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 1.25rem 1rem;
+    box-sizing: border-box;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+}
+
+.sidebar::-webkit-scrollbar {
+    width: 4px;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+/* ============================================
+   ELEMENTS DE NAVIGATION GENERAUX
+   ============================================ */
+.sidebar-logo {
+    padding-bottom: 1rem;
+    margin-bottom: 0.5rem;
+    border-bottom: 1px solid var(--sidebar-border);
+}
+
+.sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    flex: 1;
+}
+
+.nav-section {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #64748b;
+    margin: 1.25rem 0 0.4rem 0.5rem;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 0.75rem;
+    border-radius: 0.625rem;
+    font-size: 0.825rem;
+    font-weight: 500;
+    color: var(--sidebar-text);
+    text-decoration: none;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid transparent;
+}
+
+.nav-item .icon {
+    width: 18px;
+    text-align: center;
+    font-size: 0.95rem;
+    color: #64748b;
+    transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.nav-separator {
+    height: 1px;
+    background-color: var(--sidebar-border);
+    margin: 0.75rem 0;
+}
+
+/* ============================================
+   COULEURS SPECIFIQUES AU HOVER / ACTIVE
+   ============================================ */
+
+/* Style générique au survol */
+.nav-item:hover {
+    color: var(--sidebar-text-hover);
+    transform: translateX(3px);
+}
+
+.nav-item:hover .icon {
+    transform: scale(1.1);
+}
+
+/* 🔵 1. Navigation Principale (Tableau de bord, Serveurs, Offres, Profil) — Cyan / Sky */
+.nav-item:hover {
+    background-color: rgba(14, 165, 233, 0.08);
+    border-color: rgba(14, 165, 233, 0.2);
+}
+.nav-item:hover .icon {
+    color: #38bdf8;
+}
+
+.nav-item.active {
+    color: #38bdf8;
+    background-color: rgba(14, 165, 233, 0.12);
+    border-color: rgba(14, 165, 233, 0.3);
+    font-weight: 600;
+}
+.nav-item.active .icon {
+    color: #38bdf8;
+}
+
+/* 🟢 2. Boutique / Panier — Émeraude / Vert */
+.nav-item[href*="/shop/cart"]:hover {
+    background-color: rgba(16, 185, 129, 0.08);
+    border-color: rgba(16, 185, 129, 0.2);
+}
+.nav-item[href*="/shop/cart"]:hover .icon {
+    color: #34d399;
+}
+
+/* 🟡 3. Facturation — Ambre / Jaune */
+.nav-item[href*="/billing"]:hover {
+    background-color: rgba(245, 158, 11, 0.08);
+    border-color: rgba(245, 158, 11, 0.2);
+}
+.nav-item[href*="/billing"]:hover .icon {
+    color: #fbbf24;
+}
+
+/* 🟣 4. Support — Violet */
+.nav-item[href*="/support"]:hover {
+    background-color: rgba(168, 85, 247, 0.08);
+    border-color: rgba(168, 85, 247, 0.2);
+}
+.nav-item[href*="/support"]:hover .icon {
+    color: #c084fc;
+}
+
+/* 🔴 5. Notifications — Rose / Rouge */
+.nav-item[href*="/notifications"]:hover {
+    background-color: rgba(244, 63, 94, 0.08);
+    border-color: rgba(244, 63, 94, 0.2);
+}
+.nav-item[href*="/notifications"]:hover .icon {
+    color: #fb7185;
+}
+
+/* 🔵 6. Discord — Indigo / Blurple */
+.nav-item[href*="/discord"]:hover {
+    background-color: rgba(88, 101, 242, 0.1);
+    border-color: rgba(88, 101, 242, 0.25);
+}
+
+/* 🟧 7. Administration — Orange */
+.nav-item[href*="/admin/"]:hover {
+    background-color: rgba(251, 146, 60, 0.12) !important;
+    border-color: rgba(251, 146, 60, 0.3) !important;
+}
+
+/* 🚨 8. Déconnexion — Rouge Danger */
+.nav-item[href*="/logout"]:hover {
+    background-color: rgba(239, 68, 68, 0.1) !important;
+    border-color: rgba(239, 68, 68, 0.2) !important;
+    color: #f87171 !important;
+}
+.nav-item[href*="/logout"]:hover .icon {
+    color: #f87171 !important;
+}
+
+/* ============================================
+   ANIMATIONS ET EFFETS
+   ============================================ */
+@keyframes pulse-warning {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.95); }
+}
+
+.maintenance-pulse {
+    animation: pulse-warning 2s infinite ease-in-out;
+}
+
+.external-link-hint {
+    opacity: 0.3;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.nav-item:hover .external-link-hint {
+    opacity: 0.9;
+    transform: translate(2px, -2px);
+}
+
+/* ============================================
+   RESPONSIVE MOBILE (< 768px)
+   ============================================ */
+@media (max-width: 767px) {
+    #sidebar-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    #sidebar {
+        position: fixed !important;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: var(--sidebar-width);
+        z-index: 50;
+        transform: translateX(-100%);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 10px 0 30px rgba(0, 0, 0, 0.6);
+        will-change: transform;
+    }
+    
+    #sidebar.sidebar-open {
+        transform: translateX(0);
+    }
+    
+    body.sidebar-open {
+        overflow: hidden !important;
+    }
+    
+    .main-content {
+        padding-top: 4.5rem !important;
+    }
+}
+
+/* ============================================
+   DESKTOP (>= 768px)
+   ============================================ */
+/* ============================================
+   DESKTOP (>= 768px)
+   Correction : Passage en Fixed pour sortir du flux
+   ============================================ */
+@media (min-width: 768px) {
+    .sidebar {
+        /* On passe en FIXED pour que la sidebar ne prenne plus de place 
+           dans le flux du document (plus de vide généré) */
+        position: fixed !important;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        width: var(--sidebar-width);
+        z-index: 50; /* Derrière le bouton toggle si nécessaire, mais devant le contenu */
+        
+        /* Réinitialisation des propriétés sticky/flex qui causaient le souci */
+        transform: none !important; 
+        box-shadow: 4px 0 24px rgba(0, 0, 0, 0.2); /* Ombre pour détacher du fond */
+    }
+
+    /* 
+       IMPORTANT : 
+       Comme la sidebar est maintenant "flottante" (fixed), elle ne pousse plus le contenu.
+       Si vous voulez que votre contenu principal ne passe PAS sous la sidebar,
+       ajoutez une marge gauche à votre conteneur principal via cette classe.
+       
+       Exemple d'utilisation dans vos pages PHP :
+       <main class="main-content-wrapper"> ... </main>
+    */
+    body:not(.sidebar-collapsed) .main-content, 
+    body:not(.sidebar-collapsed) main,
+    body:not(.sidebar-collapsed) #content {
+        margin-left: var(--sidebar-width);
+        transition: margin-left 0.3s ease;
+    }
+}

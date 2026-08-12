@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://heberge.orinstone.deepstone.fr/sitemap.xml

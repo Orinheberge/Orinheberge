@@ -1,0 +1,622 @@
+#!/usr/bin/env php
+<?php
+/**
+ * ═══════════════════════════════════════════════════════════
+ * OrinHeberge Artisan CLI
+ * ═══════════════════════════════════════════════════════════
+ * Usage : php artisan <command> [options]
+ */
+
+define('BASE_PATH', __DIR__);
+define('ARTISAN_VERSION', '1.1.0');
+define('DOWN_FILE', BASE_PATH . '/storage/framework/down');
+
+// ═══════════════════════════════════════════
+// BOOTSTRAP
+// ═══════════════════════════════════════════
+if (!file_exists(BASE_PATH . '/.env')) {
+    fwrite(STDERR, "\033[31m❌ Fichier .env introuvable. Copiez .env.example vers .env\033[0m\n");
+    exit(1);
+}
+
+$env = [];
+foreach (file(BASE_PATH . '/.env') as $line) {
+    $line = trim($line);
+    if ($line === '' || $line[0] === '#') continue;
+    if (strpos($line, '=') === false) continue;
+    [$key, $value] = explode('=', $line, 2);
+    $env[trim($key)] = trim($value);
+    putenv(trim($key) . '=' . trim($value));
+}
+
+// ═══════════════════════════════════════════
+// COULEURS & HELPERS
+// ═══════════════════════════════════════════
+function color($text, $color) {
+    $colors = [
+        'red' => '31', 'green' => '32', 'yellow' => '33',
+        'blue' => '34', 'magenta' => '35', 'cyan' => '36',
+        'white' => '37', 'gray' => '90', 'bold' => '1'
+    ];
+    return "\033[" . ($colors[$color] ?? '37') . "m{$text}\033[0m";
+}
+
+function info($msg)    { echo color("ℹ ", 'cyan') . $msg . "\n"; }
+function success($msg) { echo color("✅ ", 'green') . $msg . "\n"; }
+function warning($msg) { echo color("⚠️ ", 'yellow') . $msg . "\n"; }
+function error($msg)   { echo color("❌ ", 'red') . $msg . "\n"; }
+function line($msg = '') { echo $msg . "\n"; }
+
+function formatBytes($bytes, $precision = 2) {
+    $units = ['B', 'KB', 'MB', 'GB', 'TB'];
+    $bytes = max($bytes, 0);
+    $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
+    $pow = min($pow, count($units) - 1);
+    $bytes /= (1 << (10 * $pow));
+    return round($bytes, $precision) . ' ' . $units[$pow];
+}
+
+// ═══════════════════════════════════════════
+// ROUTER
+// ═══════════════════════════════════════════
+$args = $argv;
+array_shift($args);
+
+if (empty($args)) {
+    showHelp();
+    exit(0);
+}
+
+$command = $args[0];
+$params  = array_slice($args, 1);
+$options = [];
+
+// Parser les options --key=value ou --key value
+for ($i = 0; $i < count($params); $i++) {
+    if (strpos($params[$i], '--') === 0) {
+        $opt = substr($params[$i], 2);
+        if (strpos($opt, '=') !== false) {
+            [$k, $v] = explode('=', $opt, 2);
+            $options[$k] = $v;
+        } elseif (isset($params[$i + 1]) && strpos($params[$i + 1], '--') !== 0) {
+            $options[$opt] = $params[$i + 1];
+            $i++;
+        } else {
+            $options[$opt] = true;
+        }
+    }
+}
+
+try {
+    switch ($command) {
+        case 'key:generate':       cmdKeyGenerate(); break;
+        case 'db:migrate':         cmdDbMigrate(); break;
+        case 'db:seed':            cmdDbSeed(); break;
+        case 'db:backup':          cmdDbBackup(); break;
+        case 'db:restore':         cmdDbRestore($params[0] ?? null); break;
+        case 'user:create':        cmdUserCreate(); break;
+        case 'user:reset-password': cmdUserResetPassword(); break;
+        case 'cache:clear':        cmdCacheClear(); break;
+        case 'logs:clear':         cmdLogsClear(); break;
+        case 'servers:sync':       cmdServersSync(); break;
+        case 'maintenance:on':     cmdMaintenance('on'); break;
+        case 'maintenance:off':    cmdMaintenance('off'); break;
+        case 'down':               cmdDown($options); break;
+        case 'up':                 cmdUp(); break;
+        case 'status':             cmdStatus(); break;
+        case 'help':
+        case '--help':
+        case '-h':
+            showHelp();
+            break;
+        default:
+            error("Commande inconnue : $command");
+            line();
+            showHelp();
+            exit(1);
+    }
+} catch (Throwable $e) {
+    error("Erreur : " . $e->getMessage());
+    if (getenv('APP_DEBUG') === 'true') {
+        line($e->getTraceAsString());
+    }
+    exit(1);
+}
+
+// ═══════════════════════════════════════════
+// HELP
+// ═══════════════════════════════════════════
+function showHelp() {
+    line(color('╔════════════════════════════════════════════════════════╗', 'cyan'));
+    line(color('║  ', 'cyan') . color('OrinHeberge Artisan v' . ARTISAN_VERSION, 'white') . color('                               ║', 'cyan'));
+    line(color('╚════════════════════════════════════════════════════════╝', 'cyan'));
+    line();
+    line(color('Usage:', 'yellow') . ' php artisan <command> [options]');
+    line();
+    
+    line(color('🔐 Sécurité', 'yellow'));
+    line('  ' . color('key:generate', 'green') . '                Générer une clé de chiffrement');
+    line();
+    
+    line(color('🗄️  Base de données', 'yellow'));
+    line('  ' . color('db:migrate', 'green') . '                  Exécuter les migrations SQL');
+    line('  ' . color('db:seed', 'green') . '                     Remplir avec données de test');
+    line('  ' . color('db:backup', 'green') . '                   Sauvegarder la BDD');
+    line('  ' . color('db:restore <file>', 'green') . '           Restaurer une sauvegarde');
+    line();
+    
+    line(color('👤 Utilisateurs', 'yellow'));
+    line('  ' . color('user:create', 'green') . '                 Créer un utilisateur admin');
+    line('  ' . color('user:reset-password', 'green') . '         Réinitialiser un mot de passe');
+    line();
+    
+    line(color('🧹 Maintenance', 'yellow'));
+    line('  ' . color('cache:clear', 'green') . '                 Vider le cache');
+    line('  ' . color('logs:clear', 'green') . '                  Vider les logs');
+    line('  ' . color('servers:sync', 'green') . '                Synchroniser avec Pterodactyl');
+    line('  ' . color('maintenance:on', 'green') . '              Planifier maintenance BDD');
+    line('  ' . color('maintenance:off', 'green') . '             Désactiver maintenance BDD');
+    line();
+    
+    line(color('🚧 Mode Maintenance (Down/Up)', 'yellow'));
+    line('  ' . color('down', 'green') . '                        Mettre le site hors ligne');
+    line('    ' . color('--message="..."', 'gray') . '           Message personnalisé');
+    line('    ' . color('--retry=60', 'gray') . '                Retry-After (secondes)');
+    line('    ' . color('--refresh=30', 'gray') . '              Auto-refresh page (secondes)');
+    line('    ' . color('--allow=1.2.3.4', 'gray') . '           IP autorisée (bypass)');
+    line('    ' . color('--secret="token"', 'gray') . '          Token de bypass (?token)');
+    line('    ' . color('--redirect=/url', 'gray') . '           Rediriger vers URL');
+    line();
+    line('  ' . color('up', 'green') . '                          Remettre le site en ligne');
+    line();
+    
+    line(color('📊 Monitoring', 'yellow'));
+    line('  ' . color('status', 'green') . '                      Statut du système');
+    line();
+}
+
+// ═══════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════
+function getPdo() {
+    static $pdo = null;
+    if ($pdo === null) {
+        $pdo = new PDO(
+            sprintf('mysql:host=%s;port=%s;dbname=%s;charset=%s',
+                getenv('DB_HOST'), getenv('DB_PORT'),
+                getenv('DB_DATABASE'), getenv('DB_CHARSET')
+            ),
+            getenv('DB_USERNAME'), getenv('DB_PASSWORD'),
+            [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+            ]
+        );
+    }
+    return $pdo;
+}
+
+function ensureStorageDir() {
+    $dir = BASE_PATH . '/storage/framework';
+    if (!is_dir($dir)) {
+        mkdir($dir, 0755, true);
+    }
+    return $dir;
+}
+
+// ═══════════════════════════════════════════
+// COMMANDES EXISTANTES
+// ═══════════════════════════════════════════
+
+function cmdKeyGenerate() {
+    info('Génération d\'une clé de chiffrement...');
+    $key = 'base64:' . base64_encode(random_bytes(32));
+    $envFile = BASE_PATH . '/.env';
+    $content = file_get_contents($envFile);
+    
+    if (strpos($content, 'ENCRYPTION_KEY=') !== false) {
+        $content = preg_replace('/ENCRYPTION_KEY=.*/', 'ENCRYPTION_KEY=' . $key, $content);
+    } else {
+        $content .= "\nENCRYPTION_KEY=" . $key . "\n";
+    }
+    file_put_contents($envFile, $content);
+    success("Clé générée et sauvegardée dans .env");
+}
+
+function cmdDbMigrate() {
+    info('Exécution des migrations...');
+    $pdo = getPdo();
+    $migrationsPath = BASE_PATH . '/database/migrations';
+    if (!is_dir($migrationsPath)) {
+        mkdir($migrationsPath, 0755, true);
+        warning('Dossier migrations créé');
+        return;
+    }
+    
+    $pdo->exec("CREATE TABLE IF NOT EXISTS migrations (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        migration VARCHAR(255) UNIQUE,
+        executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )");
+    
+    $executed = $pdo->query("SELECT migration FROM migrations")->fetchAll(PDO::FETCH_COLUMN);
+    $files = glob($migrationsPath . '/*.sql');
+    sort($files);
+    $count = 0;
+    
+    foreach ($files as $file) {
+        $name = basename($file);
+        if (in_array($name, $executed)) {
+            line(color("⏭️  ", 'gray') . color($name, 'gray') . ' (déjà exécuté)');
+            continue;
+        }
+        info("Migration : $name");
+        try {
+            $pdo->exec(file_get_contents($file));
+            $pdo->prepare("INSERT INTO migrations (migration) VALUES (?)")->execute([$name]);
+            success("✅ $name");
+            $count++;
+        } catch (Exception $e) {
+            error("❌ $name : " . $e->getMessage());
+            exit(1);
+        }
+    }
+    line();
+    success("$count migration(s) exécutée(s)");
+}
+
+function cmdDbSeed() {
+    info('Remplissage de la BDD...');
+    $pdo = getPdo();
+    $seedsPath = BASE_PATH . '/database/seeds';
+    if (!is_dir($seedsPath)) { warning('Dossier seeds introuvable'); return; }
+    foreach (glob($seedsPath . '/*.sql') as $file) {
+        $name = basename($file);
+        info("Seed : $name");
+        $pdo->exec(file_get_contents($file));
+        success("✅ $name");
+    }
+}
+
+function cmdDbBackup() {
+    info('Sauvegarde de la BDD...');
+    $backupPath = getenv('BACKUP_PATH') ?: BASE_PATH . '/backups';
+    if (!is_dir($backupPath)) mkdir($backupPath, 0755, true);
+    $filename = 'backup_' . date('Y-m-d_H-i-s') . '.sql';
+    $filepath = $backupPath . '/' . $filename;
+    $cmd = sprintf(
+        'mysqldump -h%s -P%s -u%s -p%s %s > %s 2>&1',
+        escapeshellarg(getenv('DB_HOST')), escapeshellarg(getenv('DB_PORT')),
+        escapeshellarg(getenv('DB_USERNAME')), escapeshellarg(getenv('DB_PASSWORD')),
+        escapeshellarg(getenv('DB_DATABASE')), escapeshellarg($filepath)
+    );
+    exec($cmd, $output, $return);
+    if ($return === 0) {
+        success("Sauvegarde : $filename (" . formatBytes(filesize($filepath)) . ")");
+    } else {
+        error('Erreur : ' . implode("\n", $output));
+    }
+}
+
+function cmdDbRestore($file) {
+    if (!$file) { error('Usage: php artisan db:restore <file.sql>'); exit(1); }
+    $backupPath = getenv('BACKUP_PATH') ?: BASE_PATH . '/backups';
+    $filepath = $backupPath . '/' . $file;
+    if (!file_exists($filepath)) { error("Fichier introuvable : $file"); exit(1); }
+    
+    warning("⚠️  ATTENTION : Cette action va ÉCRASER la BDD actuelle !");
+    echo "Continuer ? (yes/no) : ";
+    if (strtolower(trim(fgets(STDIN))) !== 'yes') { warning('Annulé'); return; }
+    
+    $cmd = sprintf(
+        'mysql -h%s -P%s -u%s -p%s %s < %s 2>&1',
+        escapeshellarg(getenv('DB_HOST')), escapeshellarg(getenv('DB_PORT')),
+        escapeshellarg(getenv('DB_USERNAME')), escapeshellarg(getenv('DB_PASSWORD')),
+        escapeshellarg(getenv('DB_DATABASE')), escapeshellarg($filepath)
+    );
+    exec($cmd, $output, $return);
+    if ($return === 0) success('Restauration terminée !');
+    else error('Erreur : ' . implode("\n", $output));
+}
+
+function cmdUserCreate() {
+    line(color('╔══════════════════════════════════════╗', 'cyan'));
+    line(color('║  Création d\'un utilisateur admin     ║', 'white'));
+    line(color('╚══════════════════════════════════════╝', 'cyan'));
+    line();
+    
+    echo "Email : "; $email = trim(fgets(STDIN));
+    echo "Pseudo : "; $pseudo = trim(fgets(STDIN));
+    echo "Prénom : "; $firstname = trim(fgets(STDIN));
+    echo "Nom : "; $lastname = trim(fgets(STDIN));
+    echo "Mot de passe : ";
+    system('stty -echo'); $password = trim(fgets(STDIN)); system('stty echo'); line();
+    
+    if (!$email || !$password) { error('Email et mot de passe requis'); return; }
+    
+    $pdo = getPdo();
+    $check = $pdo->prepare("SELECT id FROM users WHERE email = ?");
+    $check->execute([$email]);
+    if ($check->fetch()) { error("Utilisateur déjà existant"); return; }
+    
+    $hash = password_hash($password, PASSWORD_DEFAULT);
+    $pdo->prepare("INSERT INTO users (email, pseudo, firstname, lastname, password, is_admin, created_at) VALUES (?, ?, ?, ?, ?, 1, NOW())")
+        ->execute([$email, $pseudo, $firstname, $lastname, $hash]);
+    
+    success("✅ Utilisateur créé !");
+    line("   ID : " . $pdo->lastInsertId());
+}
+
+function cmdUserResetPassword() {
+    echo "Email : "; $email = trim(fgets(STDIN));
+    echo "Nouveau mot de passe : ";
+    system('stty -echo'); $password = trim(fgets(STDIN)); system('stty echo'); line();
+    
+    if (strlen($password) < 8) { error('Min. 8 caractères'); return; }
+    
+    $pdo = getPdo();
+    $hash = password_hash($password, PASSWORD_DEFAULT);
+    $stmt = $pdo->prepare("UPDATE users SET password = ? WHERE email = ?");
+    $stmt->execute([$hash, $email]);
+    
+    if ($stmt->rowCount() > 0) success("✅ Mot de passe réinitialisé");
+    else error("Utilisateur introuvable");
+}
+
+function cmdCacheClear() {
+    info('Vidage du cache...');
+    $count = 0;
+    foreach ([BASE_PATH . '/cache', BASE_PATH . '/storage/cache', '/tmp/orinheberge'] as $dir) {
+        if (!is_dir($dir)) continue;
+        foreach (glob($dir . '/*') as $file) {
+            if (is_file($file)) { unlink($file); $count++; }
+        }
+    }
+    success("✅ $count fichier(s) supprimé(s)");
+}
+
+function cmdLogsClear() {
+    info('Vidage des logs...');
+    $logPath = getenv('LOG_PATH') ?: BASE_PATH . '/logs';
+    if (!is_dir($logPath)) { warning('Dossier introuvable'); return; }
+    $count = 0;
+    foreach (glob($logPath . '/*.log') as $file) { unlink($file); $count++; }
+    success("✅ $count fichier(s) supprimé(s)");
+}
+
+function cmdServersSync() {
+    info('Sync Pterodactyl...');
+    $pdo = getPdo();
+    $panelUrl = getenv('PTERODACTYL_URL');
+    $apiKey = getenv('PTERODACTYL_ADMIN_KEY');
+    if (!$panelUrl || !$apiKey) { error('Config manquante'); return; }
+    
+    $ch = curl_init("$panelUrl/api/application/servers");
+    curl_setopt_array($ch, [
+        CURLOPT_HTTPHEADER => ["Authorization: Bearer $apiKey", "Accept: application/vnd.pterodactyl.v1+json"],
+        CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 30
+    ]);
+    $response = curl_exec($ch);
+    curl_close($ch);
+    
+    $data = json_decode($response, true);
+    if (!isset($data['data'])) { error('Erreur API'); return; }
+    
+    $panelServers = $data['data'];
+    $localUuids = array_column($pdo->query("SELECT uuid FROM orders")->fetchAll(), 'uuid');
+    
+    $synced = 0; $missing = 0;
+    foreach ($panelServers as $ps) {
+        $uuid = $ps['attributes']['uuid'] ?? '';
+        if (in_array($uuid, $localUuids)) $synced++;
+        else { $missing++; warning("Non trouvé : " . ($ps['attributes']['name'] ?? $uuid)); }
+    }
+    success("✅ $synced synchronisé(s)");
+    if ($missing > 0) warning("⚠️  $missing absent(s) en BDD");
+}
+
+function cmdMaintenance($mode) {
+    $pdo = getPdo();
+    if ($mode === 'on') {
+        $pdo->exec("INSERT INTO maintenance (title, description, severity, status, is_active, is_public, start_date, end_date) VALUES ('Maintenance', 'Maintenance en cours', 'warning', 'in_progress', 1, 1, NOW(), DATE_ADD(NOW(), INTERVAL 1 HOUR))");
+        success("🔧 Maintenance ACTIVÉE");
+    } else {
+        $pdo->exec("UPDATE maintenance SET is_active = 0 WHERE is_active = 1");
+        success("✅ Maintenance DÉSACTIVÉE");
+    }
+}
+
+// ═══════════════════════════════════════════
+// 🚧 NOUVELLES COMMANDES : DOWN / UP
+// ═══════════════════════════════════════════
+
+/**
+ * php artisan down
+ * Met le site en mode maintenance immédiat (bypass BDD)
+ */
+function cmdDown(array $options = []) {
+    $dir = ensureStorageDir();
+    $file = DOWN_FILE;
+    
+    // Récupérer les options
+    $message   = $options['message']  ?? 'Site en maintenance. Nous reviendrons bientôt !';
+    $retry     = (int)($options['retry']   ?? 60);
+    $refresh   = (int)($options['refresh'] ?? 0);
+    $secret    = $options['secret']   ?? null;
+    $redirect  = $options['redirect'] ?? null;
+    $status    = (int)($options['status']  ?? 503);
+    
+    // Gérer --allow (peut être multiple)
+    $allowed = [];
+    if (isset($options['allow'])) {
+        if (is_array($options['allow'])) {
+            $allowed = $options['allow'];
+        } else {
+            $allowed = array_map('trim', explode(',', $options['allow']));
+        }
+    }
+    
+    // Générer un secret si --secret est passé sans valeur
+    if ($secret === true || $secret === '') {
+        $secret = bin2hex(random_bytes(16));
+    }
+    
+    // Construire le payload JSON
+    $payload = [
+        'time'      => time(),
+        'message'   => $message,
+        'retry'     => $retry,
+        'refresh'   => $refresh,
+        'status'    => $status,
+        'allowed'   => $allowed,
+        'redirect'  => $redirect,
+        'template'  => null,
+    ];
+    
+    // Fichier down
+    if (file_put_contents($file, json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)) === false) {
+        error("Impossible d'écrire le fichier : $file");
+        return;
+    }
+    
+    // Si secret : créer un cookie de bypass
+    if ($secret) {
+        $cookieFile = $dir . '/down-secret';
+        file_put_contents($cookieFile, $secret);
+    }
+    
+    // Affichage
+    line();
+    line(color('╔══════════════════════════════════════╗', 'yellow'));
+    line(color('║  ', 'yellow') . color('🚧 SITE MIS HORS LIGNE', 'bold') . color('                ║', 'yellow'));
+    line(color('╚══════════════════════════════════════╝', 'yellow'));
+    line();
+    success("Application en mode maintenance");
+    line();
+    line(color('Message   : ', 'gray') . $message);
+    line(color('Retry     : ', 'gray') . $retry . 's');
+    if ($refresh > 0) line(color('Refresh   : ', 'gray') . $refresh . 's');
+    if (!empty($allowed)) line(color('IPs OK    : ', 'gray') . implode(', ', $allowed));
+    if ($redirect) line(color('Redirect  : ', 'gray') . $redirect);
+    line(color('Status    : ', 'gray') . $status);
+    
+    if ($secret) {
+        line();
+        line(color('🔑 Token de bypass :', 'cyan'));
+        line(color('   ' . $secret, 'white'));
+        line();
+        line(color('Pour accéder au site pendant la maintenance :', 'gray'));
+        line(color('   ' . (getenv('APP_URL') ?: 'https://...') . '/?secret=' . $secret, 'cyan'));
+    }
+    
+    line();
+    line(color('Pour réactiver : ', 'gray') . color('php artisan up', 'green'));
+    line();
+}
+
+/**
+ * php artisan up
+ * Remet le site en ligne
+ */
+function cmdUp() {
+    $file = DOWN_FILE;
+    $secretFile = BASE_PATH . '/storage/framework/down-secret';
+    
+    if (!file_exists($file)) {
+        warning("Le site est déjà en ligne (pas de fichier down)");
+        return;
+    }
+    
+    // Lire les infos avant suppression
+    $payload = json_decode(file_get_contents($file), true);
+    $downSince = isset($payload['time']) ? date('Y-m-d H:i:s', $payload['time']) : '?';
+    $duration = isset($payload['time']) ? (time() - $payload['time']) : 0;
+    
+    // Supprimer les fichiers
+    @unlink($file);
+    @unlink($secretFile);
+    
+    // Vider le cache OPcache si dispo
+    if (function_exists('opcache_reset')) {
+        @opcache_reset();
+    }
+    
+    line();
+    line(color('╔══════════════════════════════════════╗', 'green'));
+    line(color('║  ', 'green') . color('✅ SITE REMIS EN LIGNE', 'bold') . color('               ║', 'green'));
+    line(color('╚══════════════════════════════════════╝', 'green'));
+    line();
+    success("Application de nouveau disponible");
+    line();
+    line(color('Hors ligne depuis : ', 'gray') . $downSince);
+    line(color('Durée maintenance : ', 'gray') . formatDuration($duration));
+    line();
+}
+
+function formatDuration($seconds) {
+    if ($seconds < 60) return $seconds . 's';
+    if ($seconds < 3600) return floor($seconds / 60) . 'min ' . ($seconds % 60) . 's';
+    $h = floor($seconds / 3600);
+    $m = floor(($seconds % 3600) / 60);
+    return $h . 'h ' . $m . 'min';
+}
+
+// ═══════════════════════════════════════════
+// STATUS (amélioré avec down/up)
+// ═══════════════════════════════════════════
+function cmdStatus() {
+    line(color('╔══════════════════════════════════════╗', 'cyan'));
+    line(color('║  Statut du système OrinHeberge       ║', 'white'));
+    line(color('╚══════════════════════════════════════╝', 'cyan'));
+    line();
+    
+    // Mode Down/Up
+    if (file_exists(DOWN_FILE)) {
+        $payload = json_decode(file_get_contents(DOWN_FILE), true);
+        $downSince = isset($payload['time']) ? date('H:i:s', $payload['time']) : '?';
+        line(color('🚧 Mode', 'yellow') . '      : ' . color('HORS LIGNE (down)', 'red') . color(" depuis $downSince", 'gray'));
+    } else {
+        line(color('🚧 Mode', 'yellow') . '      : ' . color('EN LIGNE (up)', 'green'));
+    }
+    
+    // PHP
+    $phpVersion = PHP_VERSION;
+    line(color('PHP', 'yellow') . '        : ' . $phpVersion . ' ' . (version_compare($phpVersion, '8.1', '>=') ? color('✅', 'green') : color('❌', 'red')));
+    
+    // MySQL
+    try {
+        $pdo = getPdo();
+        $version = $pdo->query("SELECT VERSION()")->fetchColumn();
+        line(color('MySQL', 'yellow') . '      : ' . $version . ' ' . color('✅', 'green'));
+        $count = $pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
+        line(color('Users', 'yellow') . '      : ' . $count);
+        $orders = $pdo->query("SELECT COUNT(*) FROM orders WHERE status = 'paid'")->fetchColumn();
+        line(color('Serveurs', 'yellow') . '   : ' . $orders . ' actifs');
+    } catch (Exception $e) {
+        line(color('MySQL', 'yellow') . '      : ' . color('❌ ' . $e->getMessage(), 'red'));
+    }
+    
+    // Pterodactyl
+    $panelUrl = getenv('PTERODACTYL_URL');
+    if ($panelUrl) {
+        $ch = curl_init($panelUrl);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+        curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        $status = $httpCode === 200 ? color('✅ En ligne', 'green') : color('❌ Hors ligne', 'red');
+        line(color('Pterodactyl', 'yellow') . ' : ' . $status);
+    }
+    
+    // Disk
+    $free = disk_free_space('/');
+    $total = disk_total_space('/');
+    $used = 100 - (($free / $total) * 100);
+    $color = $used > 90 ? 'red' : ($used > 70 ? 'yellow' : 'green');
+    line(color('Disque', 'yellow') . '     : ' . color(number_format($used, 1) . '% utilisé', $color) . ' (' . formatBytes($free) . ' libre)');
+    
+    line();
+    line(color('Environnement : ', 'gray') . (getenv('APP_ENV') ?: 'production'));
+    line(color('Debug         : ', 'gray') . (getenv('APP_DEBUG') ?: 'false'));
+}

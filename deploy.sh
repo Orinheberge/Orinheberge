@@ -1,0 +1,61 @@
+#!/bin/bash
+# ===========================================
+# Script de déploiement automatique — Orinheberge
+# Déploie sur : root@5.48.143.126
+# Chemin distant : /var/www/orinheberge
+# ===========================================
+
+SERVER_IP="5.48.143.126"
+SERVER_USER="root"
+SERVER_PASS="1504"
+REMOTE_PATH="/var/www/orinheberge"
+LOCAL_PATH="$(git rev-parse --show-toplevel)"
+
+echo ""
+echo "🚀 Déploiement vers $SERVER_USER@$SERVER_IP:$REMOTE_PATH ..."
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+if ! command -v sshpass &> /dev/null; then
+    echo "❌ sshpass n'est pas installé."
+    echo "   Git Bash / WSL  : sudo apt install sshpass"
+    echo "   macOS           : brew install sshpass"
+    exit 1
+fi
+
+sshpass -p "$SERVER_PASS" rsync -avz --delete \
+    --exclude='.git/' \
+    --exclude='.env' \
+    --exclude='node_modules/' \
+    --exclude='*.log' \
+    --exclude='inc/uploads/avatars/*.webp' \
+    --exclude='inc/uploads/avatars/*.png' \
+    --exclude='inc/uploads/avatars/*.jpg' \
+    --exclude='api/reviews/*.json' \
+    -e "ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10" \
+    "$LOCAL_PATH/" \
+    "$SERVER_USER@$SERVER_IP:$REMOTE_PATH/"
+
+if [ $? -ne 0 ]; then
+    echo "❌ Échec du rsync."
+    exit 1
+fi
+
+echo ""
+echo "📦 Composer, permissions et reload des services..."
+
+sshpass -p "$SERVER_PASS" ssh -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" bash -s <<REMOTE
+cd "$REMOTE_PATH"
+composer install --no-dev --optimize-autoloader --no-interaction
+composer config platform-check false
+chown -R www-data:www-data "$REMOTE_PATH"
+chmod -R 755 "$REMOTE_PATH"
+chmod -R 775 "$REMOTE_PATH/inc/uploads/"
+for svc in nginx apache2 php8.5-fpm php8.4-fpm php8.3-fpm php8.2-fpm php8.1-fpm php-fpm; do
+    systemctl is-active --quiet "\$svc" 2>/dev/null && systemctl reload "\$svc" && echo "✅ \$svc rechargé"
+done
+REMOTE
+
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "✅ Déploiement terminé !"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

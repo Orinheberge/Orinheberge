@@ -1,0 +1,385 @@
+
+<?php
+/**
+ * OrinHeberge — Navbar partagée améliorée (v4 avec Community)
+ */
+$active_nav = $active_nav ?? '';
+
+error_log(sprintf(
+    "[OrinHeberge Nginx Debug] Chargement de navbar.php | IP: %s | User: %s | Page: %s",
+    $_SERVER['REMOTE_ADDR'] ?? 'Inconnue',
+    isset($_SESSION['user_id']) ? 'ID-' . $_SESSION['user_id'] : 'Visiteur',
+    $_SERVER['REQUEST_URI'] ?? '/'
+));
+
+$maintenance_banner = null;
+if (isset($pdo)) {
+    try {
+        $maintenance_banner = $pdo->query("
+            SELECT * FROM maintenance 
+            WHERE is_active = 1 AND is_public = 1 AND show_banner = 1
+              AND status IN ('scheduled', 'in_progress')
+              AND NOW() BETWEEN start_date AND end_date
+            ORDER BY CASE severity WHEN 'critical' THEN 1 WHEN 'warning' THEN 2 ELSE 3 END
+            LIMIT 1
+        ")->fetch();
+    } catch (Exception $e) {}
+}
+
+$notif_count = 0;
+if (isset($_SESSION['user_id']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc/notifications.php')) {
+    try {
+        if (!isset($pdo)) require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/db.php';
+        $notif_stmt = $pdo->prepare("SELECT COUNT(*) FROM notifications WHERE user_id = ? AND is_read = 0");
+        $notif_stmt->execute([$_SESSION['user_id']]);
+        $notif_count = (int)$notif_stmt->fetchColumn();
+    } catch (Exception $e) { $notif_count = 0; }
+}
+
+// 🔵 Compteur utilisateurs en ligne (pour le lien Community)
+$_online_users_count = 0;
+if (isset($_SESSION['user_id']) && isset($pdo)) {
+    try {
+        $stmt = $pdo->prepare("
+            SELECT COUNT(*) FROM user_activity 
+            WHERE last_seen >= DATE_SUB(NOW(), INTERVAL 3 MINUTE)
+        ");
+        $stmt->execute();
+        $_online_users_count = (int)$stmt->fetchColumn();
+    } catch (Exception $e) {
+        $_online_users_count = 0;
+    }
+}
+?>
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="/inc/navbar.css?v=<?php echo filemtime($_SERVER['DOCUMENT_ROOT'] . '/inc/navbar.css'); ?>" rel="stylesheet">
+
+<div id="mobileOverlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 opacity-0 pointer-events-none transition-opacity duration-300 md:hidden"></div>
+
+<nav class="sticky top-0 z-50 border-b border-white/5" style="background: rgba(7, 10, 19, 0.8); backdrop-filter: blur(14px);">
+    
+    <?php if ($maintenance_banner): 
+        $sev_colors = [
+            'info'     => ['bg' => 'bg-sky-500/10', 'border' => 'border-sky-500/20', 'text' => 'text-sky-400', 'icon' => 'fa-info-circle'],
+            'warning'  => ['bg' => 'bg-amber-500/10', 'border' => 'border-amber-500/20', 'text' => 'text-amber-400', 'icon' => 'fa-exclamation-triangle'],
+            'critical' => ['bg' => 'bg-red-500/10', 'border' => 'border-red-500/20', 'text' => 'text-red-400', 'icon' => 'fa-radiation'],
+        ];
+        $sev = $sev_colors[$maintenance_banner['severity']] ?? $sev_colors['info'];
+    ?>
+    <div class="maintenance-banner <?php echo $sev['bg']; ?> <?php echo $sev['border']; ?> border-b px-4 py-2">
+        <div class="max-w-7xl mx-auto flex items-center justify-between gap-3">
+            <div class="flex items-center gap-2 text-xs <?php echo $sev['text']; ?>">
+                <i class="fas <?php echo $sev['icon']; ?>"></i>
+                <span class="font-semibold"><?php echo htmlspecialchars($maintenance_banner['title']); ?></span>
+                <span class="hidden sm:inline text-gray-500">—</span>
+                <span class="hidden sm:inline text-gray-400 text-[11px]">
+                    <?php echo date('H:i', strtotime($maintenance_banner['start_date'])); ?> → <?php echo date('H:i', strtotime($maintenance_banner['end_date'])); ?>
+                </span>
+            </div>
+            <a href="/status/" class="text-[11px] <?php echo $sev['text']; ?> hover:underline font-semibold whitespace-nowrap">
+                <?php echo t('nav.more_info'); ?> <i class="fas fa-arrow-right text-[9px] ml-0.5"></i>
+            </a>
+        </div>
+    </div>
+    <?php endif; ?>
+
+    <?php if (!empty($_SESSION['admin_impersonating'])): ?>
+    <div style="background:rgba(244,63,94,.15);border-bottom:1px solid rgba(244,63,94,.3);" class="px-5 py-2 flex items-center justify-between text-xs">
+        <span class="text-rose-400 font-semibold flex items-center gap-2">
+            <i class="fas fa-user-secret"></i>
+            <?php echo t('nav.impersonating'); ?> <strong class="text-white ml-1"><?php echo htmlspecialchars($_SESSION['username'] ?? ''); ?></strong>
+        </span>
+        <form method="POST" action="/admin/stop_impersonate.php" class="m-0">
+            <button type="submit" class="bg-rose-500/20 hover:bg-rose-500/40 border border-rose-500/40 text-rose-300 px-3 py-1 rounded-lg font-bold transition cursor-pointer">
+                <i class="fas fa-arrow-left mr-1"></i> <?php echo t('nav.back_to_admin'); ?>
+            </button>
+        </form>
+    </div>
+    <?php endif; ?>
+
+    <div class="max-w-7xl mx-auto flex items-center gap-4 p-5">
+        <h1 class="font-black text-white tracking-tight shrink-0">
+            <a href="/" class="flex items-center gap-2.5 group">
+                <img src="https://heberge.orinstone.deepstone.fr/favicon.png" alt="OrinHeberge Logo" class="w-8 h-8 object-contain">
+                <span class="text-2xl font-black text-white">Orin<span class="text-sky-500">Heberge</span></span>
+            </a>
+        </h1>
+
+        <!-- 🖥️ Navigation desktop -->
+        <div class="hidden md:flex items-center gap-2 lg:gap-3 flex-1 justify-end flex-wrap">
+            <a href="/" class="<?php echo $active_nav === 'home' ? 'bg-sky-600/30 text-sky-400 border-sky-500/50 font-bold' : 'bg-sky-600/5 text-sky-400/70 hover:text-sky-300 border-sky-500/10 hover:bg-sky-600/20'; ?> px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium shadow-md border whitespace-nowrap">
+                <i class="fas fa-home"></i> <?php echo t('nav.home'); ?>
+            </a>
+
+            <div class="relative group">
+                <button class="text-gray-300 hover:text-sky-400 font-bold flex items-center gap-2.5 transition bg-white/5 hover:bg-white/10 px-4 py-2 rounded-full border border-white/5 focus:outline-none text-xs whitespace-nowrap cursor-pointer">
+                    <i class="fas fa-tags"></i> <?php echo t('nav.shop'); ?>
+                    <i class="fas fa-chevron-down text-[9px] opacity-50"></i>
+                </button>
+                <div class="dropdown-menu absolute right-0 mt-2 w-56 rounded-2xl border border-white/10 bg-[#11151d] shadow-2xl shadow-black/30 py-2 hidden group-hover:block group-focus-within:block z-50">
+                    <a href="/shop/" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white">
+                        <i class="fas fa-tags w-4"></i> <?php echo t('nav.offers'); ?>
+                    </a>
+                    <a href="/shop/cart/" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white">
+                        <i class="fas fa-shopping-cart w-4"></i> <?php echo t('nav.cart'); ?>
+                    </a>
+                    <?php if (isset($_SESSION['user_id'])): ?>
+                    <hr class="my-2 border-white/10">
+                    <a href="/client/billing/" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white">
+                        <i class="fas fa-file-invoice-dollar w-4"></i> <?php echo t('nav.billing'); ?>
+                    </a>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <!-- ═══════════════════════════════════════════ -->
+            <!-- 💬 COMMUNITY (NOUVEAU) -->
+            <!-- ═══════════════════════════════════════════ -->
+            <?php if (isset($_SESSION['user_id'])): ?>
+            <a href="/client/community/" class="nav-community-btn <?php echo $active_nav === 'community' ? 'active bg-emerald-600/30 text-emerald-400 border-emerald-500/50 font-bold' : 'bg-emerald-600/10 text-emerald-400/80 hover:text-emerald-300 border-emerald-500/20 hover:bg-emerald-600/20'; ?> px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium shadow-md border whitespace-nowrap relative">
+                <i class="fas fa-comments"></i>
+                <span><?php echo t('nav.community', 'Communauté'); ?></span>
+                <?php if ($_online_users_count > 0): ?>
+                <span class="flex items-center gap-1 ml-1 bg-emerald-500/20 border border-emerald-500/30 px-1.5 py-0.5 rounded-full">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse-online"></span>
+                    <span class="text-[10px] font-bold"><?php echo $_online_users_count; ?></span>
+                </span>
+                <?php endif; ?>
+            </a>
+            <?php endif; ?>
+
+            <a href="/client/support/" class="<?php echo $active_nav === 'support' ? 'bg-purple-600/30 text-purple-400 border-purple-500/50 font-bold' : 'bg-purple-600/5 text-purple-400/70 hover:text-purple-300 border-purple-500/10 hover:bg-purple-600/20'; ?> px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium shadow-md border whitespace-nowrap">
+                <i class="fas fa-headset"></i> <?php echo t('nav.support'); ?>
+            </a>
+
+            <a href="/partenaires/" class="<?php echo $active_nav === 'partners' ? 'bg-indigo-600/30 text-indigo-400 border-indigo-500/50 font-bold' : 'bg-indigo-600/5 text-indigo-400/70 hover:text-indigo-300 border-indigo-500/10 hover:bg-indigo-600/20'; ?> px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium shadow-md border whitespace-nowrap">
+                <i class="fas fa-handshake"></i> <?php echo t('nav.partners'); ?>
+            </a>
+
+            <?php if (isset($_SESSION['user_id'])): ?>
+                <?php if ($notif_count > 0): ?>
+                <a href="/client/notifications/" class="relative bg-rose-600/10 hover:bg-rose-600/20 border border-rose-500/20 text-rose-400 px-3 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium whitespace-nowrap">
+                    <i class="fas fa-bell"></i>
+                    <span class="notif-badge absolute -top-1 -right-1 w-4 h-4 bg-rose-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center border border-rose-900"><?= $notif_count ?></span>
+                </a>
+                <?php endif; ?>
+
+                <div class="relative group">
+                    <button class="text-gray-300 hover:text-sky-400 font-bold flex items-center gap-2.5 transition bg-white/5 hover:bg-white/10 px-4 py-2 rounded-full border border-white/5 focus:outline-none text-xs whitespace-nowrap cursor-pointer">
+                        <?php if (!empty($_SESSION['avatar']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/' . $_SESSION['avatar'])): ?>
+                            <img src="/<?php echo htmlspecialchars($_SESSION['avatar']); ?>" alt="Avatar" class="w-5 h-5 rounded-full object-cover border border-sky-500/30 shrink-0">
+                        <?php else: ?>
+                            <i class="fas fa-user-circle text-lg text-sky-400 shrink-0"></i>
+                        <?php endif; ?>
+                        <span><?php echo htmlspecialchars($_SESSION['username'] ?? t('nav.profile')); ?></span>
+                        <i class="fas fa-chevron-down text-[10px] opacity-70"></i>
+                    </button>
+
+                    <div class="dropdown-menu absolute right-0 mt-2 w-56 rounded-2xl border border-white/10 bg-[#11151d] shadow-2xl shadow-black/30 py-2 hidden group-hover:block group-focus-within:block z-50">
+                        <a href="/client/profil/" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white">
+                            <i class="fas fa-user w-4"></i> <?php echo t('nav.my_profile'); ?>
+                        </a>
+                        <a href="/client/servers/" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white">
+                            <i class="fas fa-server w-4"></i> <?php echo t('nav.my_servers'); ?>
+                        </a>
+                        <a href="/client/community/" class="flex items-center gap-2 px-4 py-2 text-sm text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300">
+                            <i class="fas fa-comments w-4"></i> <?php echo t('nav.community', 'Communauté'); ?>
+                            <?php if ($_online_users_count > 0): ?>
+                            <span class="ml-auto flex items-center gap-1 text-[10px] bg-emerald-500/20 border border-emerald-500/30 px-1.5 py-0.5 rounded-full">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse-online"></span>
+                                <?php echo $_online_users_count; ?>
+                            </span>
+                            <?php endif; ?>
+                        </a>
+                        <a href="/client/" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white">
+                            <i class="fas fa-home w-4"></i> <?php echo t('nav.my_space'); ?>
+                        </a>
+                        <a href="/client/notifications/" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white">
+                            <i class="fas fa-bell w-4"></i> <?php echo t('nav.my_notifications'); ?>
+                        </a>
+                        <a href="/client/billing/" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white">
+                            <i class="fas fa-file-invoice-dollar w-4"></i> <?php echo t('nav.billing'); ?>
+                        </a>
+                        
+                        <?php if (!empty($_SESSION['is_admin'])): ?>
+                            <hr class="my-2 border-white/10">
+                            <a href="/admin/" class="flex items-center gap-2 px-4 py-2 text-sm text-amber-400 hover:bg-white/5 hover:text-amber-300">
+                                <i class="fas fa-user-tie"></i> <?php echo t('nav.administration'); ?>
+                            </a>
+                        <?php endif; ?>
+                        <hr class="my-2 border-white/10">
+                        <a href="/logout/" class="flex items-center gap-2 px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300">
+                            <i class="fas fa-sign-out-alt w-4"></i> <?php echo t('nav.logout'); ?>
+                        </a>
+                    </div>
+                </div>
+            <?php else: ?>
+                <a href="/login/" class="bg-sky-600/10 border border-sky-500/20 text-sky-400 hover:text-white hover:bg-sky-600 px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium whitespace-nowrap">
+                    <i class="fas fa-sign-in-alt"></i> <?php echo t('nav.login'); ?>
+                </a>
+                <a href="/register/" class="bg-sky-600 hover:bg-sky-500 text-white px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium whitespace-nowrap shadow-md shadow-sky-900/20">
+                    <i class="fas fa-user-plus"></i> <?php echo t('nav.register'); ?>
+                </a>
+            <?php endif; ?>
+
+            <a href="/status/" class="bg-emerald-600/20 hover:bg-emerald-600 border border-emerald-500/30 text-emerald-400 hover:text-white px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium shadow-md shadow-emerald-900/20 whitespace-nowrap">
+                <i class="fas fa-signal"></i> <?php echo t('status.nav'); ?>
+            </a>
+
+            <?php include __DIR__ . '/lang_switcher.php'; ?>
+        </div>
+
+        <button id="mobileMenuBtn" class="md:hidden relative w-11 h-11 flex items-center justify-center text-2xl text-gray-400 hover:text-white transition shrink-0 ml-auto cursor-pointer rounded-xl bg-white/5 border border-white/10 hover:bg-white/10" aria-label="Menu" aria-expanded="false">
+            <i class="fas fa-bars absolute transition-all duration-300" id="menuIconBars"></i>
+            <i class="fas fa-xmark absolute transition-all duration-300 opacity-0 scale-50" id="menuIconX"></i>
+        </button>
+    </div>
+
+    <!-- 📱 Menu mobile -->
+    <div id="mobileMenu" class="md:hidden overflow-hidden transition-all duration-500 ease-in-out" style="max-height: 0px;">
+        <div class="px-4 pb-6 pt-2 space-y-2 border-t border-white/5">
+            
+            <a href="/" class="block py-3.5 px-4 rounded-xl flex items-center gap-3 text-base font-medium border transition-all <?php echo $active_nav === 'home' ? 'bg-sky-600/20 border-sky-500/40 text-sky-400 shadow-lg shadow-sky-900/20' : 'bg-white/[0.02] border-white/5 text-gray-300 hover:bg-white/5'; ?>">
+                <i class="fas fa-home w-6 text-center text-lg"></i> <?php echo t('nav.home'); ?>
+            </a>
+            
+            <?php if (isset($_SESSION['user_id'])): ?>
+            <a href="/client/servers/" class="block py-3.5 px-4 rounded-xl flex items-center gap-3 text-base font-medium border transition-all <?php echo $active_nav === 'servers' ? 'bg-slate-600/20 border-slate-500/40 text-slate-300 shadow-lg shadow-slate-900/20' : 'bg-white/[0.02] border-white/5 text-gray-300 hover:bg-white/5'; ?>">
+                <i class="fas fa-server w-6 text-center text-lg"></i> <?php echo t('nav.servers'); ?>
+            </a>
+            
+            <!-- 💬 Community Mobile -->
+            <a href="/client/community/" class="block py-3.5 px-4 rounded-xl flex items-center gap-3 text-base font-medium border transition-all <?php echo $active_nav === 'community' ? 'bg-emerald-600/20 border-emerald-500/40 text-emerald-400 shadow-lg shadow-emerald-900/20' : 'bg-emerald-600/5 border-emerald-500/20 text-emerald-400/80 hover:bg-emerald-600/10'; ?>">
+                <i class="fas fa-comments w-6 text-center text-lg"></i>
+                <span><?php echo t('nav.community', 'Communauté'); ?></span>
+                <?php if ($_online_users_count > 0): ?>
+                <span class="ml-auto flex items-center gap-1 text-xs bg-emerald-500/20 border border-emerald-500/30 px-2 py-0.5 rounded-full font-bold">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse-online"></span>
+                    <?php echo $_online_users_count; ?> en ligne
+                </span>
+                <?php endif; ?>
+            </a>
+            <?php endif; ?>
+
+            <div class="bg-white/[0.02] border border-white/5 rounded-xl overflow-hidden">
+                <button type="button" id="mobileShopDropdownBtn" class="w-full py-3.5 px-4 flex items-center justify-between text-base font-medium text-gray-300 hover:bg-white/5 transition cursor-pointer" aria-expanded="false">
+                    <span class="flex items-center gap-3">
+                        <i class="fas fa-tags w-6 text-center text-lg"></i> <?php echo t('nav.shop'); ?>
+                    </span>
+                    <i class="fas fa-chevron-down text-sm transition-transform duration-300" id="shopDropdownIcon"></i>
+                </button>
+                <div id="shopDropdown" class="transition-all duration-300 ease-in-out overflow-hidden" style="max-height: 0px;">
+                    <div class="border-t border-white/5 bg-black/30 py-2 space-y-1">
+                        <a href="/shop/" class="block py-3 px-4 pl-14 text-sm text-gray-400 hover:bg-white/5 hover:text-white transition-all">
+                            <i class="fas fa-tags w-5 mr-2 text-sky-400/70"></i> <?php echo t('nav.offers'); ?>
+                        </a>
+                        <a href="/shop/cart/" class="block py-3 px-4 pl-14 text-sm text-gray-400 hover:bg-white/5 hover:text-white transition-all">
+                            <i class="fas fa-shopping-cart w-5 mr-2 text-sky-400/70"></i> <?php echo t('nav.cart'); ?>
+                        </a>
+                        <?php if (isset($_SESSION['user_id'])): ?>
+                        <a href="/client/billing/" class="block py-3 px-4 pl-14 text-sm text-gray-400 hover:bg-white/5 hover:text-white transition-all">
+                            <i class="fas fa-file-invoice-dollar w-5 mr-2 text-sky-400/70"></i> <?php echo t('nav.billing'); ?>
+                        </a>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+
+            <a href="/client/support/" class="block py-3.5 px-4 rounded-xl flex items-center gap-3 text-base font-medium border transition-all <?php echo $active_nav === 'support' ? 'bg-purple-600/20 border-purple-500/40 text-purple-400 shadow-lg shadow-purple-900/20' : 'bg-white/[0.02] border-white/5 text-gray-300 hover:bg-white/5'; ?>">
+                <i class="fas fa-headset w-6 text-center text-lg"></i> <?php echo t('nav.support'); ?>
+            </a>
+
+            <a href="/partenaires/" class="block py-3.5 px-4 rounded-xl flex items-center gap-3 text-base font-medium border transition-all <?php echo $active_nav === 'partners' ? 'bg-indigo-600/20 border-indigo-500/40 text-indigo-400 shadow-lg shadow-indigo-900/20' : 'bg-white/[0.02] border-white/5 text-gray-300 hover:bg-white/5'; ?>">
+                <i class="fas fa-handshake w-6 text-center text-lg"></i> <?php echo t('nav.partners'); ?>
+            </a>
+
+            <a href="/status/" class="block py-3.5 px-4 rounded-xl flex items-center gap-3 text-base font-medium border bg-emerald-600/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-600/20 transition-all">
+                <i class="fas fa-signal w-6 text-center text-lg"></i> <?php echo t('status.nav'); ?>
+            </a>
+
+            <hr class="border-white/10 my-3">
+
+            <?php if (isset($_SESSION['user_id']) && $notif_count > 0): ?>
+            <a href="/client/notifications/" class="block py-3.5 px-4 rounded-xl flex items-center gap-3 text-base font-medium border bg-rose-600/10 border-rose-500/30 text-rose-400 hover:bg-rose-600/20 transition-all">
+                <i class="fas fa-bell w-6 text-center text-lg"></i> 
+                <span><?php echo t('nav.notifications'); ?></span>
+                <span class="ml-auto bg-rose-500 text-white text-xs font-bold px-2.5 py-1 rounded-full"><?= $notif_count ?></span>
+            </a>
+            <?php endif; ?>
+
+            <?php if (isset($_SESSION['user_id'])): ?>
+                <a href="/client/profil/" class="block py-3.5 px-4 rounded-xl flex items-center gap-3 text-base font-medium bg-white/[0.02] border border-white/5 text-gray-300 hover:bg-white/5 transition-all">
+                    <i class="fas fa-user w-6 text-center text-lg"></i> <?php echo t('nav.my_profile'); ?>
+                </a>
+                <a href="/client/servers/" class="block py-3.5 px-4 rounded-xl flex items-center gap-3 text-base font-medium bg-white/[0.02] border border-white/5 text-gray-300 hover:bg-white/5 transition-all">
+                    <i class="fas fa-server w-6 text-center text-lg"></i> <?php echo t('nav.my_servers'); ?>
+                </a>
+                <a href="/client/billing/" class="block py-3.5 px-4 rounded-xl flex items-center gap-3 text-base font-medium bg-white/[0.02] border border-white/5 text-gray-300 hover:bg-white/5 transition-all">
+                    <i class="fas fa-file-invoice-dollar w-6 text-center text-lg"></i> <?php echo t('nav.billing'); ?>
+                </a>
+                <?php if (!empty($_SESSION['is_admin'])): ?>
+                    <a href="/admin/" class="block py-3.5 px-4 rounded-xl flex items-center gap-3 text-base font-medium bg-amber-600/10 border border-amber-500/30 text-amber-400 hover:bg-amber-600/20 transition-all">
+                        <i class="fas fa-user-tie w-6 text-center text-lg"></i> <?php echo t('nav.administration'); ?>
+                    </a>
+                <?php endif; ?>
+                <a href="/logout/" class="block py-3.5 px-4 rounded-xl flex items-center gap-3 text-base font-medium bg-red-600/10 border border-red-500/30 text-red-400 hover:bg-red-600/20 transition-all">
+                    <i class="fas fa-sign-out-alt w-6 text-center text-lg"></i> <?php echo t('nav.logout'); ?>
+                </a>
+            <?php else: ?>
+                <a href="/login/" class="block py-3.5 px-4 rounded-xl flex items-center gap-3 text-base font-medium bg-white/5 border border-white/5 text-gray-300 hover:bg-white/10 transition-all">
+                    <i class="fas fa-sign-in-alt w-6 text-center text-lg"></i> <?php echo t('nav.login'); ?>
+                </a>
+                <a href="/register/" class="block py-3.5 px-4 rounded-xl flex items-center gap-3 text-base font-medium bg-sky-600 border border-sky-500 text-white hover:bg-sky-500 transition-all shadow-lg shadow-sky-900/30">
+                    <i class="fas fa-user-plus w-6 text-center text-lg"></i> <?php echo t('nav.register'); ?>
+                </a>
+            <?php endif; ?>
+
+            <div class="mt-4 pt-4 border-t border-white/10">
+                <div class="flex flex-col items-center px-2 pb-2">
+                    <div class="flex items-center justify-center gap-2 py-2 text-xs text-gray-500 uppercase tracking-wide font-semibold">
+                        <i class="fas fa-globe text-sky-400"></i>
+                        <span><?php echo t('nav.language_label'); ?></span>
+                    </div>
+                    <div class="mt-1">
+                        <?php include __DIR__ . '/lang_switcher.php'; ?>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<script src="/assets/js/navbar.js?v=<?php echo filemtime($_SERVER['DOCUMENT_ROOT'] . '/inc/navbar.js'); ?>"></script>
+<script src="/assets/js/lang_switcher.js?v=<?php echo filemtime($_SERVER['DOCUMENT_ROOT'] . '/inc/lang_switcher.js'); ?>"></script>
+
+<style>
+/* ═══════════════════════════════════════════ */
+/* 🎨 STYLES COMMUNITY NAVBAR */
+/* ═══════════════════════════════════════════ */
+@keyframes pulse-online {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(1.3); }
+}
+
+.animate-pulse-online {
+    animation: pulse-online 2s ease-in-out infinite;
+}
+
+/* Style distinctif pour le bouton Community */
+.nav-community-btn {
+    position: relative;
+    background: linear-gradient(90deg, rgba(16, 185, 129, 0.1) 0%, rgba(6, 182, 212, 0.05) 100%);
+}
+
+.nav-community-btn:hover {
+    background: linear-gradient(90deg, rgba(16, 185, 129, 0.2) 0%, rgba(6, 182, 212, 0.15) 100%);
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+}
+
+.nav-community-btn.active {
+    background: linear-gradient(90deg, rgba(16, 185, 129, 0.3) 0%, rgba(6, 182, 212, 0.2) 100%);
+    box-shadow: 0 0 25px rgba(16, 185, 129, 0.4);
+}
+</style>

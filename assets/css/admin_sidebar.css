@@ -1,0 +1,163 @@
+/**
+ * OrinHeberge — Style de la Sidebar d'Administration
+ */
+
+:root {
+  --sidebar-width: 240px;
+}
+
+/* ==========================================================================
+   1. STRUCTURE DE LA SIDEBAR
+   ========================================================================== */
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: var(--sidebar-width);
+  height: 100vh;
+  background: #111318;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  flex-direction: column;
+  z-index: 45; /* Ajusté pour rester au-dessus de la topbar */
+  overflow-y: auto;
+  transition: transform 0.25s ease;
+}
+
+.sidebar-logo {
+  padding: 1.5rem 1.25rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.sidebar-nav {
+  padding: 0.75rem;
+  flex: 1;
+}
+
+.sidebar-footer {
+  padding: 0.875rem 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* ==========================================================================
+   2. ÉLÉMENTS DE NAVIGATION (ITEMS ET SECTIONS)
+   ========================================================================== */
+.nav-section {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #374151;
+  text-transform: uppercase;
+  padding: 0.75rem 0.875rem 0.35rem;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 0.875rem;
+  border-radius: 0.625rem;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #585d68;
+  transition: all 0.15s ease;
+  text-decoration: none;
+  margin-bottom: 0.15rem;
+  border: 1px solid transparent;
+}
+
+/* Effets Hover */
+.nav-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: #d1d5db;
+}
+
+/* État Actif (Surligné aux couleurs Admin / Rose-Rouge) */
+.nav-item.active {
+  background: rgba(244, 63, 94, 0.08);
+  color: #f43f5e;
+  border-color: rgba(244, 63, 94, 0.15);
+}
+
+/* Icônes à l'intérieur des items */
+.nav-item .icon {
+  width: 1.1rem;
+  text-align: center;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.nav-separator {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.05);
+  margin: 0.5rem 0.75rem;
+}
+
+/* ==========================================================================
+   3. DESIGN RESPONSIVE & MOBILE
+   ========================================================================== */
+
+/* Bouton toggle d'ouverture de la sidebar sur mobile */
+.admin-sidebar-toggle {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  z-index: 50;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(7, 10, 19, 0.9);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(244, 63, 94, 0.2);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.admin-sidebar-toggle:hover {
+  background: rgba(244, 63, 94, 0.2);
+  border-color: rgba(244, 63, 94, 0.4);
+}
+
+/* Conteneur principal (pour décalage sur Desktop) */
+.main-content {
+  margin-left: var(--sidebar-width);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  transition: margin-left 0.25s ease;
+}
+
+/* Overlay assombrissant en arrière-plan */
+#adminSidebarOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 40;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 300ms ease;
+}
+
+/* Comportement sur écrans mobiles et tablettes */
+@media (max-width: 768px) {
+  /* Masque la sidebar par défaut hors de l'écran */
+  .sidebar {
+    transform: translateX(-100%);
+    z-index: 45;
+  }
+  
+  /* Affiche la sidebar lorsqu'elle a la classe .open */
+  .sidebar.open {
+    transform: translateX(0);
+  }
+  
+  /* Enlève la marge gauche sur mobile */
+  .main-content {
+    margin-left: 0;
+  }
+}

@@ -1,0 +1,137 @@
+/* ============================================
+   CHAT ORINHEBERGE - STYLES
+   ============================================ */
+
+/* Message bubble */
+.chat-message {
+    display: flex;
+    gap: 1rem;
+    padding: 0.5rem 0;
+    transition: background-color 0.2s;
+}
+
+.chat-message:hover {
+    background-color: rgba(255, 255, 255, 0.02);
+}
+
+.chat-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.chat-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.chat-header {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.chat-username {
+    font-weight: 600;
+    color: rgb(56, 189, 248);
+}
+
+.chat-timestamp {
+    font-size: 0.75rem;
+    color: rgb(107, 114, 128);
+}
+
+.chat-text {
+    color: rgb(209, 213, 219);
+    line-height: 1.5;
+    word-wrap: break-word;
+}
+
+/* Custom emoji dans les messages */
+.chat-text img.custom-emoji {
+    width: 24px;
+    height: 24px;
+    vertical-align: middle;
+    margin: 0 2px;
+}
+
+
+/* Animations */
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.chat-message {
+    animation: slideUp 0.3s ease-out;
+}
+
+/* Responsive */
+@media (max-width: 1023px) {
+    aside {
+        display: none;
+    }
+}
+
+/* Onglets emoji picker */
+.emoji-tab {
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.emoji-tab:hover {
+    transform: translateY(-1px);
+}
+
+.emoji-item {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.15s;
+    font-size: 1.4rem;
+    user-select: none;
+}
+
+.emoji-item:hover {
+    background-color: rgba(56, 189, 248, 0.15);
+    transform: scale(1.25);
+}
+
+.emoji-item:active {
+    transform: scale(0.95);
+}
+
+.emoji-item img {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+}
+
+/* Scrollbar custom */
+.custom-scrollbar::-webkit-scrollbar { 
+    width: 6px; 
+    height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track { 
+    background: transparent; 
+}
+.custom-scrollbar::-webkit-scrollbar-thumb { 
+    background: rgba(255,255,255,0.1); 
+    border-radius: 3px; 
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { 
+    background: rgba(255,255,255,0.2); 
+}

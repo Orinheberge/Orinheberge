@@ -1,0 +1,11 @@
+# OrinHeberge — Cron natif de l'egg Ym0T
+# Logs dans /home/container/logs/cron.log
+
+# Rappels renouvellement J-7 et J-3 (chaque jour à 9h00)
+0 9 * * * /usr/bin/php /home/container/www/shop/order/renewal/cron.php >> /home/container/logs/renewal.log 2>&1
+
+# Suspension des serveurs expirés (chaque jour à 10h00)
+0 10 * * * /usr/bin/php /home/container/www/shop/order/renewal/cron.php suspend >> /home/container/logs/renewal.log 2>&1
+
+# Rappels urgents J-1 (chaque jour à 18h00)
+0 18 * * * /usr/bin/php /home/container/www/shop/order/renewal/cron.php urgent >> /home/container/logs/renewal.log 2>&1
