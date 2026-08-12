@@ -225,7 +225,7 @@ jobs:
           ATTEMPT=0
           
           while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
-            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://orinstone.deepstone.fr/ --max-time 10 || echo "000")
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://heberge.orinstone.deepstone.fr/ --max-time 10 || echo "000")
             if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "301" ] || [ "$HTTP_CODE" = "302" ]; then
               echo "✅ Site opérationnel (HTTP $HTTP_CODE)"
               exit 0
