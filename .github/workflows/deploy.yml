@@ -4,41 +4,136 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
-# Permissions nécessaires pour créer des releases et tags
 permissions:
   contents: write
 
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
 jobs:
-  deploy:
+  # ═══════════════════════════════════════════
+  # 1. VALIDATION PRÉ-DÉPLOIEMENT
+  # ═══════════════════════════════════════════
+  validate:
+    name: Validate Code
     runs-on: ubuntu-latest
     outputs:
       commit_sha: ${{ steps.vars.outputs.sha }}
       commit_msg: ${{ steps.vars.outputs.msg }}
-    
+      version: ${{ steps.version.outputs.version }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Nécessaire pour l'historique des commits
+          fetch-depth: 0
 
-      - name: Set Output Variables
+      - name: Set variables
         id: vars
         run: |
           echo "sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-          echo "msg=$(git log -1 --pretty=%s)" >> $GITHUB_OUTPUT
+          echo "msg=$(git log -1 --pretty=%s | tr -d '\n')" >> $GITHUB_OUTPUT
+
+      - name: Calculate semantic version
+        id: version
+        run: |
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          LAST_TAG=${LAST_TAG#v}
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$LAST_TAG"
+          
+          COMMIT_MSG="${{ steps.vars.outputs.msg }}"
+          if [[ "$COMMIT_MSG" == *"BREAKING CHANGE"* ]] || [[ "$COMMIT_MSG" == *"!:"* ]]; then
+            MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0
+            BUMP="major"
+          elif [[ "$COMMIT_MSG" == *"feat:"* ]] || [[ "$COMMIT_MSG" == *"feat("* ]]; then
+            MINOR=$((MINOR + 1)); PATCH=0
+            BUMP="minor"
+          else
+            PATCH=$((PATCH + 1))
+            BUMP="patch"
+          fi
+          
+          VERSION="v${MAJOR}.${MINOR}.${PATCH}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "📦 Version: $VERSION (bump: $BUMP)"
+
+      - name: PHP Syntax Check
+        run: |
+          echo "🔍 Vérification syntaxique PHP..."
+          ERRORS=0
+          while IFS= read -r -d '' file; do
+            if ! php -l "$file" > /dev/null 2>&1; then
+              echo "❌ Erreur syntaxe: $file"
+              php -l "$file"
+              ERRORS=$((ERRORS + 1))
+            fi
+          done < <(find . -name "*.php" -not -path "./vendor/*" -not -path "./node_modules/*" -print0)
+          
+          if [ $ERRORS -gt 0 ]; then
+            echo "::error::$ERRORS fichier(s) PHP avec erreurs de syntaxe"
+            exit 1
+          fi
+          echo "✅ Tous les fichiers PHP sont valides"
+
+  # ═══════════════════════════════════════════
+  # 2. DÉPLOIEMENT
+  # ═══════════════════════════════════════════
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: validate
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Install rsync & sshpass
-        run: sudo apt-get install -y rsync sshpass
+        run: sudo apt-get update -qq && sudo apt-get install -y rsync sshpass
+
+      - name: Create backup on remote
+        env:
+          SSH_PASS: ${{ secrets.SSH_PASSWORD }}
+        run: |
+          sshpass -p "$SSH_PASS" ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 root@5.48.143.126 << 'REMOTE'
+          set -e
+          BACKUP_DIR="/var/backups/orinheberge"
+          TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+          mkdir -p "$BACKUP_DIR"
+          
+          if [ -d /var/www/orinheberge ] || [ -L /var/www/orinheberge ]; then
+            tar -czf "$BACKUP_DIR/backup_${TIMESTAMP}.tar.gz" \
+              --exclude='.git' \
+              --exclude='node_modules' \
+              --exclude='vendor' \
+              -C /var/www orinheberge 2>/dev/null || true
+            echo "✅ Backup créé: backup_${TIMESTAMP}.tar.gz"
+          else
+            echo "⚠️ Aucun dossier existant, backup ignoré"
+          fi
+          
+          # Garder seulement 5 derniers backups
+          cd "$BACKUP_DIR"
+          ls -t backup_*.tar.gz 2>/dev/null | tail -n +6 | xargs -r rm --
+          REMOTE
 
       - name: Deploy via rsync
         env:
           SSH_PASS: ${{ secrets.SSH_PASSWORD }}
         run: |
+          RELEASE_DIR="/var/www/releases/release_$(date +%Y%m%d_%H%M%S)"
+          echo "RELEASE_DIR=$RELEASE_DIR" >> $GITHUB_ENV
+          
+          sshpass -p "$SSH_PASS" ssh -o StrictHostKeyChecking=no root@5.48.143.126 "mkdir -p $RELEASE_DIR"
+          
           sshpass -p "$SSH_PASS" rsync -avz --delete \
             --exclude='.git/' \
             --exclude='.env' \
+            --exclude='.env.*' \
             --exclude='node_modules/' \
+            --exclude='vendor/' \
             --exclude='*.log' \
             --exclude='inc/uploads/avatars/*.webp' \
             --exclude='inc/uploads/avatars/*.png' \
@@ -46,90 +141,169 @@ jobs:
             --exclude='api/reviews/*.json' \
             -e "ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10" \
             ./ \
-            root@5.48.143.126:/var/www/orinheberge/
+            root@5.48.143.126:$RELEASE_DIR/
 
-      - name: Post-deploy (composer, permissions, reload)
+      - name: Post-deploy (composer, permissions, switch, reload)
         env:
           SSH_PASS: ${{ secrets.SSH_PASSWORD }}
+          VERSION: ${{ needs.validate.outputs.version }}
+          SHA: ${{ needs.validate.outputs.commit_sha }}
         run: |
           sshpass -p "$SSH_PASS" ssh -o StrictHostKeyChecking=no \
-            root@5.48.143.126 bash -s <<'REMOTE'
-          cd /var/www/orinheberge
-          composer install --no-dev --optimize-autoloader --no-interaction
-          composer config platform-check false
-          chown -R www-data:www-data /var/www/orinheberge
-          chmod -R 755 /var/www/orinheberge
-          chmod -R 775 /var/www/orinheberge/inc/uploads/
-          for svc in nginx apache2 php8.4-fpm php8.3-fpm php8.2-fpm php8.1-fpm php-fpm; do
-              systemctl is-active --quiet "$svc" 2>/dev/null && systemctl reload "$svc" && echo "✅ $svc rechargé" || true
+            root@5.48.143.126 bash -s <<REMOTE
+          set -e
+          RELEASE_DIR="$RELEASE_DIR"
+          LIVE_DIR="/var/www/orinheberge"
+          
+          cd "\$RELEASE_DIR"
+          
+          echo "📦 Installation dépendances..."
+          if [ -f composer.json ]; then
+            composer install --no-dev --optimize-autoloader --no-interaction --quiet
+            composer config platform-check false 2>/dev/null || true
+          fi
+          
+          # Préserver fichiers persistants depuis l'ancienne version
+          OLD_DIR=""
+          if [ -L "\$LIVE_DIR" ]; then
+            OLD_DIR=\$(readlink "\$LIVE_DIR")
+          elif [ -d "\$LIVE_DIR" ]; then
+            OLD_DIR="\$LIVE_DIR"
+          fi
+          
+          if [ -n "\$OLD_DIR" ] && [ -d "\$OLD_DIR" ]; then
+            echo "🔒 Préservation données depuis \$OLD_DIR..."
+            [ -f "\$OLD_DIR/.env" ] && cp "\$OLD_DIR/.env" .env
+            [ -d "\$OLD_DIR/inc/uploads/avatars" ] && rsync -a "\$OLD_DIR/inc/uploads/avatars/" inc/uploads/avatars/ 2>/dev/null || true
+            [ -d "\$OLD_DIR/api/reviews" ] && rsync -a "\$OLD_DIR/api/reviews/" api/reviews/ 2>/dev/null || true
+          fi
+          
+          # Fichier de version
+          cat > version.json <<EOF
+          {
+            "version": "$VERSION",
+            "commit": "$SHA",
+            "deployed_at": "$(date -Iseconds)"
+          }
+          EOF
+          
+          # Permissions
+          chown -R www-data:www-data "\$RELEASE_DIR"
+          chmod -R 755 "\$RELEASE_DIR"
+          chmod -R 775 "\$RELEASE_DIR/inc/uploads/" 2>/dev/null || true
+          
+          # Switch atomique via symlink
+          echo "🔄 Switch atomique..."
+          if [ -L "\$LIVE_DIR" ]; then
+            ln -sfn "\$RELEASE_DIR" "\${LIVE_DIR}.new"
+            mv -T "\${LIVE_DIR}.new" "\$LIVE_DIR"
+          elif [ -d "\$LIVE_DIR" ]; then
+            BACKUP_OLD="/var/www/orinheberge_legacy_\$(date +%Y%m%d_%H%M%S)"
+            mv "\$LIVE_DIR" "\$BACKUP_OLD"
+            ln -sfn "\$RELEASE_DIR" "\$LIVE_DIR"
+            echo "📁 Legacy sauvegardé: \$BACKUP_OLD"
+          else
+            ln -sfn "\$RELEASE_DIR" "\$LIVE_DIR"
+          fi
+          
+          # Recharger services
+          for svc in php8.4-fpm php8.3-fpm php8.2-fpm nginx apache2; do
+              systemctl is-active --quiet "\$svc" 2>/dev/null && systemctl reload "\$svc" && echo "✅ \$svc rechargé" || true
           done
-          exit 0
+          
+          # Cleanup anciens releases (garder 5 derniers)
+          cd /var/www/releases
+          ls -dt release_* 2>/dev/null | tail -n +6 | xargs -r rm -rf --
+          
+          echo "✅ Déploiement terminé : $VERSION ($SHA)"
           REMOTE
 
-  release_and_notify:
-    needs: deploy
+      - name: Health check
+        run: |
+          echo "🏥 Vérification du site..."
+          MAX_ATTEMPTS=8
+          ATTEMPT=0
+          
+          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://orinstone.deepstone.fr/ --max-time 10 || echo "000")
+            if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "301" ] || [ "$HTTP_CODE" = "302" ]; then
+              echo "✅ Site opérationnel (HTTP $HTTP_CODE)"
+              exit 0
+            fi
+            ATTEMPT=$((ATTEMPT + 1))
+            echo "⏳ Tentative $ATTEMPT/$MAX_ATTEMPTS (HTTP $HTTP_CODE)..."
+            sleep 3
+          done
+          
+          echo "::error::Health check échoué après $MAX_ATTEMPTS tentatives"
+          exit 1
+
+  # ═══════════════════════════════════════════
+  # 3. CREATION DE RELEASE GITHUB
+  # ═══════════════════════════════════════════
+  release:
+    name: Create GitHub Release
     runs-on: ubuntu-latest
+    needs: [validate, deploy]
+    if: success()
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Bump version and create Tag
-        id: tag_version
-        uses: mathieudutour/github-tag-action@v6.1
-        with:
-          github_token: ${{ secrets.GH_TOKEN }}
-          # Optionnel: préfixe du tag, ex: v
-          tag_prefix: "v"
-          # Utilise la convention semver par défaut, ou custom_release_rules si besoin
+      - name: Generate changelog
+        run: |
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || git rev-list --max-parents=0 HEAD)
+          
+          cat > changelog.md <<EOF
+          ## 🚀 Version ${{ needs.validate.outputs.version }}
+          
+          **Commit:** \`${{ needs.validate.outputs.commit_sha }}\`
+          **Message:** ${{ needs.validate.outputs.commit_msg }}
+          **Date:** $(date -u +"%Y-%m-%d %H:%M UTC")
+          
+          ### 📋 Changements depuis le dernier tag
+          
+          \`\`\`
+          $(git log ${LAST_TAG}..HEAD --pretty=format:"• %s" --no-merges)
+          \`\`\`
+          EOF
+          
+          cat changelog.md
 
       - name: Create GitHub Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.tag_version.outputs.new_tag }}
-          release_name: Release ${{ steps.tag_version.outputs.new_tag }}
-          body: |
-            ## 🚀 Déploiement automatique
-            
-            **Commit:** ${{ needs.deploy.outputs.commit_sha }}
-            **Message:** ${{ needs.deploy.outputs.commit_msg }}
-            
-            ### Changelog récent :
-            $(git log ${{ steps.tag_version.outputs.previous_tag }}..HEAD --pretty=format:"- %s (%h)" --reverse)
+          tag_name: ${{ needs.validate.outputs.version }}
+          name: Release ${{ needs.validate.outputs.version }}
+          body_path: changelog.md
           draft: false
           prerelease: false
-
-      - name: Notify Discord
         env:
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-          RELEASE_TAG: ${{ steps.tag_version.outputs.new_tag }}
-          RELEASE_URL: ${{ steps.create_release.outputs.html_url }}
-          COMMIT_MSG: ${{ needs.deploy.outputs.commit_msg }}
-        run: |
-          # Construction du payload JSON pour Discord
-          PAYLOAD=$(jq -n \
-            --arg title "🚀 Déploiement Production Réussi" \
-            --arg desc "Version **${RELEASE_TAG}** déployée avec succès." \
-            --arg url "${RELEASE_URL}" \
-            --arg commit "${COMMIT_MSG}" \
-            '{
-              embeds: [{
-                title: $title,
-                description: $desc,
-                url: $url,
-                color: 3066993,
-                fields: [
-                  { name: "Dernier Commit", value: $commit },
-                  { name: "Lien Release", value: $url }
-                ],
-                footer: { text: "GitHub Actions Auto-Deploy" },
-                timestamp: now
-              }]
-            }')
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-          # Envoi via curl
-          curl -H "Content-Type: application/json" -X POST -d "$PAYLOAD" "$DISCORD_WEBHOOK"
+  # ═══════════════════════════════════════════
+  # 4. NOTIFICATION DISCORD
+  # ═══════════════════════════════════════════
+  notify:
+    name: Notify Discord
+    runs-on: ubuntu-latest
+    needs: [validate, deploy, release]
+    if: always()
+
+    steps:
+      - name: Discord Notification
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          status: ${{ needs.deploy.result }}
+          title: "${{ needs.deploy.result == 'success' && '✅ Déploiement réussi' || '❌ Échec déploiement' }}"
+          description: |
+            **Version:** ${{ needs.validate.outputs.version }}
+            **Commit:** `${{ needs.validate.outputs.commit_sha }}`
+            **Message:** ${{ needs.validate.outputs.commit_msg }}
+            **Acteur:** ${{ github.actor }}
+          color: ${{ needs.deploy.result == 'success' && 2263842 || 15548997 }}
+          url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
