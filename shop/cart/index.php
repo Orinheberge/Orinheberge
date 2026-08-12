@@ -3,6 +3,8 @@
  * /shop/cart/ — Panier utilisateur
  * Gestion des offres sélectionnées, codes promo et redirection vers le tunnel de commande.
  */
+ob_start();
+
 session_start();
 require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/lang.php';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/db.php';
