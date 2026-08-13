@@ -1,6 +1,6 @@
 /**
  * ═══════════════════════════════════════════════════════════
- * OrinHeberge — Chat Communautaire (v4 finale)
+ * OrinHeberge — Chat Communautaire (v5 avec Typing & Mentions)
  * ═══════════════════════════════════════════════════════════
  * Fonctionnalités :
  * - Messages temps réel (polling 2s)
@@ -11,6 +11,8 @@
  * - Utilisateurs en ligne (polling 30s)
  * - Multi-canaux
  * - Anti-spam (1 msg/seconde)
+ * - ✨ Indicateur de frappe (typing)
+ * - ✨ Système de mentions (@username)
  * ═══════════════════════════════════════════════════════════
  */
 
@@ -27,6 +29,10 @@ const ChatApp = {
     customEmojis: [],
     isInitialized: false,
     activeEmojiCategory: 'smileys',
+    typingTimeout: null,
+    typingCheckInterval: null,
+    isTyping: false,
+    mentionDropdownVisible: false,
     
     // ═══════════════════════════════════════════
     // 📍 CHEMINS API
@@ -34,13 +40,14 @@ const ChatApp = {
     API: {
         SEND:    '/api/message/send_message.php',
         GET:     '/api/message/get_messages.php',
-        
         EMOJIS:  '/api/message/get_emojis.php',
         ONLINE:  '/api/message/get_online.php',
         DELETE:  '/api/message/delete_message.php',
         REACT:   '/api/message/react_message.php',
         PIN:     '/api/message/pin_message.php',
-        PINNED:  '/api/message/get_pinned_messages.php'
+        PINNED:  '/api/message/get_pinned_messages.php',
+        TYPING:  '/api/message/typing.php',
+        TYPING_USERS: '/api/message/get_typing.php'
     },
 
     // ═══════════════════════════════════════════
@@ -265,6 +272,7 @@ const ChatApp = {
             await this.loadPinnedMessages();
             this.startPolling();
             this.startOnlinePolling();
+            this.startTypingCheck();
             this.bindEvents();
             this.renderEmojiPicker();
             this.isInitialized = true;
@@ -291,7 +299,6 @@ const ChatApp = {
             if (data.success) {
                 this.renderOnlineUsers(data.users);
                 
-                // Mettre à jour le compteur
                 const countEl = document.getElementById('onlineCount');
                 if (countEl) countEl.textContent = data.count || 0;
                 
@@ -371,6 +378,204 @@ const ChatApp = {
             clearInterval(this.onlineInterval);
             this.onlineInterval = null;
         }
+    },
+
+    // ═══════════════════════════════════════════
+    // ⌨️ SYSTÈME DE TYPING (EN TRAIN D'ÉCRIRE)
+    // ═══════════════════════════════════════════
+    async sendTypingStatus() {
+        try {
+            await fetch(this.API.TYPING, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    channel: this.currentChannel,
+                    is_typing: true
+                })
+            });
+        } catch (error) {
+            console.warn('[Chat] ⚠️ Erreur envoi typing:', error.message);
+        }
+    },
+
+    async checkTypingUsers() {
+        try {
+            const response = await fetch(`${this.API.TYPING_USERS}?channel=${this.currentChannel}`);
+            
+            if (!response.ok) return;
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                this.renderTypingIndicator(data.users);
+            }
+        } catch (error) {
+            console.warn('[Chat] ⚠️ Erreur vérification typing:', error.message);
+        }
+    },
+
+    renderTypingIndicator(users) {
+        const indicator = document.getElementById('typingIndicator');
+        if (!indicator) return;
+        
+        if (!users || users.length === 0) {
+            indicator.classList.add('hidden');
+            return;
+        }
+        
+        const usernames = users.map(u => this.escapeHtml(u.username));
+        let text = '';
+        
+        if (usernames.length === 1) {
+            text = `${usernames[0]} est en train d'écrire...`;
+        } else if (usernames.length === 2) {
+            text = `${usernames[0]} et ${usernames[1]} écrivent...`;
+        } else if (usernames.length === 3) {
+            text = `${usernames[0]}, ${usernames[1]} et ${usernames[2]} écrivent...`;
+        } else {
+            text = 'Plusieurs personnes écrivent...';
+        }
+        
+        indicator.innerHTML = `
+            <div class="flex items-center gap-2 text-xs text-gray-400 italic">
+                <div class="flex gap-0.5">
+                    <div class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0ms"></div>
+                    <div class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 150ms"></div>
+                    <div class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 300ms"></div>
+                </div>
+                <span>${text}</span>
+            </div>
+        `;
+        indicator.classList.remove('hidden');
+    },
+
+    startTypingCheck() {
+        this.typingCheckInterval = setInterval(() => this.checkTypingUsers(), 3000);
+    },
+
+    stopTypingCheck() {
+        if (this.typingCheckInterval) {
+            clearInterval(this.typingCheckInterval);
+            this.typingCheckInterval = null;
+        }
+    },
+
+    // ═══════════════════════════════════════════
+    // 💬 MENTIONS (@username)
+    // ═══════════════════════════════════════════
+    handleMentionInput(input) {
+        const value = input.value;
+        const cursorPos = input.selectionStart;
+        
+        // Trouver le mot en cours avant le curseur
+        const textBeforeCursor = value.substring(0, cursorPos);
+        const match = textBeforeCursor.match(/@(\w*)$/);
+        
+        if (match) {
+            const query = match[1];
+            this.showMentionDropdown(query, input);
+        } else {
+            this.hideMentionDropdown();
+        }
+    },
+
+    showMentionDropdown(query, input) {
+        const dropdown = document.getElementById('mentionDropdown');
+        if (!dropdown) return;
+        
+        // Récupérer les utilisateurs en ligne
+        fetch(this.API.ONLINE)
+            .then(r => r.json())
+            .then(data => {
+                if (!data.success || !data.users) {
+                    this.hideMentionDropdown();
+                    return;
+                }
+                
+                const queryLower = query.toLowerCase();
+                const filteredUsers = data.users.filter(u => 
+                    u.username.toLowerCase().includes(queryLower)
+                );
+                
+                if (filteredUsers.length === 0) {
+                    this.hideMentionDropdown();
+                    return;
+                }
+                
+                dropdown.innerHTML = filteredUsers.slice(0, 5).map(user => `
+                    <button type="button" 
+                            class="mention-option w-full text-left px-3 py-2 hover:bg-white/10 transition flex items-center gap-2"
+                            data-username="${this.escapeHtml(user.username)}">
+                        <img src="${user.avatar ? '/' + user.avatar : 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.username) + '&size=24'}" 
+                             class="w-6 h-6 rounded-full"
+                             onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(user.username)}&size=24'">
+                        <span class="text-sm text-white">${this.escapeHtml(user.username)}</span>
+                    </button>
+                `).join('');
+                
+                dropdown.classList.remove('hidden');
+                
+                // Ajouter les event listeners
+                dropdown.querySelectorAll('.mention-option').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        this.insertMention(btn.dataset.username, input);
+                    });
+                });
+            })
+            .catch(() => this.hideMentionDropdown());
+    },
+
+    hideMentionDropdown() {
+        const dropdown = document.getElementById('mentionDropdown');
+        if (dropdown) {
+            dropdown.classList.add('hidden');
+        }
+    },
+
+    insertMention(username, input) {
+        const value = input.value;
+        const cursorPos = input.selectionStart;
+        const textBeforeCursor = value.substring(0, cursorPos);
+        const match = textBeforeCursor.match(/@(\w*)$/);
+        
+        if (match) {
+            const startPos = cursorPos - match[0].length;
+            const textAfterCursor = value.substring(cursorPos);
+            
+            input.value = value.substring(0, startPos) + `@${username} ` + textAfterCursor;
+            input.focus();
+            input.selectionStart = input.selectionEnd = startPos + username.length + 2;
+        }
+        
+        this.hideMentionDropdown();
+    },
+
+    parseMessage(text) {
+        let html = this.escapeHtml(text);
+        
+        // Emojis custom
+        this.customEmojis.forEach(emoji => {
+            const regex = new RegExp(emoji.shortcode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+            html = html.replace(regex, `<img src="${emoji.url}" alt="${emoji.name}" class="custom-emoji" title=":${emoji.name}:">`);
+        });
+        
+        // Mentions (@username)
+        html = html.replace(
+            /@(\w+)/g,
+            '<span class="mention text-sky-400 font-semibold bg-sky-500/10 px-1 rounded cursor-pointer hover:bg-sky-500/20 transition" title="Mention">@$1</span>'
+        );
+        
+        // URLs
+        html = html.replace(
+            /(https?:\/\/[^\s]+)/g,
+            '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-sky-400 hover:underline">$1</a>'
+        );
+        
+        // Sauts de ligne
+        html = html.replace(/\n/g, '<br>');
+        
+        return html;
     },
 
     // ═══════════════════════════════════════════
@@ -522,27 +727,6 @@ const ChatApp = {
         });
     },
 
-    parseMessage(text) {
-        let html = this.escapeHtml(text);
-        
-        // Emojis custom
-        this.customEmojis.forEach(emoji => {
-            const regex = new RegExp(emoji.shortcode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
-            html = html.replace(regex, `<img src="${emoji.url}" alt="${emoji.name}" class="custom-emoji" title=":${emoji.name}:">`);
-        });
-        
-        // URLs
-        html = html.replace(
-            /(https?:\/\/[^\s]+)/g,
-            '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-sky-400 hover:underline">$1</a>'
-        );
-        
-        // Sauts de ligne
-        html = html.replace(/\n/g, '<br>');
-        
-        return html;
-    },
-
     escapeHtml(text) {
         const div = document.createElement('div');
         div.textContent = text;
@@ -679,7 +863,6 @@ const ChatApp = {
     // 🎯 PICKER DE RÉACTION (TOUS LES EMOJIS)
     // ═══════════════════════════════════════════
     showReactionPicker(messageId, anchorEl) {
-        // Fermer s'il existe déjà
         let existing = document.getElementById('reactionPickerModal');
         if (existing) existing.remove();
         
@@ -1018,11 +1201,33 @@ const ChatApp = {
             await this.sendMessage();
         });
 
-        document.getElementById('messageInput').addEventListener('keydown', (e) => {
+        const messageInput = document.getElementById('messageInput');
+        
+        messageInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 this.sendMessage();
             }
+        });
+
+        // Typing et mentions
+        messageInput.addEventListener('input', (e) => {
+            // Gérer le typing
+            if (!this.isTyping) {
+                this.isTyping = true;
+                this.sendTypingStatus();
+            }
+            
+            if (this.typingTimeout) {
+                clearTimeout(this.typingTimeout);
+            }
+            
+            this.typingTimeout = setTimeout(() => {
+                this.isTyping = false;
+            }, 3000);
+            
+            // Gérer les mentions
+            this.handleMentionInput(e.target);
         });
 
         document.querySelectorAll('.channel-btn').forEach(btn => {
@@ -1048,6 +1253,14 @@ const ChatApp = {
                 !e.target.closest('#emojiPickerBtn') &&
                 !e.target.closest('#emojiBtnInline')) {
                 picker.classList.add('hidden');
+            }
+            
+            // Fermer le dropdown de mention si on clique ailleurs
+            const mentionDropdown = document.getElementById('mentionDropdown');
+            if (mentionDropdown && !mentionDropdown.classList.contains('hidden') &&
+                !mentionDropdown.contains(e.target) &&
+                e.target !== messageInput) {
+                this.hideMentionDropdown();
             }
         });
 
@@ -1109,6 +1322,12 @@ const ChatApp = {
                 const container = document.getElementById('messagesContainer');
                 container.scrollTop = container.scrollHeight;
                 console.log('[Chat] ✅ Message envoyé');
+                
+                // Réinitialiser le typing
+                this.isTyping = false;
+                if (this.typingTimeout) {
+                    clearTimeout(this.typingTimeout);
+                }
             } else {
                 console.error('[Chat] ❌ Erreur API:', data.error);
                 alert(data.error || 'Erreur lors de l\'envoi');
@@ -1299,4 +1518,5 @@ if (document.readyState === 'loading') {
 window.addEventListener('beforeunload', () => {
     ChatApp.stopPolling();
     ChatApp.stopOnlinePolling();
+    ChatApp.stopTypingCheck();
 });

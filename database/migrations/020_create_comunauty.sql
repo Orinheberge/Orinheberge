@@ -132,3 +132,29 @@ CREATE TABLE IF NOT EXISTS `pinned_messages` (
     UNIQUE INDEX `idx_unique_pin` (`message_id`),
     INDEX `idx_channel` (`channel`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- Script d'installation complet
+-- ============================================
+
+-- Table pour le statut de frappe
+CREATE TABLE IF NOT EXISTS `chat_typing` (
+    `user_id` INT UNSIGNED NOT NULL,
+    `channel` VARCHAR(50) NOT NULL DEFAULT 'general',
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`user_id`, `channel`),
+    INDEX `idx_channel_updated` (`channel`, `updated_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+-- Procédure stockée pour nettoyer les anciens statuts (optionnel)
+DELIMITER //
+CREATE PROCEDURE IF NOT EXISTS cleanup_typing()
+BEGIN
+    DELETE FROM chat_typing 
+    WHERE updated_at < DATE_SUB(NOW(), INTERVAL 10 SECOND);
+END //
+DELIMITER ;
+
+-- Événement pour nettoyer automatiquement toutes les 30 secondes (optionnel)
+-- CREATE EVENT IF NOT EXISTS evt_cleanup_typing
+-- ON SCHEDULE EVERY 30 SECOND
+-- DO CALL cleanup_typing();
