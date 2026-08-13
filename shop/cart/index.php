@@ -262,27 +262,80 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'final_price'    => $bundle_subtotal,
                     'label'          => null,
                 ];
+            $bundle_total = (float)$checkout_prices['final_price'];
 
-            // Référence lisible pour le récap / PayPal.me, générée une seule fois.
-            $bundle_ref = 'CMD-' . strtoupper(bin2hex(random_bytes(4)));
-
+            // On garde le détail par article en session, uniquement pour
+            // l'affichage du récap ligne par ligne sur payment-choice.
+            // La source de vérité pour le PAIEMENT reste désormais la table
+            // `orders` (créée juste en dessous), car c'est ce que lit
+            // /shop/order/checkout/.
             $_SESSION['checkout_bundle'] = [
-                'ref'         => $bundle_ref,
                 'items'       => $bundle_items,
                 'promo_code'  => $checkout_applied_promo ? $checkout_promo_code : null,
                 'promo_label' => $checkout_prices['label'],
                 'subtotal'    => $bundle_subtotal,
                 'discount'    => $checkout_prices['reduction'],
-                'total'       => $checkout_prices['final_price'],
+                'total'       => $bundle_total,
                 'created_at'  => time(),
             ];
 
-            $target_url = '/shop/order/payment-choice/?plan=' . urlencode(implode(',', $bundle_slugs));
+            // ─── Nom de service lisible pour la ligne de commande ───
+            $first_name = $bundle_items[0]['product']['name'] ?? 'Produit';
+            $extra_count = count($bundle_items) - 1;
+            $service_name = $extra_count > 0
+                ? $first_name . ' + ' . $extra_count . ' autre' . ($extra_count > 1 ? 's' : '') . ' article' . ($extra_count > 1 ? 's' : '')
+                : $first_name;
 
-            // Log de debug pour tracer la redirection
-            error_log('[Cart] Checkout redirect → ' . $target_url . ' (bundle: ' . implode(',', $bundle_slugs) . ', ref: ' . $bundle_ref . ')');
+            // ⚠️ LIMITATION CONNUE : la table `orders` (telle qu'on la voit
+            // utilisée dans payment-choice.php / checkout/) ne semble avoir
+            // qu'un seul `product_id` par ligne. Un panier multi-produits ne
+            // peut donc pas être représenté fidèlement sans une table
+            // `order_items` séparée. En attendant, on rattache la commande
+            // au PREMIER produit du panier (product_id), le prix total réel
+            // du panier étant lui bien stocké dans `renewal_price` /
+            // `original_price`. Le récap affiché à l'utilisateur reste
+            // correct (basé sur $_SESSION['checkout_bundle']['items']),
+            // seule la ligne `product_id` en base est simplifiée.
+            $first_product_id = $bundle_items[0]['product']['id'] ?? null;
 
-            safeRedirect($target_url);
+            $order_ref = 'CMD-' . strtoupper(bin2hex(random_bytes(4)));
+
+            try {
+                $insert = $pdo->prepare("
+                    INSERT INTO orders
+                        (order_id, user_id, product_id, service_name, renewal_price, original_price, coupon_code, type, status)
+                    VALUES
+                        (:order_id, :user_id, :product_id, :service_name, :renewal_price, :original_price, :coupon_code, 'new', 'pending')
+                ");
+                $insert->execute([
+                    ':order_id'      => $order_ref,
+                    ':user_id'       => $_SESSION['user_id'],
+                    ':product_id'    => $first_product_id,
+                    ':service_name'  => $service_name,
+                    ':renewal_price' => $bundle_total,
+                    ':original_price'=> $bundle_subtotal,
+                    ':coupon_code'   => $checkout_applied_promo ? $checkout_promo_code : null,
+                ]);
+
+                $new_order_row_id = (int)$pdo->lastInsertId();
+
+                if ($new_order_row_id <= 0) {
+                    throw new RuntimeException('Insertion de la commande sans ID retourné.');
+                }
+
+                $_SESSION['current_pending_order_id'] = $new_order_row_id;
+
+                $target_url = '/shop/order/payment-choice/?id=' . $new_order_row_id;
+
+                error_log('[Cart] Checkout redirect → ' . $target_url . ' (order_id: ' . $order_ref . ', bundle: ' . implode(',', $bundle_slugs) . ')');
+
+                safeRedirect($target_url);
+
+            } catch (Throwable $e) {
+                error_log('[Cart] Échec création commande: ' . $e->getMessage());
+                $_SESSION['checkout_error'] = 'La création de votre commande a échoué. Veuillez réessayer ou contacter le support.';
+                safeRedirect('/shop/cart/');
+            }
 
         } catch (Throwable $e) {
             error_log('Cart checkout error: ' . $e->getMessage());
