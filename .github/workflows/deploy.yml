@@ -301,6 +301,7 @@ jobs:
           status: ${{ needs.deploy.result }}
           title: "${{ needs.deploy.result == 'success' && '✅ Déploiement réussi' || '❌ Échec déploiement' }}"
           description: |
+            <@&1521937325595037906>
             **Version:** ${{ needs.validate.outputs.version }}
             **Commit:** `${{ needs.validate.outputs.commit_sha }}`
             **Message:** ${{ needs.validate.outputs.commit_msg }}
