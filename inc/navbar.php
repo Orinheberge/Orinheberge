@@ -1,4 +1,3 @@
-
 <?php
 /**
  * OrinHeberge — Navbar partagée améliorée (v4 avec Community)
@@ -209,6 +208,23 @@ if (isset($_SESSION['user_id']) && isset($pdo)) {
                                 <i class="fas fa-user-tie"></i> <?php echo t('nav.administration'); ?>
                             </a>
                         <?php endif; ?>
+                        
+                        <hr class="my-2 border-white/10">
+                        
+                        <!-- Liens externes -->
+                        <a href="https://panel.orinstone.deepstone.fr" target="_blank" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition">
+                            <i class="fas fa-cogs w-4"></i> <?php echo t('nav.panel', 'Panel'); ?>
+                            <i class="fas fa-external-link-alt text-[8px] ml-auto opacity-50"></i>
+                        </a>
+                        <a href="https://php.orinstone.deepstone.fr" target="_blank" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition">
+                            <i class="fas fa-database w-4"></i> <?php echo t('nav.phpmyadmin', 'phpMyAdmin'); ?>
+                            <i class="fas fa-external-link-alt text-[8px] ml-auto opacity-50"></i>
+                        </a>
+                        <a href="https://www.orinstudioia.deepstone.fr" target="_blank" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition">
+                            <i class="fas fa-robot w-4"></i> OrinStudioIA
+                            <i class="fas fa-external-link-alt text-[8px] ml-auto opacity-50"></i>
+                        </a>
+                        
                         <hr class="my-2 border-white/10">
                         <a href="/logout/" class="flex items-center gap-2 px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300">
                             <i class="fas fa-sign-out-alt w-4"></i> <?php echo t('nav.logout'); ?>
@@ -319,6 +335,33 @@ if (isset($_SESSION['user_id']) && isset($pdo)) {
                 <a href="/client/billing/" class="block py-3.5 px-4 rounded-xl flex items-center gap-3 text-base font-medium bg-white/[0.02] border border-white/5 text-gray-300 hover:bg-white/5 transition-all">
                     <i class="fas fa-file-invoice-dollar w-6 text-center text-lg"></i> <?php echo t('nav.billing'); ?>
                 </a>
+                
+                <!-- Liens externes pour mobile -->
+                <div class="bg-white/[0.02] border border-white/5 rounded-xl overflow-hidden mt-2">
+                    <button type="button" id="mobileExternalLinksBtn" class="w-full py-3.5 px-4 flex items-center justify-between text-base font-medium text-gray-300 hover:bg-white/5 transition cursor-pointer" aria-expanded="false">
+                        <span class="flex items-center gap-3">
+                            <i class="fas fa-external-link-alt w-6 text-center text-lg text-sky-400"></i> Liens externes
+                        </span>
+                        <i class="fas fa-chevron-down text-sm transition-transform duration-300" id="externalLinksIcon"></i>
+                    </button>
+                    <div id="mobileExternalLinks" class="transition-all duration-300 ease-in-out overflow-hidden" style="max-height: 0px;">
+                        <div class="border-t border-white/5 bg-black/30 py-2 space-y-1">
+                            <a href="https://panel.orinstone.deepstone.fr" target="_blank" class="block py-3 px-4 pl-14 text-sm text-gray-400 hover:bg-white/5 hover:text-white transition-all">
+                                <i class="fas fa-cogs w-5 mr-2 text-sky-400/70"></i> Panel
+                                <i class="fas fa-external-link-alt text-[8px] ml-1 opacity-50"></i>
+                            </a>
+                            <a href="https://php.orinstone.deepstone.fr" target="_blank" class="block py-3 px-4 pl-14 text-sm text-gray-400 hover:bg-white/5 hover:text-white transition-all">
+                                <i class="fas fa-database w-5 mr-2 text-sky-400/70"></i> phpMyAdmin
+                                <i class="fas fa-external-link-alt text-[8px] ml-1 opacity-50"></i>
+                            </a>
+                            <a href="https://www.orinstudioia.deepstone.fr" target="_blank" class="block py-3 px-4 pl-14 text-sm text-gray-400 hover:bg-white/5 hover:text-white transition-all">
+                                <i class="fas fa-robot w-5 mr-2 text-sky-400/70"></i> OrinStudioIA
+                                <i class="fas fa-external-link-alt text-[8px] ml-1 opacity-50"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
                 <?php if (!empty($_SESSION['is_admin'])): ?>
                     <a href="/admin/" class="block py-3.5 px-4 rounded-xl flex items-center gap-3 text-base font-medium bg-amber-600/10 border border-amber-500/30 text-amber-400 hover:bg-amber-600/20 transition-all">
                         <i class="fas fa-user-tie w-6 text-center text-lg"></i> <?php echo t('nav.administration'); ?>
