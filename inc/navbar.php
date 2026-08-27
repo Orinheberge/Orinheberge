@@ -221,7 +221,7 @@ if (isset($_SESSION['user_id']) && isset($pdo)) {
                             <i class="fas fa-external-link-alt text-[8px] ml-auto opacity-50"></i>
                         </a>
                            <?php if (!empty($_SESSION['is_admin'])): ?>
-                            <a href="https://portainer.deepstone.fr" target="_blank" class="block py-3.5 px-4 rounded-xl flex items-center gap-3 text-base font-medium bg-amber-600/10 border border-amber-500/30 text-amber-400 hover:bg-amber-600/20 transition-all">
+                            <a href="https://portainer.deepstone.fr" target="_blank" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition">
                                 <i class="fab fa-docker w-6 text-center text-lg"></i> portainer
                             </a>
                     <?php endif; ?>
@@ -356,7 +356,7 @@ if (isset($_SESSION['user_id']) && isset($pdo)) {
                                 <i class="fas fa-external-link-alt text-[8px] ml-1 opacity-50"></i>
                             </a>
                             <?php if (!empty($_SESSION['is_admin'])): ?>
-                            <a href="https://portainer.deepstone.fr" target="_blank" class="block py-3.5 px-4 rounded-xl flex items-center gap-3 text-base font-medium bg-amber-600/10 border border-amber-500/30 text-amber-400 hover:bg-amber-600/20 transition-all">
+                            <a href="https://portainer.deepstone.fr" target="_blank" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition">
                                 <i class="fab fa-docker w-6 text-center text-lg"></i> portainer
                             </a>
                     <?php endif; ?>
