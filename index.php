@@ -1,11 +1,6 @@
 <?php
 session_start();
 require_once __DIR__ . '/inc/lang.php';
-$page_title = "Accueil - " . t('app.name');
-$body_class = "text-gray-200 font-sans min-h-screen flex flex-col antialiased";
-
-// 2. Inclure le wrapper (qui ouvre le HTML et le body)
-include __DIR__ . '/inc/wrapper.php'; 
 
 // ==========================================
 // SYSTÈME DE TRADUCTION COMPLET (FR / EN / DE)
@@ -280,8 +275,12 @@ function getCardStyle($tier_key) {
     return $styles[$tier_key] ?? $styles['premium'];
 }
 
-    <?php $active_nav = 'home'; include __DIR__ . '/inc/navbar.php'; ?>
-    
+    $active_nav = 'home'; include __DIR__ . '/inc/navbar.php'; 
+    $page_title = "Accueil - " . t('app.name');
+    $body_class = "text-gray-200 font-sans min-h-screen flex flex-col antialiased";
+
+    // 2. Inclure le wrapper (qui ouvre le HTML et le body)
+    include __DIR__ . '/inc/wrapper.php'; 
    
 ?>
 <!DOCTYPE html>
@@ -348,7 +347,6 @@ function getCardStyle($tier_key) {
     </style>
 </head>
 <body class="text-gray-200 font-sans min-h-screen flex flex-col antialiased">
-<?php $active_nav = 'home'; include __DIR__ . '/inc/navbar.php'; ?>
  <main class="flex-grow container mx-auto px-4 py-8">
         <h1 class="text-3xl font-bold mb-4">Bienvenue sur Orinheberge</h1>
         <p>Contenu de votre site...</p>
@@ -961,76 +959,6 @@ function getCardStyle($tier_key) {
         });
     }
 })();
-</script>
-
-<script>
-  document.addEventListener("DOMContentLoaded", function() {
-    const orinLoaderEl = document.getElementById("orin-loader");
-    const orinTitleEl = document.getElementById("orin-title");
-
-    // Affiche le loader
-    orinLoaderEl.style.display = "flex";
-
-    const orinAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    let orinAudioBuffer = null;
-
-    // Gestion Audio
-    fetch('/startup.mp3')
-      .then(response => response.arrayBuffer())
-      .then(data => orinAudioCtx.decodeAudioData(data))
-      .then(buffer => {
-        orinAudioBuffer = buffer;
-        orinStartAudioProcess();
-      })
-      .catch(e => console.error("Erreur audio :", e));
-
-    function orinPlaySound() {
-      if (!orinAudioBuffer) return;
-      const orinSource = orinAudioCtx.createBufferSource();
-      orinSource.buffer = orinAudioBuffer;
-      orinSource.connect(orinAudioCtx.destination);
-      orinSource.start(0);
-    }
-
-    function orinStartAudioProcess() {
-      if (orinAudioCtx.state === 'suspended') {
-        const orinUnlock = () => {
-          orinAudioCtx.resume().then(() => orinPlaySound());
-          document.removeEventListener("pointerdown", orinUnlock);
-          document.removeEventListener("mousemove", orinUnlock);
-          document.removeEventListener("keydown", orinUnlock);
-        };
-        document.addEventListener("pointerdown", orinUnlock, { once: true });
-        document.addEventListener("mousemove", orinUnlock, { once: true });
-        document.addEventListener("keydown", orinUnlock, { once: true });
-      } else {
-        orinPlaySound();
-      }
-    }
-
-    // Animation du texte
-    setTimeout(() => {
-      orinTitleEl.style.transition = "opacity 0.4s ease, transform 0.4s ease, filter 0.4s ease";
-      orinTitleEl.style.opacity = "0";
-      orinTitleEl.style.transform = "translateY(-12px) scale(0.96)";
-      orinTitleEl.style.filter = "blur(4px)";
-
-      setTimeout(() => {
-        orinTitleEl.innerText = "Bienvenue sur le Panel";
-        orinTitleEl.style.opacity = "1";
-        orinTitleEl.style.transform = "translateY(0) scale(1)";
-        orinTitleEl.style.filter = "drop-shadow(0 0 25px rgba(220, 38, 38, 0.35))";
-      }, 400);
-    }, 2200);
-
-    // Disparition du loader
-    setTimeout(() => {
-      orinLoaderEl.classList.add("orin-fade-out");
-      setTimeout(() => {
-        orinLoaderEl.style.display = "none";
-      }, 800);
-    }, 4200);
-  });
 </script>
 </body>
 </html>
