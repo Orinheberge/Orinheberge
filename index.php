@@ -11,7 +11,7 @@ if (!function_exists('add_custom_translations')) {
         global $translations; 
         
         // --- AVERTISSEMENT ---
-     $translations['warning.game_purchase.title'] = [
+    $translations['warning.game_purchase.title'] = [
     'fr' => '⚠️ Avertissement Important',
     'en' => '⚠️ Important Warning',
     'de' => '⚠️ Wichtiger Hinweis'
@@ -276,7 +276,7 @@ function getCardStyle($tier_key) {
 }
 
     $active_nav = 'home'; include __DIR__ . '/inc/navbar.php'; 
-    $page_title = "Accueil - " . t('app.name');
+    $page_title = " OrinHeberge - Accueil  ";
     $body_class = "text-gray-200 font-sans min-h-screen flex flex-col antialiased";
 
     // 2. Inclure le wrapper (qui ouvre le HTML et le body)
@@ -288,7 +288,7 @@ function getCardStyle($tier_key) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OrinHeberge - Hébergeur VPS, Minecraft, PHP et Node.js | Gratuit & Premium</title>
+    <title><?php echo $page_title; ?></title>
     <meta name="description" content="OrinHeberge - Hébergement VPS, Minecraft, PHP et Node.js ultra rapide, gratuit et premium. Des serveurs rapides, sécurisés et performants.">
     <meta name="keywords" content="hébergement VPS, serveur Minecraft, hébergement PHP, Node.js, VPS gratuit, hosting, cloud, hébergeur français">
     <meta name="author" content="OrinHeberge">
@@ -348,9 +348,6 @@ function getCardStyle($tier_key) {
 </head>
 <body class="text-gray-200 font-sans min-h-screen flex flex-col antialiased">
 <main class="flex-grow container mx-auto px-4 py-8">
-      <h1 class="text-3xl font-bold mb-4">Bienvenue sur Orinheberge</h1>
-      <p>Contenu de votre site...</p>
-
    <!-- AVERTISSEMENT 1 — Achat de jeux -->
 <section class="relative z-20 px-6 pt-6 pb-2">
     <div class="max-w-4xl mx-auto glass rounded-xl border border-amber-500/30 bg-amber-500/[0.04] backdrop-blur-md overflow-hidden shadow-lg shadow-amber-900/10 animate-fade-in">
@@ -1011,7 +1008,7 @@ function getCardStyle($tier_key) {
       orinTitleEl.style.filter = "blur(4px)";
 
       setTimeout(() => {
-        orinTitleEl.innerText = "Bienvenue sur le Panel";
+        orinTitleEl.innerText = "Bienvenue sur le Site web";
         orinTitleEl.style.opacity = "1";
         orinTitleEl.style.transform = "translateY(0) scale(1)";
         orinTitleEl.style.filter = "drop-shadow(0 0 25px rgba(220, 38, 38, 0.35))";
