@@ -46,6 +46,7 @@ foreach ($ext_row as $r) {
 }
 
 $panel_url      = $cfg['panel_url']      ?? '';
+$portainer_url  = $cfg['portainer_url']  ?? 'https://portainer.deepstone.fr';
 $api_key_admin  = $cfg['api_key_admin']  ?? '';
 $api_key_client = $cfg['api_key_client'] ?? '';
 

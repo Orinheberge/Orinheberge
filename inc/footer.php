@@ -104,11 +104,13 @@
                         <i class="fas fa-external-link-alt text-[8px] text-gray-600 ml-auto opacity-50 group-hover:opacity-100 transition"></i>
                     </a>
                     <!-- Bouton OrinStudioIA -->
-                    <a href="https://www.orinstudioia.deepstone.fr" target="_blank" class="hover:text-sky-400 transition flex items-center gap-3 group">
-                        <i class="fas fa-robot w-4 text-center text-gray-600 group-hover:text-white transition"></i>
-                        OrinStudioIA
-                        <i class="fas fa-external-link-alt text-[8px] text-gray-600 ml-auto opacity-50 group-hover:opacity-100 transition"></i>
-                    </a>
+                  
+        <?php if (!empty($_SESSION['is_admin'])): ?>
+            <a href="https://portainer.deepstone.fr" target="_blank" class="hover:text-sky-400 transition flex items-center gap-3 group">
+                <i class="fab fa-docker w-4 text-center text-gray-600 group-hover:text-white transition"></i> portainer
+                <i class="fas fa-external-link-alt text-[8px] text-gray-600 ml-auto opacity-50 group-hover:opacity-100 transition"></i>
+            </a>
+        <?php endif; ?>
                 </div>
             </div>
 

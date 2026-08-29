@@ -281,6 +281,13 @@ $open_tickets = $open_tickets ?? 0;
             <span>Discord</span>
             <i class="fas fa-external-link-alt text-[9px] ml-auto opacity-50 group-hover:opacity-100 transition"></i>
         </a>
+        <?php if (!empty($_SESSION['is_admin'])): ?>
+        <a href="<?php echo htmlspecialchars($portainer_url); ?>" target="_blank" rel="noopener noreferrer" class="nav-item nav-external group">
+            <i class="fab fa-docker icon" style="color:#13B6F4;"></i>
+            <span>Portainer</span>
+            <i class="fas fa-external-link-alt text-[9px] ml-auto opacity-50 group-hover:opacity-100 transition"></i>
+        </a>
+        <?php endif; ?>
 
     </nav>
 
