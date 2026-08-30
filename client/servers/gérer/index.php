@@ -71,14 +71,17 @@ function clientApiRequest($panel_url, $headers, $endpoint, $method = "GET", $dat
 
 /*
 |--------------------------------------------------------------------------
-| PROXY WEBSOCKET TOKEN (Correction : utilise l'UUID complet)
+| PROXY WEBSOCKET TOKEN
 |--------------------------------------------------------------------------
+| L'API client Pterodactyl attend l'identifiant COURT (8 caractères) sur
+| tous les endpoints /api/client/servers/{identifier}/..., y compris
+| /websocket. On utilise donc $short_identifier, comme pour les autres
+| appels (power, details) plus bas dans ce fichier.
 */
 if (isset($_GET['get_ws_token'])) {
     header('Content-Type: application/json');
     
-    // IMPORTANT : Utiliser l'UUID COMPLET ($target_uuid) pour l'endpoint websocket
-    $endpoint = "servers/$target_uuid/websocket";
+    $endpoint = "servers/$short_identifier/websocket";
     $wsResponse = clientApiRequest($panel_url, $headers_client, $endpoint);
     
     if ($wsResponse['code'] !== 200) {
@@ -175,6 +178,8 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php';
     <link rel="manifest" href="/manifest.json">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Bibliothèque pour parser les couleurs et séquences ANSI -->
+    <script src="https://cdn.jsdelivr.net/npm/ansi_up@5.1.0/ansi_up.min.js"></script>
     <style>
         :root{--sidebar:240px;}
         *{box-sizing:border-box;}
@@ -324,6 +329,10 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php';
     const cmdInput = document.getElementById('cmdInput');
     
     let socket = null;
+
+    // Instance AnsiUp pour convertir les séquences ANSI (couleurs) en HTML
+    const ansiUp = new AnsiUp();
+    ansiUp.use_classes = false; // couleurs directement en style inline
     
     // Données initiales injectées par PHP
     const initialRamMax = <?php echo $ram_max; ?>;
@@ -339,15 +348,32 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php';
         return (d > 0 ? d + "j " : "") + (h > 0 ? h + "h " : "") + (m > 0 ? m + "m " : "") + Math.floor(seconds % 60) + "s";
     }
 
-    function stripAnsi(str) {
-        if (!str) return '';
-        return str.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '');
+    // Retire les séquences de positionnement curseur (pas les couleurs, gérées par ansi_up)
+    function cleanAnsiLine(rawText) {
+        if (!rawText) return '';
+        return rawText.replace(/\u001b\[\d+[GK]/g, '');
     }
 
-    function appendLog(text) {
-        const cleanText = stripAnsi(text);
+    // Transforme les URLs présentes dans une ligne de log en liens cliquables
+    function linkify(html) {
+        const urlRegex = /(https?:\/\/[^\s<]+|wss?:\/\/[^\s<]+)/g;
+        return html.replace(urlRegex, (url) => {
+            const cleanUrl = url.replace(/[.,;)]+$/, '');
+            return `<a href="${cleanUrl}" target="_blank" rel="noopener noreferrer" class="text-sky-400 underline hover:text-sky-300 break-all">${cleanUrl}</a>`;
+        });
+    }
+
+    function appendLog(rawMessage) {
+        if (rawMessage === null || rawMessage === undefined) return;
+        const cleaned = cleanAnsiLine(rawMessage);
+        if (!cleaned.trim() && cleaned !== "") return;
+
+        // ansi_up échappe le HTML dangereux avant de convertir les codes ANSI en <span style="...">
+        let htmlContent = ansiUp.ansi_to_html(cleaned);
+        htmlContent = linkify(htmlContent);
+
         const div = document.createElement('div');
-        div.textContent = cleanText;
+        div.innerHTML = htmlContent;
         consoleScreen.appendChild(div);
         
         // Limiter à 300 lignes pour éviter de saturer la mémoire du navigateur
@@ -411,6 +437,10 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php';
                     "event": "auth",
                     "args": [token]
                 }));
+                socket.send(JSON.stringify({
+                    "event": "send logs",
+                    "args": []
+                }));
             };
 
             socket.onmessage = function(msg) {
@@ -420,6 +450,7 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php';
                     appendLog(data.args[0]);
                 } else if (data.event === 'status') {
                     updateStatusUI(data.args[0]);
+                    appendLog(`\x1b[35m[Statut Serveur] Statut actuel : ${data.args[0]}\x1b[0m`);
                 } else if (data.event === 'stats') {
                     const stats = data.args[0];
                     if(stats) {
