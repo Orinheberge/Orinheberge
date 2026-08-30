@@ -88,6 +88,68 @@ function callPterodactylClientAPI($endpoint, $method = 'GET', $data = null, $cus
 
 /*
 |--------------------------------------------------------------------------
+| JOUEURS EN LIGNE : Server List Ping (protocole natif Minecraft)
+|--------------------------------------------------------------------------
+| Contrairement à un plugin comme Player Listing (Blueprint), qui s'exécute
+| dans le panel officiel Pterodactyl, on interroge ici directement le
+| serveur Minecraft avec le protocole "Server List Ping" standard.
+| Aucune configuration côté serveur (server.properties) n'est nécessaire.
+*/
+function mcReadVarInt($socket) {
+    $value = 0;
+    $position = 0;
+    while (true) {
+        $byte = fread($socket, 1);
+        if ($byte === false || $byte === '') return null;
+        $byte = ord($byte);
+        $value |= ($byte & 0x7F) << $position;
+        if (($byte & 0x80) === 0) break;
+        $position += 7;
+        if ($position >= 32) return null;
+    }
+    return $value;
+}
+
+function mcServerListPing($host, $port, $timeout = 2) {
+    $socket = @fsockopen($host, $port, $errno, $errstr, $timeout);
+    if (!$socket) return null;
+    stream_set_timeout($socket, $timeout);
+
+    // Paquet Handshake (packet id 0x00, protocol version 0, next state = status)
+    $hostLen = strlen($host);
+    $handshakePayload = "\x00" . "\x00" . chr($hostLen) . $host . pack('n', $port) . "\x01";
+    $handshake = chr(strlen($handshakePayload)) . $handshakePayload;
+    fwrite($socket, $handshake);
+
+    // Paquet Status Request (packet id 0x00, longueur 1)
+    fwrite($socket, "\x01\x00");
+
+    // Lecture de la réponse
+    $length = mcReadVarInt($socket);
+    if ($length === null) { fclose($socket); return null; }
+    mcReadVarInt($socket); // packet id, ignoré
+    $strLen = mcReadVarInt($socket);
+    if ($strLen === null || $strLen <= 0 || $strLen > 1048576) { fclose($socket); return null; }
+
+    $data = '';
+    while (strlen($data) < $strLen) {
+        $chunk = fread($socket, $strLen - strlen($data));
+        if ($chunk === false || $chunk === '') break;
+        $data .= $chunk;
+    }
+    fclose($socket);
+
+    $json = json_decode($data, true);
+    if (!$json || !isset($json['players'])) return null;
+
+    return [
+        'online' => intval($json['players']['online'] ?? 0),
+        'max'    => intval($json['players']['max'] ?? 0),
+    ];
+}
+
+/*
+|--------------------------------------------------------------------------
 | PROXY WEBSOCKET TOKEN
 |--------------------------------------------------------------------------
 | L'API client Pterodactyl attend l'identifiant COURT (8 caractères) sur
@@ -166,6 +228,30 @@ if (isset($details['data']['attributes'])) {
             }
         }
     }
+}
+
+/*
+|--------------------------------------------------------------------------
+| ENDPOINT AJAX : JOUEURS EN LIGNE (polling côté client)
+|--------------------------------------------------------------------------
+*/
+if (isset($_GET['get_players'])) {
+    header('Content-Type: application/json');
+
+    if ($service_type !== 'minecraft' || !isset($server_ip) || !isset($server_port)) {
+        echo json_encode(['error' => true, 'message' => 'Non applicable à ce type de service']);
+        exit();
+    }
+
+    $ping = mcServerListPing($server_ip, $server_port);
+
+    if ($ping === null) {
+        echo json_encode(['error' => true, 'message' => 'Serveur injoignable (Server List Ping)']);
+        exit();
+    }
+
+    echo json_encode(['error' => false, 'online' => $ping['online'], 'max' => $ping['max']]);
+    exit();
 }
 
 // Rafraîchir session utilisateur
@@ -356,6 +442,7 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php';
     const initialDiskMax = <?php echo $disk_max; ?>;
     const initialAddress = "<?php echo addslashes($server_address); ?>";
     const initialPlayersMax = <?php echo $players_max; ?>;
+    const isMinecraft = <?php echo json_encode($service_type === 'minecraft'); ?>;
 
     function formatUptime(seconds) {
         if (!seconds || seconds <= 0) return "Hors ligne";
@@ -458,6 +545,10 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php';
                     "event": "send logs",
                     "args": []
                 }));
+                socket.send(JSON.stringify({
+                    "event": "send stats",
+                    "args": []
+                }));
             };
 
             socket.onmessage = function(msg) {
@@ -469,7 +560,13 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php';
                     updateStatusUI(data.args[0]);
                     appendLog(`\x1b[35m[Statut Serveur] Statut actuel : ${data.args[0]}\x1b[0m`);
                 } else if (data.event === 'stats') {
-                    const stats = data.args[0];
+                    let stats;
+                    try {
+                        stats = JSON.parse(data.args[0]);
+                    } catch (e) {
+                        console.error("Impossible de parser les stats :", e, data.args[0]);
+                        return;
+                    }
                     if(stats) {
                         document.getElementById('statCpu').innerText = stats.cpu_absolute.toFixed(1) + "%";
                         
@@ -478,7 +575,8 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php';
                         const ramUsedStr = ramUsed >= 1024 ? (ramUsed/1024).toFixed(1) + " Go" : ramUsed + " Mo";
                         document.getElementById('statRam').innerText = `${ramUsedStr} / ${ramMaxStr}`;
                         
-                        document.getElementById('statUptime').innerText = formatUptime(stats.uptime || 0);
+                        // stats.uptime est en millisecondes côté Wings
+                        document.getElementById('statUptime').innerText = formatUptime((stats.uptime || 0) / 1000);
                     }
                 } else if (data.event === 'daemon error') {
                     appendLog(`[ERREUR DÉMON] ${data.args[0]}`);
@@ -556,9 +654,29 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php';
         document.getElementById('statPlayers').innerText = `0 / ${initialPlayersMax || '--'}`;
     }
 
+    // Interrogation périodique du nombre de joueurs en ligne (Server List Ping)
+    async function pollPlayers() {
+        if (!isMinecraft) return;
+        try {
+            const urlParams = new URLSearchParams(window.location.search);
+            const uuid = urlParams.get('uuid');
+            const res = await fetch(`?uuid=${uuid}&get_players=1`);
+            const data = await res.json();
+            if (!data.error) {
+                document.getElementById('statPlayers').innerText = `${data.online} / ${data.max}`;
+            }
+        } catch (e) {
+            console.error("Erreur récupération joueurs :", e);
+        }
+    }
+
     // Démarrage
     loadInitialData();
     initSocket();
+    if (isMinecraft) {
+        pollPlayers();
+        setInterval(pollPlayers, 15000);
+    }
 </script>
 </body>
 </html>
