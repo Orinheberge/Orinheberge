@@ -426,7 +426,7 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php';
             const wsUrl = tokenData.socket;
             const token = tokenData.token;
 
-            appendLog("[SYSTÈME] Connexion au démon Docker en temps réel...");
+            appendLog("[SYSTÈME] Connexion à la console en temps réel...");
             socket = new WebSocket(wsUrl);
 
             socket.onopen = function() {
