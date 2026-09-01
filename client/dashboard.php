@@ -70,7 +70,7 @@ $total_monthly_cost = array_sum(array_map(fn($s) => (float)($s['renewal_price'] 
 
 // Récupération des dernières activités
 $stmt = $pdo->prepare("
-    SELECT 'ticket' as type, title as description, created_at, status
+    SELECT 'ticket' as type, subject as description, created_at, status
     FROM support_tickets 
     WHERE user_id = ? 
     UNION ALL
