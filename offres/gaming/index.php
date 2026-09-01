@@ -1,7 +1,7 @@
 <?php
 /**
  * OrinHeberge — Offres Gaming
- * Affiche les offres Minecraft, FiveM, Terraria et Hytale
+ * Affiche les offres Minecraft, FiveM, Terraria et Hytale avec accès directs
  */
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
@@ -177,6 +177,16 @@ function tierStyle(string $t): array {
         .tab-btn.active { background: rgba(56, 189, 248, .15); border-color: rgba(56, 189, 248, .4); color: #38bdf8; box-shadow: 0 0 15px rgba(56, 189, 248, .1); }
         #cat-view { display: none; }
         .cat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; }
+        
+        /* Style pour les liens de navigation jeu */
+        .game-card-link {
+            display: block;
+            transition: all 0.3s ease;
+        }
+        .game-card-link:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 25px 50px -12px rgba(147, 51, 234, 0.25);
+        }
     </style>
 
     <script>
@@ -254,12 +264,12 @@ function tierStyle(string $t): array {
         </div>
     </header>
 
-    <!-- NAVIGATION RAPIDE PAR JEU -->
+    <!-- NAVIGATION RAPIDE PAR JEU (LIENS DIRECTS) -->
     <section class="max-w-7xl mx-auto px-6 pb-12">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <?php foreach ($gaming_subcategories as $key => $game): ?>
-            <div class="group bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10 cursor-pointer transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:shadow-purple-900/20"
-                 onclick="scrollToGame('<?php echo $key; ?>')">
+            <!-- Remplacement du div onclick par un lien <a> direct -->
+            <a href="/offres/gaming/<?php echo ucfirst($key); ?>/" class="game-card-link group bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10">
                 <div class="w-14 h-14 rounded-xl bg-gradient-to-r <?php echo $game['color']; ?> flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform">
                     <i class="<?php echo $game['icon']; ?> text-2xl text-white"></i>
                 </div>
@@ -269,7 +279,7 @@ function tierStyle(string $t): array {
                     <?php echo t('categories.explore', 'Voir les offres'); ?>
                     <i class="fas fa-arrow-right transform group-hover:translate-x-1 transition-transform"></i>
                 </div>
-            </div>
+            </a>
             <?php endforeach; ?>
         </div>
     </section>
