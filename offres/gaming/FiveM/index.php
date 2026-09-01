@@ -15,7 +15,7 @@ $is_logged_in = isset($_SESSION['user_id']);
 
 try {
     $stmt = $pdo->prepare('
-        SELECT name_key, description_key, icon, image_url 
+        SELECT name_key, icon, image_url 
         FROM categories_products 
         WHERE category_slug = ? AND is_active = 1 
         LIMIT 1
@@ -30,7 +30,7 @@ try {
         FROM categories_products cp
         JOIN products p ON p.id = cp.product_id
         WHERE cp.category_slug = ? AND cp.is_active = 1 AND p.is_active = 1
-        ORDER BY p.sort_order, p.id
+        ORDER BY cp.sort_order, p.id
     ');
     $offersStmt->execute(['fivem']);
     $offers = $offersStmt->fetchAll();
@@ -92,17 +92,17 @@ foreach ($offers as $offer) {
         <div class="relative z-10">
             <div class="inline-flex items-center gap-2 bg-blue-500/10 text-blue-400 border border-blue-500/20 px-4 py-1.5 rounded-full text-xs font-semibold mb-5">
                 <i class="<?php echo htmlspecialchars($category['icon'] ?? 'fas fa-car'); ?>"></i>
-                <?php echo t('categories.gaming.title'); ?>
+                Hébergement Gaming
             </div>
             <h1 class="text-5xl md:text-7xl font-black tracking-tight leading-none gradient-text mb-4">
                 <?php echo t($category['name_key']); ?>
             </h1>
             <p class="text-gray-400 max-w-2xl mx-auto text-lg">
-                <?php echo t($category['description_key'] ?? 'Serveurs FiveM optimisés pour le RP'); ?>
+                Serveurs FiveM optimisés pour le RP avec haute disponibilité
             </p>
             <div class="mt-8">
-                <a href="/offres/" class="inline-flex items-center gap-2 text-gray-400 hover:text-white transition">
-                    <i class="fas fa-arrow-left"></i> <?php echo t('back_to_offers', 'Retour aux offres'); ?>
+                <a href="/offres/gaming/" class="inline-flex items-center gap-2 text-gray-400 hover:text-white transition">
+                    <i class="fas fa-arrow-left"></i> Retour aux offres Gaming
                 </a>
             </div>
         </div>
