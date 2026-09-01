@@ -1,9 +1,64 @@
 <?php
-ini_set('display_errors', 1); error_reporting(E_ALL);
+/**
+ * OrinHeberge — Page Unifiée : Catégories & Offres
+ * Fusionne la navigation par macro-catégories et l'affichage des offres par tiers
+ */
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
 session_start();
-require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/lang.php';
 
+require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/lang.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/db.php';
+
+$active_nav = 'offers';
+$page_title = 'Nos Offres';
 $is_logged_in = isset($_SESSION['user_id']);
+
+// ============================================
+// 1. MACRO-CATÉGORIES (Navigation principale)
+// ============================================
+$main_categories = [
+    'gaming' => [
+        'title_key'       => 'categories.gaming.title',
+        'description_key' => 'categories.gaming.description',
+        'subtitle_key'    => 'categories.gaming.subtitle',
+        'icon'            => 'fas fa-gamepad',
+        'color'           => 'from-blue-500 to-purple-600',
+        'hover_border'    => 'hover:border-purple-500/50',
+        'subcategories'   => ['minecraft', 'fivem', 'terraria', 'hytale']
+    ],
+    'web' => [
+        'title_key'       => 'categories.web.title',
+        'description_key' => 'categories.web.description',
+        'subtitle_key'    => 'categories.web.subtitle',
+        'icon'            => 'fas fa-code',
+        'color'           => 'from-green-500 to-blue-500',
+        'hover_border'    => 'hover:border-green-500/50',
+        'subcategories'   => ['php', 'nodejs', 'python', 'java']
+    ],
+    'database' => [
+        'title_key'       => 'categories.database.title',
+        'description_key' => 'categories.database.description',
+        'subtitle_key'    => 'categories.database.subtitle',
+        'icon'            => 'fas fa-database',
+        'color'           => 'from-yellow-500 to-orange-500',
+        'hover_border'    => 'hover:border-orange-500/50',
+        'subcategories'   => ['mysql', 'mongodb', 'postgresql']
+    ],
+    'storage' => [
+        'title_key'       => 'categories.storage.title',
+        'description_key' => 'categories.storage.description',
+        'subtitle_key'    => 'categories.storage.subtitle',
+        'icon'            => 'fas fa-cloud',
+        'color'           => 'from-purple-500 to-pink-500',
+        'hover_border'    => 'hover:border-pink-500/50',
+        'subcategories'   => ['files', 'backup', 'cdn']
+    ]
+];
+
+// ============================================
+// 2. TIERS D'OFFRES (Free → Mythic)
+// ============================================
 $sections = [
     'free'    => ['title_key'=>'tier.free.title',    'subtitle_key'=>'tier.free.subtitle',    'label_key'=>'tier.free.label',    'accent'=>'bg-green-500',  'bg'=>'bg-white/[0.01] border-y border-white/5', 'offers'=>[]],
     'basic'   => ['title_key'=>'tier.basic.title',   'subtitle_key'=>'tier.basic.subtitle',   'label_key'=>'tier.basic.label',   'accent'=>'bg-blue-500',   'bg'=>'bg-black/10', 'offers'=>[]],
@@ -11,15 +66,14 @@ $sections = [
     'premium' => ['title_key'=>'tier.premium.title', 'subtitle_key'=>'tier.premium.subtitle', 'label_key'=>'tier.premium.label', 'accent'=>'bg-yellow-500', 'bg'=>'bg-black/20', 'offers'=>[]],
     'mythic'  => ['title_key'=>'tier.mythic.title',  'subtitle_key'=>'tier.mythic.subtitle',  'label_key'=>'tier.mythic.label',  'accent'=>'bg-rose-500',   'bg'=>'bg-black/20', 'offers'=>[]],
 ];
+
 $dynamic_categories = [];
+$active_categories = [];
 
+// ============================================
+// 3. RÉCUPÉRATION DES DONNÉES
+// ============================================
 try {
-    $pdo = new PDO('mysql:host=localhost;dbname=s43_orinheberge;charset=utf8mb4','root','1504',[
-        PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC,
-        PDO::ATTR_TIMEOUT=>3
-    ]);
-
     if ($is_logged_in) {
         $u = $pdo->prepare('SELECT pseudo,firstname,avatar FROM users WHERE id=? LIMIT 1');
         $u->execute([$_SESSION['user_id']]);
@@ -30,13 +84,38 @@ try {
         }
     }
 
-    // Catégories actives
-    $cq = $pdo->query('SELECT DISTINCT category_slug,name_key,icon,image_url FROM categories_products WHERE is_active=1 GROUP BY category_slug ORDER BY sort_order ASC');
+    // Catégories actives (pour filtres + navigation)
+    $cq = $pdo->query('
+        SELECT DISTINCT category_slug, name_key, icon, image_url, description_key
+        FROM categories_products 
+        WHERE is_active=1 
+        GROUP BY category_slug, name_key, icon, image_url, description_key
+        ORDER BY sort_order ASC
+    ');
     while ($r = $cq->fetch()) {
-        $dynamic_categories[$r['category_slug']] = ['name_key'=>$r['name_key'],'icon'=>$r['icon'],'image_url'=>$r['image_url']];
+        $dynamic_categories[$r['category_slug']] = [
+            'name_key'        => $r['name_key'],
+            'icon'            => $r['icon'],
+            'image_url'       => $r['image_url'],
+            'description_key' => $r['description_key'] ?? null,
+        ];
     }
 
-    // Produits liés aux catégories actives
+    // Compteur de produits par catégorie
+    $count_stmt = $pdo->query("
+        SELECT cp.category_slug, COUNT(cp.product_id) as product_count
+        FROM categories_products cp
+        JOIN products p ON p.id = cp.product_id
+        WHERE cp.is_active = 1 AND p.is_active = 1
+        GROUP BY cp.category_slug
+    ");
+    while ($row = $count_stmt->fetch()) {
+        if (isset($dynamic_categories[$row['category_slug']])) {
+            $dynamic_categories[$row['category_slug']]['product_count'] = $row['product_count'];
+        }
+    }
+
+    // Produits liés aux catégories
     $stmt = $pdo->query("
         SELECT p.*, cp.category_slug, cp.icon AS cat_icon, cp.image_url AS cat_image
         FROM categories_products cp
@@ -44,6 +123,7 @@ try {
         WHERE cp.is_active=1 AND p.is_active=1
         ORDER BY p.sort_order, p.id
     ");
+
     foreach ($stmt->fetchAll() as $pr) {
         $slug = $pr['slug'];
         $cat  = strtolower($pr['category_slug']);
@@ -54,14 +134,16 @@ try {
             str_contains($slug, 'mythic') => 'mythic',
             default => 'premium',
         };
-        $rt   = $pr['ram']  >= 1024 ? number_format($pr['ram']/1024,0).' GB RAM DDR5' : $pr['ram'].' MB RAM';
-        $dt   = $pr['disk'] >= 1024 ? number_format($pr['disk']/1024,0).' GB SSD NVMe' : $pr['disk'].' MB SSD';
+
+        $rt = $pr['ram']  >= 1024 ? number_format($pr['ram']/1024, 0).' GB RAM DDR5' : $pr['ram'].' MB RAM';
+        $dt = $pr['disk'] >= 1024 ? number_format($pr['disk']/1024, 0).' GB SSD NVMe' : $pr['disk'].' MB SSD';
+
         $sections[$tier]['offers'][] = [
             'category'    => $cat,
             'slug'        => $slug,
             'name'        => $pr['name'],
             'desc'        => $pr['description'] ?? '',
-            'price'       => $pr['type']==='free' ? '0€' : number_format($pr['price'],2,',','').'€',
+            'price'       => $pr['type']==='free' ? '0€' : number_format($pr['price'], 2, ',', '').'€',
             'price_value' => (float)$pr['price'],
             'period_key'  => $pr['type']==='free' ? 'offers.period.free' : 'offers.period.month',
             'free'        => $pr['type']==='free',
@@ -75,8 +157,13 @@ try {
             ],
         ];
     }
-} catch (PDOException $e) {}
+} catch (PDOException $e) {
+    error_log('Offers/Categories query error: ' . $e->getMessage());
+}
 
+// ============================================
+// 4. HELPERS
+// ============================================
 function tierStyle(string $t): array {
     $styles = [
         'free'    => ['bb'=>'bg-green-500/20',  'bt'=>'text-green-400',  'bbd'=>'border-green-500/30',  'ic'=>'text-green-400',  'cb'=>'border-white/10',      'btn'=>'bg-green-500 hover:bg-green-400'],
@@ -87,132 +174,231 @@ function tierStyle(string $t): array {
     ];
     return $styles[$t] ?? ['bb'=>'bg-gray-500/20','bt'=>'text-gray-400','bbd'=>'border-gray-500/30','ic'=>'text-gray-400','cb'=>'border-white/10','btn'=>'bg-gray-500 hover:bg-gray-400'];
 }
+
+function getCategoryColor($slug) {
+    $colors = [
+        'minecraft' => 'from-green-600 to-green-700',
+        'fivem'     => 'from-blue-600 to-blue-700',
+        'php'       => 'from-purple-600 to-purple-700',
+        'nodejs'    => 'from-green-500 to-green-600',
+        'python'    => 'from-yellow-500 to-yellow-600',
+        'java'      => 'from-red-500 to-red-600',
+        'terraria'  => 'from-blue-500 to-cyan-500',
+        'hytale'    => 'from-orange-500 to-red-500',
+        'mysql'     => 'from-orange-600 to-orange-700',
+        'mongodb'   => 'from-green-600 to-green-700',
+        'postgresql'=> 'from-blue-700 to-blue-800',
+        'files'     => 'from-purple-600 to-purple-700',
+        'backup'    => 'from-sky-500 to-sky-600',
+        'cdn'       => 'from-cyan-500 to-cyan-600',
+    ];
+    return $colors[$slug] ?? 'from-gray-500 to-gray-600';
+}
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo $lang; ?>">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>OrinHeberge | Nos Offres</title>
-<link rel="icon" type="image/png" href="/favicon.ico">
-<script src="https://cdn.tailwindcss.com"></script>
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-
-<!-- Balises de base -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nos Offres - OrinHeberge | Hébergement VPS, Minecraft, PHP et Node.js</title>
     <meta name="description" content="Découvrez nos offres d'hébergement VPS, Minecraft, PHP et Node.js. Des solutions gratuites et premium adaptées à tous vos projets.">
-    <meta name="keywords" content="hébergement VPS, serveur Minecraft, hébergement PHP, Node.js, VPS gratuit, serveur dédié, hosting, cloud">
-    <meta name="author" content="OrinHeberge">
-    <meta name="robots" content="index, follow">
-    <link rel="canonical" href="https://heberge.orinstone.deepstone.fr/offres/">
+    <link rel="icon" type="image/png" href="/favicon.ico">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="manifest" href="/manifest.json">
 
-    <!-- Open Graph / Facebook -->
-    <meta property="og:locale" content="fr_FR">
-    <meta property="og:type" content="website">
-    <meta property="og:title" content="Nos Offres - OrinHeberge | Hébergement VPS, Minecraft, PHP et Node.js">
-    <meta property="og:description" content="Trouvez l'offre idéale pour vos projets. Des serveurs rapides, sécurisés et à prix compétitifs.">
-    <meta property="og:url" content="https://heberge.orinstone.deepstone.fr/offres/">
-    <meta property="og:site_name" content="OrinHeberge">
-    <meta property="og:image" content="https://heberge.orinstone.deepstone.fr/favicon.png">
-    <meta property="og:image:width" content="1200">
-    <meta property="og:image:height" content="630">
-    <meta property="og:image:alt" content="OrinHeberge - Nos offres d'hébergement">
+    <style>
+        body {
+            background: #0b0f19;
+            scroll-behavior: smooth;
+        }
+        .glass {
+            background: rgba(255, 255, 255, .04);
+            backdrop-filter: blur(14px);
+            border: 1px solid rgba(255, 255, 255, .08);
+        }
+        .gradient-text {
+            background: linear-gradient(90deg, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .card-hover {
+            transition: transform .3s, box-shadow .3s;
+        }
+        .card-hover:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, .3);
+        }
+        .macro-card {
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        .macro-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+        .tab-btn {
+            padding: .55rem 1.25rem;
+            border-radius: 9999px;
+            font-size: .82rem;
+            font-weight: 600;
+            transition: all .2s;
+            border: 1px solid rgba(255, 255, 255, .1);
+            background: rgba(255, 255, 255, .04);
+            color: #9ca3af;
+            cursor: pointer;
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: .4rem;
+        }
+        .tab-btn:hover {
+            background: rgba(255, 255, 255, .08);
+            color: #e5e7eb;
+        }
+        .tab-btn.active {
+            background: rgba(56, 189, 248, .15);
+            border-color: rgba(56, 189, 248, .4);
+            color: #38bdf8;
+            box-shadow: 0 0 15px rgba(56, 189, 248, .1);
+        }
+        #cat-view {
+            display: none;
+        }
+        .cat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+    </style>
 
-    <!-- Twitter Card -->
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:site" content="@OrinHeberge">
-    <meta name="twitter:creator" content="@OrinHeberge">
-    <meta name="twitter:title" content="Nos Offres - OrinHeberge | Hébergement VPS, Minecraft, PHP et Node.js">
-    <meta name="twitter:description" content="Trouvez l'offre idéale pour vos projets. Des serveurs rapides, sécurisés et à prix compétitifs.">
-    <meta name="twitter:image" content="https://heberge.orinstone.deepstone.fr/favicon.png">
-    <meta name="twitter:image:alt" content="OrinHeberge - Nos offres d'hébergement">
+    <script>
+    const categoryLabels = <?php echo json_encode(array_map(fn($cat) => t($cat['name_key']), $dynamic_categories), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
 
-    <!-- Autres balises SEO -->
-    <meta name="theme-color" content="#6366f1">
-    <meta name="msapplication-TileColor" content="#6366f1">
-    <link rel="icon" type="image/png" href="https://heberge.orinstone.deepstone.fr/favicon.png">
-    <link rel="apple-touch-icon" href="https://heberge.orinstone.deepstone.fr/favicon.png">
+    function filterCategory(catId) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        const tab = document.getElementById('tab-' + catId);
+        if (tab) tab.classList.add('active');
 
-<link rel="manifest" href="/manifest.json">
-<style>
-body{background:#0b0f19;scroll-behavior:smooth;}
-.glass{background:rgba(255,255,255,.04);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.08);}
-.gradient-text{background:linear-gradient(90deg,#38bdf8,#818cf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
-.card-hover{transition:transform .3s,box-shadow .3s;}
-.card-hover:hover{transform:translateY(-6px);box-shadow:0 20px 40px rgba(0,0,0,.3);}
-.tab-btn{padding:.55rem 1.25rem;border-radius:9999px;font-size:.82rem;font-weight:600;transition:all .2s;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:#9ca3af;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:.4rem;}
-.tab-btn:hover{background:rgba(255,255,255,.08);color:#e5e7eb;}
-.tab-btn.active{background:rgba(56,189,248,.15);border-color:rgba(56,189,248,.4);color:#38bdf8;box-shadow:0 0 15px rgba(56,189,248,.1);}
-#cat-view{display:none;}
-.cat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1.5rem;}
-</style>
-  <script>
-const categoryLabels = <?php echo json_encode(array_map(fn($cat) => t($cat['name_key']), $dynamic_categories), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+        const catView = document.getElementById('cat-view');
+        const catTitle = document.getElementById('cat-view-title');
+        const catGrid = document.getElementById('cat-view-grid');
+        const allSections = document.getElementById('all-sections');
 
-function filterCategory(catId) {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    if(document.getElementById('tab-' + catId)) {
-        document.getElementById('tab-' + catId).classList.add('active');
+        if (catId === 'all') {
+            catView.style.display = 'none';
+            allSections.style.display = 'block';
+            return;
+        }
+
+        allSections.style.display = 'none';
+        catView.style.display = 'block';
+        catTitle.textContent = categoryLabels[catId] || catId.toUpperCase();
+
+        const cards = Array.from(document.querySelectorAll('#all-sections .offer-card[data-category="' + catId + '"]'));
+        catGrid.innerHTML = '';
+
+        if (cards.length === 0) {
+            catGrid.innerHTML = '<div class="col-span-full py-12 text-center text-gray-500 text-sm">Aucune offre disponible pour le moment dans cette catégorie.</div>';
+        } else {
+            cards.forEach(card => {
+                const clone = card.cloneNode(true);
+                clone.style.display = 'flex';
+                catGrid.appendChild(clone);
+            });
+        }
     }
-    
-    const catView = document.getElementById('cat-view');
-    const catTitle = document.getElementById('cat-view-title');
-    const catGrid = document.getElementById('cat-view-grid');
-    const allSections = document.getElementById('all-sections');
-    
-    if (catId === 'all') { 
-        catView.style.display = 'none'; 
-        allSections.style.display = 'block'; 
-        return; 
+
+    // Navigation smooth vers une macro-catégorie
+    function scrollToMacro(key) {
+        const section = document.getElementById('macro-' + key);
+        if (section) {
+            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
     }
-    
-    allSections.style.display = 'none'; 
-    catView.style.display = 'block';
-    
-    catTitle.textContent = categoryLabels[catId] || catId.toUpperCase();
-    
-    const cards = Array.from(document.querySelectorAll('#all-sections .offer-card[data-category="' + catId + '"]'));
-    
-    catGrid.innerHTML = '';
-    if (cards.length === 0) {
-        catGrid.innerHTML = '<div class="col-span-full py-12 text-center text-gray-500 text-sm">Aucune offre disponible pour le moment dans cette catégorie.</div>';
-    } else {
-        cards.forEach(card => { 
-            const clone = card.cloneNode(true); 
-            clone.style.display = 'flex'; 
-            catGrid.appendChild(clone); 
-        });
-    }
-}
-window.addEventListener('DOMContentLoaded', () => filterCategory('all'));
-</script>
+
+    window.addEventListener('DOMContentLoaded', () => filterCategory('all'));
+    </script>
 </head>
 <body class="text-gray-200 font-sans min-h-screen flex flex-col justify-between antialiased">
 
-<?php $active_nav = 'offres'; include $_SERVER['DOCUMENT_ROOT'] . '/inc/navbar.php'; ?>
+<?php include $_SERVER['DOCUMENT_ROOT'] . '/inc/navbar.php'; ?>
 
 <main class="flex-grow">
-  <header class="text-center py-16 px-6 relative overflow-hidden">
-    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-sky-500/10 rounded-full blur-[120px] pointer-events-none"></div>
-    <div class="inline-flex items-center gap-2 bg-sky-500/10 text-sky-400 border border-sky-500/20 px-4 py-1.5 rounded-full text-xs font-semibold mb-5">
-      <i class="fas fa-tags"></i> Nos offres
-    </div>
-    <h1 class="text-5xl md:text-7xl font-black tracking-tight leading-none gradient-text mb-4"><?php echo t('offers.title'); ?></h1>
-    <p class="text-gray-400 max-w-xl mx-auto text-lg"><?php echo t('offers.subtitle'); ?></p>
-    <div class="max-w-5xl mx-auto flex flex-wrap justify-center gap-2.5 px-4 mt-10">
-      <button onclick="filterCategory('all')" id="tab-all" class="tab-btn active">
-        <i class="fas fa-th-large text-xs"></i> <?php echo t('offers.tab.all'); ?>
-      </button>
-      <?php foreach($dynamic_categories as $slug => $ci): ?>
-      <button onclick="filterCategory('<?php echo htmlspecialchars($slug); ?>')" id="tab-<?php echo htmlspecialchars($slug); ?>" class="tab-btn">
-        <i class="<?php echo htmlspecialchars($ci['icon']); ?> text-xs"></i> <?php echo t($ci['name_key']); ?>
-      </button>
-      <?php endforeach; ?>
-    </div>
-  </header>
 
-    <section id="cat-view" class="py-20 px-6">
+    <!-- ========================= HERO ========================= -->
+    <header class="text-center py-16 px-6 relative overflow-hidden">
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-sky-500/10 rounded-full blur-[120px] pointer-events-none"></div>
+        <div class="relative">
+            <div class="inline-flex items-center gap-2 bg-sky-500/10 text-sky-400 border border-sky-500/20 px-4 py-1.5 rounded-full text-xs font-semibold mb-5">
+                <i class="fas fa-tags"></i> <?php echo t('offers.badge'); ?>
+            </div>
+            <h1 class="text-5xl md:text-7xl font-black tracking-tight leading-none gradient-text mb-4">
+                <?php echo t('offers.title'); ?>
+            </h1>
+            <p class="text-gray-400 max-w-xl mx-auto text-lg">
+                <?php echo t('offers.subtitle'); ?>
+            </p>
+        </div>
+    </header>
+
+    <!-- ========================= MACRO-CATÉGORIES ========================= -->
+    <section class="max-w-7xl mx-auto px-6 pb-12">
+        <div class="text-center mb-10">
+            <h2 class="text-3xl md:text-4xl font-black mb-3">
+                <?php echo t('categories.explore_title', 'Explorez nos univers'); ?>
+            </h2>
+            <p class="text-gray-400 max-w-2xl mx-auto">
+                <?php echo t('categories.explore_desc', 'Choisissez votre domaine et découvrez les services adaptés.'); ?>
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <?php foreach ($main_categories as $key => $category): ?>
+            <div class="macro-card bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10 cursor-pointer"
+                 onclick="scrollToMacro('<?php echo $key; ?>')">
+                <div class="w-16 h-16 rounded-xl bg-gradient-to-r <?php echo $category['color']; ?> flex items-center justify-center mb-4 shadow-lg">
+                    <i class="<?php echo $category['icon']; ?> text-2xl text-white"></i>
+                </div>
+                <h3 class="text-xl font-bold mb-2 text-white">
+                    <?php echo t($category['title_key']); ?>
+                </h3>
+                <p class="text-slate-400 text-sm mb-4">
+                    <?php echo t($category['description_key']); ?>
+                </p>
+                <div class="inline-flex items-center gap-2 text-sm font-semibold text-blue-400 hover:text-blue-300">
+                    <?php echo t('categories.explore', 'Découvrir'); ?>
+                    <i class="fas fa-arrow-right"></i>
+                </div>
+            </div>
+            <?php endforeach; ?>
+        </div>
+    </section>
+
+    <!-- ========================= FILTRES PAR CATÉGORIE ========================= -->
+    <section class="max-w-7xl mx-auto px-6 py-8">
+        <div class="flex flex-wrap justify-center gap-2.5">
+            <button onclick="filterCategory('all')" id="tab-all" class="tab-btn active">
+                <i class="fas fa-th-large text-xs"></i> <?php echo t('offers.tab.all', 'Toutes les offres'); ?>
+            </button>
+            <?php foreach ($dynamic_categories as $slug => $ci): ?>
+            <button onclick="filterCategory('<?php echo htmlspecialchars($slug); ?>')"
+                    id="tab-<?php echo htmlspecialchars($slug); ?>" class="tab-btn">
+                <i class="<?php echo htmlspecialchars($ci['icon']); ?> text-xs"></i>
+                <?php echo t($ci['name_key']); ?>
+                <?php if (!empty($ci['product_count'])): ?>
+                    <span class="text-[10px] bg-white/10 px-1.5 py-0.5 rounded-full ml-1">
+                        <?php echo $ci['product_count']; ?>
+                    </span>
+                <?php endif; ?>
+            </button>
+            <?php endforeach; ?>
+        </div>
+    </section>
+
+    <!-- ========================= VUE FILTRÉE PAR CATÉGORIE ========================= -->
+    <section id="cat-view" class="py-12 px-6">
         <div class="text-center mb-12">
             <h2 class="text-4xl md:text-5xl font-black uppercase tracking-wider mb-3 gradient-text" id="cat-view-title"></h2>
             <div class="h-1 w-20 bg-sky-500 mx-auto rounded-full"></div>
@@ -220,80 +406,176 @@ window.addEventListener('DOMContentLoaded', () => filterCategory('all'));
         <div class="max-w-7xl mx-auto cat-grid" id="cat-view-grid"></div>
     </section>
 
+    <!-- ========================= OFFRES PAR TIER ========================= -->
+    <div id="all-sections">
+        <?php foreach ($main_categories as $macro_key => $macro): ?>
+            <?php
+                // Récupère les sous-catégories actives de cette macro
+                $sub_slugs = $macro['subcategories'];
+                $has_sub_offers = false;
+                foreach ($sub_slugs as $s) {
+                    foreach ($sections as $t) {
+                        foreach ($t['offers'] as $o) {
+                            if ($o['category'] === $s) { $has_sub_offers = true; break 3; }
+                        }
+                    }
+                }
+                if (!$has_sub_offers) continue;
+            ?>
+            <div id="macro-<?php echo $macro_key; ?>" class="mb-8">
+                <div class="max-w-7xl mx-auto px-6 pt-12 pb-4 flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-lg bg-gradient-to-r <?php echo $macro['color']; ?> flex items-center justify-center shadow-lg">
+                        <i class="<?php echo $macro['icon']; ?> text-xl text-white"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-3xl font-bold text-white"><?php echo t($macro['title_key']); ?></h2>
+                        <p class="text-slate-400"><?php echo t($macro['subtitle_key'] ?? ''); ?></p>
+                    </div>
+                </div>
 
-  <div id="all-sections">
-  <?php foreach($sections as $tier_key => $tier):
-    if(empty($tier['offers'])) continue;
-    $s = tierStyle($tier_key);
-  ?>
-  <section class="py-20 px-6 <?php echo $tier['bg']; ?>">
-    <div class="text-center mb-14">
-      <h2 class="text-4xl md:text-5xl font-black uppercase tracking-wider mb-3"><?php echo t($tier['title_key']); ?></h2>
-      <div class="h-1 w-20 <?php echo $tier['accent']; ?> mx-auto rounded-full"></div>
-      <p class="text-gray-400 mt-4"><?php echo t($tier['subtitle_key']); ?></p>
+                <?php foreach ($sections as $tier_key => $tier):
+                    // Filtre les offres du tier par les sous-catégories de la macro
+                    $tier_offers = array_filter($tier['offers'], function($o) use ($sub_slugs) {
+                        return in_array($o['category'], $sub_slugs, true);
+                    });
+                    if (empty($tier_offers)) continue;
+
+                    $s = tierStyle($tier_key);
+                ?>
+                <section class="py-10 px-6 <?php echo $tier['bg']; ?>">
+                    <div class="text-center mb-10">
+                        <h3 class="text-2xl md:text-3xl font-black uppercase tracking-wider mb-2">
+                            <?php echo t($tier['title_key']); ?>
+                        </h3>
+                        <div class="h-1 w-16 <?php echo $tier['accent']; ?> mx-auto rounded-full"></div>
+                        <p class="text-gray-400 mt-3 text-sm"><?php echo t($tier['subtitle_key']); ?></p>
+                    </div>
+
+                    <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                        <?php foreach ($tier_offers as $offer):
+                            $is_free = $offer['free'];
+                            $btn_text = $is_logged_in
+                                ? ($is_free ? t('btn.deploy', 'Déployer') : t('btn.buy', 'Acheter'))
+                                : t('btn.login_to_buy', 'Connexion');
+                            $price_num = $is_free ? 0 : $offer['price_value'];
+                        ?>
+                        <div data-category="<?php echo htmlspecialchars($offer['category']); ?>"
+                             data-price="<?php echo $price_num; ?>"
+                             class="offer-card glass rounded-2xl border <?php echo $s['cb']; ?> flex flex-col card-hover overflow-hidden relative">
+                            <div class="h-36 w-full bg-cover bg-center relative"
+                                 style="background-image:url('<?php echo htmlspecialchars($offer['image_url']); ?>')">
+                                <div class="absolute inset-0 bg-gradient-to-t from-[#070a13] via-transparent to-transparent"></div>
+                                <div class="absolute top-3 left-3 right-3 flex justify-between items-center">
+                                    <span class="<?php echo $s['bb'].' '.$s['bt'].' '.$s['bbd']; ?> px-2.5 py-0.5 rounded-full text-[11px] font-bold border uppercase tracking-wide">
+                                        <?php echo t($tier['label_key']); ?>
+                                    </span>
+                                    <i class="<?php echo htmlspecialchars($offer['icon']).' '.$s['ic']; ?> text-xl drop-shadow"></i>
+                                </div>
+                            </div>
+
+                            <div class="p-5 flex flex-col flex-grow">
+                                <h4 class="text-base font-bold text-white mb-1">
+                                    <?php echo htmlspecialchars($offer['name']); ?>
+                                </h4>
+                                <p class="text-gray-400 text-xs flex-grow mb-4 leading-relaxed">
+                                    <?php echo htmlspecialchars($offer['desc']); ?>
+                                </p>
+
+                                <div class="flex items-baseline mb-4">
+                                    <span class="text-2xl font-black text-white"><?php echo $offer['price']; ?></span>
+                                    <span class="text-gray-500 text-xs ml-1"><?php echo t($offer['period_key']); ?></span>
+                                </div>
+
+                                <ul class="space-y-2 text-xs text-gray-300 border-t border-white/5 pt-3 mb-4">
+                                    <?php foreach ($offer['features'] as $f): ?>
+                                    <li>
+                                        <i class="<?php echo $f['icon'].' '.$s['ic']; ?> mr-2 w-3"></i>
+                                        <?php echo htmlspecialchars($f['text']); ?>
+                                    </li>
+                                    <?php endforeach; ?>
+                                </ul>
+
+                                <?php if ($is_logged_in): ?>
+                                <form method="post" action="/shop/cart/">
+                                    <input type="hidden" name="action" value="add_item">
+                                    <input type="hidden" name="slug"   value="<?php echo htmlspecialchars($offer['slug']); ?>">
+                                    <input type="hidden" name="name"   value="<?php echo htmlspecialchars($offer['name']); ?>">
+                                    <input type="hidden" name="price"  value="<?php echo $offer['price_value']; ?>">
+                                    <button type="submit"
+                                            class="w-full <?php echo $s['btn']; ?> text-slate-950 font-bold py-2.5 rounded-xl text-sm transition">
+                                        <?php echo $btn_text; ?>
+                                    </button>
+                                </form>
+                                <?php else: ?>
+                                <a href="/login/"
+                                   class="w-full <?php echo $s['btn']; ?> text-slate-950 font-bold py-2.5 rounded-xl text-sm text-center block transition">
+                                    <?php echo $btn_text; ?>
+                                </a>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                </section>
+                <?php endforeach; ?>
+            </div>
+        <?php endforeach; ?>
     </div>
-    <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-    <?php foreach($tier['offers'] as $offer):
-      $is_free  = $offer['free'];
-      $btn_text = $is_logged_in ? ($is_free ? t('btn.deploy') : t('btn.buy')) : t('btn.login_to_buy');
-      $price_num = $is_free ? 0 : $offer['price_value'];
-    ?>
-    <div data-category="<?php echo htmlspecialchars($offer['category']); ?>" data-price="<?php echo $price_num; ?>"
-         class="offer-card glass rounded-2xl border <?php echo $s['cb']; ?> flex flex-col card-hover overflow-hidden relative">
-      <div class="h-36 w-full bg-cover bg-center relative" style="background-image:url('<?php echo htmlspecialchars($offer['image_url']); ?>')">
-        <div class="absolute inset-0 bg-gradient-to-t from-[#070a13] via-transparent to-transparent"></div>
-        <div class="absolute top-3 left-3 right-3 flex justify-between items-center">
-          <span class="<?php echo $s['bb'].' '.$s['bt'].' '.$s['bbd']; ?> px-2.5 py-0.5 rounded-full text-[11px] font-bold border uppercase tracking-wide">
-            <?php echo t($tier['label_key']); ?>
-          </span>
-          <i class="<?php echo htmlspecialchars($offer['icon']).' '.$s['ic']; ?> text-xl drop-shadow"></i>
+
+    <!-- ========================= SERVICES COMPLÉMENTAIRES ========================= -->
+    <section class="max-w-7xl mx-auto px-6 py-16">
+        <div class="bg-slate-800/30 border border-slate-700 rounded-2xl p-8">
+            <div class="text-center mb-8">
+                <h2 class="text-3xl font-bold mb-4 text-white">
+                    <?php echo t('categories.additional_services', 'Services complémentaires'); ?>
+                </h2>
+                <p class="text-slate-400 max-w-2xl mx-auto">
+                    <?php echo t('categories.additional_description', 'Optimisez votre infrastructure avec nos services additionnels.'); ?>
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="text-center p-6">
+                    <div class="w-16 h-16 rounded-full bg-gradient-to-r from-yellow-500 to-orange-500 flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-database text-2xl text-white"></i>
+                    </div>
+                    <h3 class="font-bold text-lg mb-2 text-white"><?php echo t('categories.databases', 'Bases de données'); ?></h3>
+                    <p class="text-sm text-slate-400"><?php echo t('categories.databases_desc'); ?></p>
+                </div>
+
+                <div class="text-center p-6">
+                    <div class="w-16 h-16 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-cloud text-2xl text-white"></i>
+                    </div>
+                    <h3 class="font-bold text-lg mb-2 text-white"><?php echo t('categories.storage', 'Stockage'); ?></h3>
+                    <p class="text-sm text-slate-400"><?php echo t('categories.storage_desc'); ?></p>
+                </div>
+
+                <div class="text-center p-6">
+                    <div class="w-16 h-16 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-shield-alt text-2xl text-white"></i>
+                    </div>
+                    <h3 class="font-bold text-lg mb-2 text-white"><?php echo t('categories.security', 'Sécurité'); ?></h3>
+                    <p class="text-sm text-slate-400"><?php echo t('categories.security_desc'); ?></p>
+                </div>
+            </div>
         </div>
-      </div>
-      <div class="p-5 flex flex-col flex-grow">
-        <h3 class="text-base font-bold text-white mb-1"><?php echo htmlspecialchars($offer['name']); ?></h3>
-        <p class="text-gray-400 text-xs flex-grow mb-4 leading-relaxed"><?php echo htmlspecialchars($offer['desc']); ?></p>
-        <div class="flex items-baseline mb-4">
-          <span class="text-2xl font-black text-white"><?php echo $offer['price']; ?></span>
-          <span class="text-gray-500 text-xs ml-1"><?php echo t($offer['period_key']); ?></span>
-        </div>
-        <ul class="space-y-2 text-xs text-gray-300 border-t border-white/5 pt-3 mb-4">
-          <?php foreach($offer['features'] as $f): ?>
-          <li><i class="<?php echo $f['icon'].' '.$s['ic']; ?> mr-2 w-3"></i><?php echo htmlspecialchars($f['text']); ?></li>
-          <?php endforeach; ?>
-        </ul>
-        <?php if($is_logged_in): ?>
-        <form method="post" action="/shop/cart/">
-          <input type="hidden" name="action" value="add_item">
-          <input type="hidden" name="slug"   value="<?php echo htmlspecialchars($offer['slug']); ?>">
-          <input type="hidden" name="name"   value="<?php echo htmlspecialchars($offer['name']); ?>">
-          <input type="hidden" name="price"  value="<?php echo $offer['price_value']; ?>">
-          <button type="submit" class="w-full <?php echo $s['btn']; ?> text-slate-950 font-bold py-2.5 rounded-xl text-sm">
-            <?php echo $btn_text; ?>
-          </button>
-        </form>
-        <?php else: ?>
-        <a href="/login/" class="w-full <?php echo $s['btn']; ?> text-slate-950 font-bold py-2.5 rounded-xl text-sm text-center block">
-          <?php echo $btn_text; ?>
-        </a>
-        <?php endif; ?>
-      </div>
-    </div>
-    <?php endforeach; ?>
-    </div>
-  </section>
-  <?php endforeach; ?>
-  </div>
+    </section>
+
 </main>
 
+<!-- ========================= BOUTON DISCORD FLOTTANT ========================= -->
 <div class="fixed bottom-6 right-6 z-50">
-  <a href="/discord/" target="_blank" class="bg-[#5865F2] hover:bg-[#4752C4] text-white px-5 py-3.5 rounded-full font-bold flex items-center gap-2 shadow-2xl hover:scale-105 transform duration-200 transition">
-    <i class="fab fa-discord text-xl"></i>
-    <span class="hidden sm:inline text-sm"><?php echo t('discord.help'); ?></span>
-  </a>
+    <a href="/discord/" target="_blank"
+       class="bg-[#5865F2] hover:bg-[#4752C4] text-white px-5 py-3.5 rounded-full font-bold flex items-center gap-2 shadow-2xl hover:scale-105 transform duration-200 transition">
+        <i class="fab fa-discord text-xl"></i>
+        <span class="hidden sm:inline text-sm"><?php echo t('discord.help', 'Besoin d\'aide ?'); ?></span>
+    </a>
 </div>
 
 <?php include $_SERVER['DOCUMENT_ROOT'] . '/inc/footer.php'; ?>
-</body>
-<script src="https://<?php echo $_SERVER['HTTP_HOST']; ?>/inc/navbar.js?v=<?php echo filemtime($_SERVER['DOCUMENT_ROOT'] . '/inc/navbar.js'); ?>"></script>
 
+<script src="https://<?php echo $_SERVER['HTTP_HOST']; ?>/inc/navbar.js?v=<?php echo @filemtime($_SERVER['DOCUMENT_ROOT'] . '/inc/navbar.js') ?: time(); ?>"></script>
+
+</body>
 </html>

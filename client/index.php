@@ -402,7 +402,7 @@ try {
                         </h3>
                         
                         <div class="space-y-3">
-                            <a href="/offres/categories.php" class="flex items-center gap-3 p-3 bg-slate-700/30 hover:bg-slate-700/50 rounded-xl border border-slate-600 hover:border-sky-500/50 transition group">
+                            <a href="/offres/" class="flex items-center gap-3 p-3 bg-slate-700/30 hover:bg-slate-700/50 rounded-xl border border-slate-600 hover:border-sky-500/50 transition group">
                                 <div class="w-8 h-8 rounded-lg bg-sky-500/20 border border-sky-500/30 flex items-center justify-center">
                                     <i class="fas fa-tags text-sky-400 text-sm"></i>
                                 </div>
