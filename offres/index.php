@@ -24,7 +24,7 @@ $main_categories = [
         'icon'            => 'fas fa-gamepad',
         'color'           => 'from-blue-500 to-purple-600',
         'subcategories'   => ['minecraft', 'fivem', 'terraria', 'hytale'],
-        'link'            => '/gaming/' // <--- AJOUT DU LIEN ICI
+        'link'            => '/offres/gaming/' // <--- AJOUT DU LIEN ICI
     ],
     'web' => [
         'title_key'       => 'categories.web.title',
