@@ -1116,3 +1116,46 @@ $translations['discord.help'] = [
     'en' => 'Need help?',
     'de' => 'Brauchen Sie Hilfe?'
 ];
+$translations['categories.gaming.minecraft.title'] = [
+    'fr' => 'Minecraft',
+    'en' => 'Minecraft',
+    'de' => 'Minecraft'
+];
+$translations['categories.gaming.minecraft.description'] = [
+    'fr' => 'Serveurs Minecraft Java & Bedrock haute performance.',
+    'en' => 'High-performance Minecraft Java & Bedrock servers.',
+    'de' => 'Hochleistungs-Minecraft-Java- & -Bedrock-Server.'
+];
+
+$translations['categories.gaming.fivem.title'] = [
+    'fr' => 'FiveM',
+    'en' => 'FiveM',
+    'de' => 'FiveM'
+];
+$translations['categories.gaming.fivem.description'] = [
+    'fr' => 'Hébergement optimisé pour vos serveurs GTA V RP.',
+    'en' => 'Optimized hosting for your GTA V RP servers.',
+    'de' => 'Optimiertes Hosting für Ihre GTA-V-RP-Server.'
+];
+
+$translations['categories.gaming.terraria.title'] = [
+    'fr' => 'Terraria',
+    'en' => 'Terraria',
+    'de' => 'Terraria'
+];
+$translations['categories.gaming.terraria.description'] = [
+    'fr' => 'Serveurs Terraria pour vos aventures 2D.',
+    'en' => 'Terraria servers for your 2D adventures.',
+    'de' => 'Terraria-Server für Ihre 2D-Abenteuer.'
+];
+
+$translations['categories.gaming.hytale.title'] = [
+    'fr' => 'Hytale',
+    'en' => 'Hytale',
+    'de' => 'Hytale'
+];
+$translations['categories.gaming.hytale.description'] = [
+    'fr' => 'Préparez-vous pour Hytale avec nos serveurs dédiés.',
+    'en' => 'Get ready for Hytale with our dedicated servers.',
+    'de' => 'Bereiten Sie sich mit unseren dedizierten Servern auf Hytale vor.'
+];
