@@ -1,7 +1,7 @@
 <?php
 /**
- * OrinHeberge — Offres Gaming
- * Affiche les offres Minecraft, FiveM, Terraria et Hytale avec accès directs
+ * OrinHeberge — Offres Web & Applications
+ * Affiche les offres PHP, Node.js, Python et Java avec accès directs
  */
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
@@ -11,38 +11,38 @@ require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/lang.php';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/db.php';
 
 $active_nav = 'offers';
-$page_title = 'Offres Gaming';
+$page_title = 'Offres Web & Applications';
 $is_logged_in = isset($_SESSION['user_id']);
 
-// Sous-catégories Gaming
-$gaming_subcategories = [
-    'minecraft' => [
-        'title_key' => 'categories.gaming.minecraft.title',
-        'description_key' => 'categories.gaming.minecraft.description',
-        'icon' => 'fas fa-cube',
-        'color' => 'from-green-600 to-green-700',
-        'folder' => 'Minecraft' // <-- Nom exact du dossier
+// Sous-catégories Web
+$web_subcategories = [
+    'php' => [
+        'title_key' => 'categories.web.php.title',
+        'description_key' => 'categories.web.php.description',
+        'icon' => 'fab fa-php',
+        'color' => 'from-purple-600 to-purple-700',
+        'folder' => 'PHP'
     ],
-    'fivem' => [
-        'title_key' => 'categories.gaming.fivem.title',
-        'description_key' => 'categories.gaming.fivem.description',
-        'icon' => 'fas fa-car',
-        'color' => 'from-blue-600 to-blue-700',
-        'folder' => 'FiveM' // <-- Correction ici pour FiveM
+    'nodejs' => [
+        'title_key' => 'categories.web.nodejs.title',
+        'description_key' => 'categories.web.nodejs.description',
+        'icon' => 'fab fa-node-js',
+        'color' => 'from-green-500 to-green-600',
+        'folder' => 'NodeJS'
     ],
-    'terraria' => [
-        'title_key' => 'categories.gaming.terraria.title',
-        'description_key' => 'categories.gaming.terraria.description',
-        'icon' => 'fas fa-tree',
-        'color' => 'from-blue-500 to-cyan-500',
-        'folder' => 'Terraria'
+    'python' => [
+        'title_key' => 'categories.web.python.title',
+        'description_key' => 'categories.web.python.description',
+        'icon' => 'fab fa-python',
+        'color' => 'from-yellow-500 to-yellow-600',
+        'folder' => 'Python'
     ],
-    'hytale' => [
-        'title_key' => 'categories.gaming.hytale.title',
-        'description_key' => 'categories.gaming.hytale.description',
-        'icon' => 'fas fa-dragon',
-        'color' => 'from-orange-500 to-red-500',
-        'folder' => 'Hytale'
+    'java' => [
+        'title_key' => 'categories.web.java.title',
+        'description_key' => 'categories.web.java.description',
+        'icon' => 'fab fa-java',
+        'color' => 'from-red-500 to-red-600',
+        'folder' => 'Java'
     ]
 ];
 
@@ -68,11 +68,11 @@ try {
         }
     }
 
-    // Catégories actives (uniquement gaming)
+    // Catégories actives (uniquement web)
     $cq = $pdo->query('
         SELECT DISTINCT category_slug, name_key, icon, image_url, description_key
         FROM categories_products 
-        WHERE is_active=1 AND category_slug IN ("minecraft", "fivem", "terraria", "hytale")
+        WHERE is_active=1 AND category_slug IN ("php", "nodejs", "python", "java")
         GROUP BY category_slug, name_key, icon, image_url, description_key
         ORDER BY sort_order ASC
     ');
@@ -91,7 +91,7 @@ try {
         FROM categories_products cp
         JOIN products p ON p.id = cp.product_id
         WHERE cp.is_active = 1 AND p.is_active = 1 
-        AND cp.category_slug IN ('minecraft', 'fivem', 'terraria', 'hytale')
+        AND cp.category_slug IN ('php', 'nodejs', 'python', 'java')
         GROUP BY cp.category_slug
     ");
     while ($row = $count_stmt->fetch()) {
@@ -100,13 +100,13 @@ try {
         }
     }
 
-    // Produits Gaming
+    // Produits Web
     $stmt = $pdo->query("
         SELECT p.*, cp.category_slug, cp.icon AS cat_icon, cp.image_url AS cat_image
         FROM categories_products cp
         JOIN products p ON p.id = cp.product_id
         WHERE cp.is_active=1 AND p.is_active=1 
-        AND cp.category_slug IN ('minecraft', 'fivem', 'terraria', 'hytale')
+        AND cp.category_slug IN ('php', 'nodejs', 'python', 'java')
         ORDER BY p.sort_order, p.id
     ");
 
@@ -134,7 +134,7 @@ try {
             'price_value' => (float)$pr['price'],
             'period_key'  => $pr['type']==='free' ? 'offers.period.free' : 'offers.period.month',
             'free'        => $pr['type']==='free',
-            'icon'        => $pr['cat_icon'] ?? 'fas fa-server',
+            'icon'        => $pr['cat_icon'] ?? 'fas fa-code',
             'image_url'   => $pr['cat_image'] ?? '',
             'features'    => [
                 ['icon'=>'fas fa-memory',     'text'=>$rt],
@@ -145,7 +145,7 @@ try {
         ];
     }
 } catch (PDOException $e) {
-    error_log('Gaming offers error: ' . $e->getMessage());
+    error_log('Web offers error: ' . $e->getMessage());
 }
 
 function tierStyle(string $t): array {
@@ -164,8 +164,8 @@ function tierStyle(string $t): array {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Offres Gaming - OrinHeberge | Minecraft, FiveM, Terraria, Hytale</title>
-    <meta name="description" content="Serveurs gaming haute performance pour Minecraft, FiveM, Terraria et Hytale. Hébergement rapide et sécurisé.">
+    <title>Offres Web - OrinHeberge | PHP, Node.js, Python, Java</title>
+    <meta name="description" content="Hébergement web haute performance pour PHP, Node.js, Python et Java. Déployez vos applications en quelques clics.">
     <link rel="icon" type="image/png" href="/favicon.ico">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -173,23 +173,23 @@ function tierStyle(string $t): array {
     <style>
         body { background: #0b0f19; scroll-behavior: smooth; }
         .glass { background: rgba(255, 255, 255, .04); backdrop-filter: blur(14px); border: 1px solid rgba(255, 255, 255, .08); }
-        .gradient-text { background: linear-gradient(90deg, #38bdf8, #a855f7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .gradient-text { background: linear-gradient(90deg, #22c55e, #3b82f6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
         .card-hover { transition: transform .3s, box-shadow .3s; }
         .card-hover:hover { transform: translateY(-6px); box-shadow: 0 20px 40px rgba(0, 0, 0, .3); }
         .tab-btn { padding: .55rem 1.25rem; border-radius: 9999px; font-size: .82rem; font-weight: 600; transition: all .2s; border: 1px solid rgba(255, 255, 255, .1); background: rgba(255, 255, 255, .04); color: #9ca3af; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: .4rem; }
         .tab-btn:hover { background: rgba(255, 255, 255, .08); color: #e5e7eb; }
-        .tab-btn.active { background: rgba(56, 189, 248, .15); border-color: rgba(56, 189, 248, .4); color: #38bdf8; box-shadow: 0 0 15px rgba(56, 189, 248, .1); }
+        .tab-btn.active { background: rgba(34, 197, 94, .15); border-color: rgba(34, 197, 94, .4); color: #22c55e; box-shadow: 0 0 15px rgba(34, 197, 94, .1); }
         #cat-view { display: none; }
         .cat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; }
         
-        /* Style pour les liens de navigation jeu */
-        .game-card-link {
+        /* Style pour les liens de navigation techno */
+        .tech-card-link {
             display: block;
             transition: all 0.3s ease;
         }
-        .game-card-link:hover {
+        .tech-card-link:hover {
             transform: translateY(-8px);
-            box-shadow: 0 25px 50px -12px rgba(147, 51, 234, 0.25);
+            box-shadow: 0 25px 50px -12px rgba(34, 197, 94, 0.25);
         }
     </style>
 
@@ -233,8 +233,8 @@ function tierStyle(string $t): array {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    function scrollToGame(key) {
-        const section = document.getElementById('game-' + key);
+    function scrollToTech(key) {
+        const section = document.getElementById('tech-' + key);
         if (section) {
             filterCategory('all');
             setTimeout(() => {
@@ -252,34 +252,33 @@ function tierStyle(string $t): array {
 
 <main class="flex-grow">
 
-    <!-- HERO GAMING -->
+    <!-- HERO WEB -->
     <header class="text-center py-20 px-6 relative overflow-hidden">
-        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-purple-500/10 rounded-full blur-[150px] pointer-events-none"></div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-green-500/10 rounded-full blur-[150px] pointer-events-none"></div>
         <div class="relative z-10">
-            <div class="inline-flex items-center gap-2 bg-purple-500/10 text-purple-400 border border-purple-500/20 px-4 py-1.5 rounded-full text-xs font-semibold mb-5">
-                <i class="fas fa-gamepad"></i> Gaming
+            <div class="inline-flex items-center gap-2 bg-green-500/10 text-green-400 border border-green-500/20 px-4 py-1.5 rounded-full text-xs font-semibold mb-5">
+                <i class="fas fa-code"></i> Web & Applications
             </div>
             <h1 class="text-5xl md:text-7xl font-black tracking-tight leading-none gradient-text mb-4">
-                <?php echo t('categories.gaming.title'); ?>
+                <?php echo t('categories.web.title'); ?>
             </h1>
             <p class="text-gray-400 max-w-2xl mx-auto text-lg">
-                <?php echo t('categories.gaming.description'); ?>
+                <?php echo t('categories.web.description'); ?>
             </p>
         </div>
     </header>
 
-    <!-- NAVIGATION RAPIDE PAR JEU (LIENS DIRECTS) -->
+    <!-- NAVIGATION RAPIDE PAR TECHNOLOGIE (LIENS DIRECTS) -->
     <section class="max-w-7xl mx-auto px-6 pb-12">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <?php foreach ($gaming_subcategories as $key => $game): ?>
-            <!-- Utilisation de $game['folder'] pour avoir exactement "FiveM" et non "Fivem" -->
-            <a href="/offres/gaming/<?php echo $game['folder']; ?>/" class="game-card-link group bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10">
-                <div class="w-14 h-14 rounded-xl bg-gradient-to-r <?php echo $game['color']; ?> flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform">
-                    <i class="<?php echo $game['icon']; ?> text-2xl text-white"></i>
+            <?php foreach ($web_subcategories as $key => $tech): ?>
+            <a href="/offres/web/<?php echo $tech['folder']; ?>/" class="tech-card-link group bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10">
+                <div class="w-14 h-14 rounded-xl bg-gradient-to-r <?php echo $tech['color']; ?> flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform">
+                    <i class="<?php echo $tech['icon']; ?> text-2xl text-white"></i>
                 </div>
-                <h3 class="text-xl font-bold mb-2 text-white"><?php echo t($game['title_key']); ?></h3>
-                <p class="text-slate-400 text-sm mb-4 line-clamp-2"><?php echo t($game['description_key']); ?></p>
-                <div class="inline-flex items-center gap-2 text-sm font-semibold text-purple-400 group-hover:text-purple-300">
+                <h3 class="text-xl font-bold mb-2 text-white"><?php echo t($tech['title_key']); ?></h3>
+                <p class="text-slate-400 text-sm mb-4 line-clamp-2"><?php echo t($tech['description_key']); ?></p>
+                <div class="inline-flex items-center gap-2 text-sm font-semibold text-green-400 group-hover:text-green-300">
                     <?php echo t('categories.explore', 'Voir les offres'); ?>
                     <i class="fas fa-arrow-right transform group-hover:translate-x-1 transition-transform"></i>
                 </div>
@@ -288,12 +287,12 @@ function tierStyle(string $t): array {
         </div>
     </section>
 
-    <!-- FILTRES PAR JEU -->
+    <!-- FILTRES PAR TECHNOLOGIE -->
     <section class="sticky top-0 z-40 bg-[#0b0f19]/90 backdrop-blur-md border-b border-white/5 py-4 mb-8">
         <div class="max-w-7xl mx-auto px-6">
             <div class="flex flex-wrap justify-center gap-2.5">
                 <button onclick="filterCategory('all')" id="tab-all" class="tab-btn active">
-                    <i class="fas fa-th-large text-xs"></i> <?php echo t('offers.tab.all', 'Tous les jeux'); ?>
+                    <i class="fas fa-th-large text-xs"></i> <?php echo t('offers.tab.all', 'Toutes les technos'); ?>
                 </button>
                 <?php foreach ($dynamic_categories as $slug => $ci): ?>
                 <button onclick="filterCategory('<?php echo htmlspecialchars($slug); ?>')"
@@ -311,45 +310,45 @@ function tierStyle(string $t): array {
         </div>
     </section>
 
-    <!-- VUE FILTRÉE PAR JEU -->
+    <!-- VUE FILTRÉE PAR TECHNOLOGIE -->
     <section id="cat-view" class="py-12 px-6 min-h-[50vh]">
         <div class="text-center mb-12">
             <h2 class="text-4xl md:text-5xl font-black uppercase tracking-wider mb-3 gradient-text" id="cat-view-title"></h2>
-            <div class="h-1 w-20 bg-purple-500 mx-auto rounded-full"></div>
+            <div class="h-1 w-20 bg-green-500 mx-auto rounded-full"></div>
         </div>
         <div class="max-w-7xl mx-auto cat-grid" id="cat-view-grid"></div>
     </section>
 
-    <!-- OFFRES PAR JEU -->
+    <!-- OFFRES PAR TECHNOLOGIE -->
     <div id="all-sections">
-        <?php foreach ($gaming_subcategories as $game_key => $game): ?>
+        <?php foreach ($web_subcategories as $tech_key => $tech): ?>
             <?php
-                // Vérifie s'il y a des offres pour ce jeu
+                // Vérifie s'il y a des offres pour cette techno
                 $has_offers = false;
                 foreach ($sections as $t) {
                     foreach ($t['offers'] as $o) {
-                        if ($o['category'] === $game_key) { $has_offers = true; break 2; }
+                        if ($o['category'] === $tech_key) { $has_offers = true; break 2; }
                     }
                 }
                 if (!$has_offers) continue;
             ?>
             
-            <div id="game-<?php echo $game_key; ?>" class="mb-16 scroll-mt-24">
-                <!-- En-tête du jeu -->
+            <div id="tech-<?php echo $tech_key; ?>" class="mb-16 scroll-mt-24">
+                <!-- En-tête de la technologie -->
                 <div class="max-w-7xl mx-auto px-6 pt-8 pb-6 flex items-center gap-4 border-b border-white/5">
-                    <div class="w-12 h-12 rounded-lg bg-gradient-to-r <?php echo $game['color']; ?> flex items-center justify-center shadow-lg">
-                        <i class="<?php echo $game['icon']; ?> text-xl text-white"></i>
+                    <div class="w-12 h-12 rounded-lg bg-gradient-to-r <?php echo $tech['color']; ?> flex items-center justify-center shadow-lg">
+                        <i class="<?php echo $tech['icon']; ?> text-xl text-white"></i>
                     </div>
                     <div>
-                        <h2 class="text-3xl font-bold text-white"><?php echo t($game['title_key']); ?></h2>
-                        <p class="text-slate-400 text-sm"><?php echo t($game['description_key']); ?></p>
+                        <h2 class="text-3xl font-bold text-white"><?php echo t($tech['title_key']); ?></h2>
+                        <p class="text-slate-400 text-sm"><?php echo t($tech['description_key']); ?></p>
                     </div>
                 </div>
 
                 <!-- Offres par tier -->
                 <?php foreach ($sections as $tier_key => $tier):
-                    $tier_offers = array_filter($tier['offers'], function($o) use ($game_key) {
-                        return $o['category'] === $game_key;
+                    $tier_offers = array_filter($tier['offers'], function($o) use ($tech_key) {
+                        return $o['category'] === $tech_key;
                     });
                     
                     if (empty($tier_offers)) continue;
@@ -386,7 +385,7 @@ function tierStyle(string $t): array {
                             </div>
 
                             <div class="p-5 flex flex-col flex-grow">
-                                <h4 class="text-lg font-bold text-white mb-1 group-hover:text-purple-400 transition-colors">
+                                <h4 class="text-lg font-bold text-white mb-1 group-hover:text-green-400 transition-colors">
                                     <?php echo htmlspecialchars($offer['name']); ?>
                                 </h4>
                                 <p class="text-gray-400 text-xs flex-grow mb-4 leading-relaxed h-10 overflow-hidden">

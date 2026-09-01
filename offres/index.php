@@ -32,7 +32,8 @@ $main_categories = [
         'subtitle_key'    => 'categories.web.subtitle',
         'icon'            => 'fas fa-code',
         'color'           => 'from-green-500 to-blue-500',
-        'subcategories'   => ['php', 'nodejs', 'python', 'java']
+        'subcategories'   => ['php', 'nodejs', 'python', 'java'],
+        'link'            => '/offres/Web-&-Applications/'
     ],
     'database' => [
         'title_key'       => 'categories.database.title',
