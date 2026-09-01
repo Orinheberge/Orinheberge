@@ -811,7 +811,7 @@ $translations['client.no_recent_activity'] = [
     'de' => 'Keine aktuellen Aktivitäten anzuzeigen.'
 ];
 
-<?php
+
 // ==========================================
 // NAVIGATION & UI GÉNÉRALE
 // ==========================================
@@ -1111,3 +1111,8 @@ $translations['categories.security_desc'] = [
     'de' => 'DDoS-Schutz in allen Angeboten enthalten.'
 ];
 
+$translations['discord.help'] = [
+    'fr' => 'Besoin d\'aide ?',
+    'en' => 'Need help?',
+    'de' => 'Brauchen Sie Hilfe?'
+];
