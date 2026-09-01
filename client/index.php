@@ -69,21 +69,47 @@ $free_services   = array_filter($services, fn($s) => ($s['renewal_price'] ?? 0) 
 $suspended_services = array_filter($services, fn($s) => ($s['status'] ?? '') === 'suspended');
 $total_monthly_cost = array_sum(array_map(fn($s) => (float)($s['renewal_price'] ?? 0), $active_services));
 
-// Récupération des dernières activités (CORRECTION SQL ICI)
-// Utilisation de COALESSE pour gérer 'subject', 'title' ou 'sujet' automatiquement
-$stmt = $pdo->prepare("
-    SELECT 'ticket' as type, COALESCE(subject, title, sujet, 'Nouveau ticket') as description, created_at, status
-    FROM support_tickets 
-    WHERE user_id = ? 
-    UNION ALL
-    SELECT 'service' as type, service_name as description, created_at, status
-    FROM orders 
-    WHERE user_id = ?
-    ORDER BY created_at DESC 
-    LIMIT 8
-");
-$stmt->execute([$_SESSION['user_id'], $_SESSION['user_id']]);
-$recent_activities = $stmt->fetchAll();
+// Récupération des dernières activités - VERSION OPTIMISÉE & SÉCURISÉE
+$recent_activities = [];
+
+try {
+    // 1. Récupérer les tickets (Colonne confirmée : 'subject')
+    $stmt = $pdo->prepare("
+        SELECT 'ticket' as type, subject as description, created_at, status
+        FROM support_tickets 
+        WHERE user_id = ? 
+        ORDER BY created_at DESC 
+        LIMIT 8
+    ");
+    $stmt->execute([$_SESSION['user_id']]);
+    $recent_activities = $stmt->fetchAll();
+
+    // 2. Récupérer les services
+    $stmt = $pdo->prepare("
+        SELECT 'service' as type, service_name as description, created_at, status
+        FROM orders 
+        WHERE user_id = ?
+        ORDER BY created_at DESC 
+        LIMIT 8
+    ");
+    $stmt->execute([$_SESSION['user_id']]);
+    $services_activities = $stmt->fetchAll();
+    
+    // 3. Fusionner et trier chronologiquement
+    $all_activities = array_merge($recent_activities, $services_activities);
+    
+    usort($all_activities, function($a, $b) {
+        return strtotime($b['created_at']) <=> strtotime($a['created_at']);
+    });
+    
+    // Garder uniquement les 8 plus récentes
+    $recent_activities = array_slice($all_activities, 0, 8);
+
+} catch (PDOException $e) {
+    // En cas d'erreur critique sur une table, on affiche au moins ce qui fonctionne
+    error_log("Erreur Dashboard Activités: " . $e->getMessage());
+    // On garde $recent_activities tel quel (vide ou partiel) pour ne pas casser la page
+}
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo $lang; ?>">
