@@ -1,7 +1,7 @@
 <?php
 /**
  * OrinHeberge — Offres Web & Applications
- * Affiche les offres PHP, Node.js, Python et Java avec accès directs
+ * Affiche les offres PHP, Node.js, Python, Java et Azuriom avec accès directs
  */
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
@@ -28,21 +28,28 @@ $web_subcategories = [
         'description_key' => 'categories.web.nodejs.description',
         'icon' => 'fab fa-node-js',
         'color' => 'from-green-500 to-green-600',
-        'folder' => 'NodeJS'
+        'folder' => 'NODEJS'
     ],
     'python' => [
         'title_key' => 'categories.web.python.title',
         'description_key' => 'categories.web.python.description',
         'icon' => 'fab fa-python',
         'color' => 'from-yellow-500 to-yellow-600',
-        'folder' => 'Python'
+        'folder' => 'PYTHON'
     ],
     'java' => [
         'title_key' => 'categories.web.java.title',
         'description_key' => 'categories.web.java.description',
         'icon' => 'fab fa-java',
         'color' => 'from-red-500 to-red-600',
-        'folder' => 'Java'
+        'folder' => 'JAVA'
+    ],
+    'azuriom' => [
+        'title_key' => 'categories.web.azuriom.title',
+        'description_key' => 'categories.web.azuriom.description',
+        'icon' => 'fas fa-globe',
+        'color' => 'from-blue-600 to-cyan-600',
+        'folder' => 'AZURIOM'
     ]
 ];
 
@@ -68,11 +75,11 @@ try {
         }
     }
 
-    // Catégories actives (uniquement web)
+    // Catégories actives (uniquement web - incluant azuriom)
     $cq = $pdo->query('
         SELECT DISTINCT category_slug, name_key, icon, image_url, description_key
         FROM categories_products 
-        WHERE is_active=1 AND category_slug IN ("php", "nodejs", "python", "java")
+        WHERE is_active=1 AND category_slug IN ("php", "nodejs", "python", "java", "azuriom")
         GROUP BY category_slug, name_key, icon, image_url, description_key
         ORDER BY sort_order ASC
     ');
@@ -91,7 +98,7 @@ try {
         FROM categories_products cp
         JOIN products p ON p.id = cp.product_id
         WHERE cp.is_active = 1 AND p.is_active = 1 
-        AND cp.category_slug IN ('php', 'nodejs', 'python', 'java')
+        AND cp.category_slug IN ('php', 'nodejs', 'python', 'java', 'azuriom')
         GROUP BY cp.category_slug
     ");
     while ($row = $count_stmt->fetch()) {
@@ -106,7 +113,7 @@ try {
         FROM categories_products cp
         JOIN products p ON p.id = cp.product_id
         WHERE cp.is_active=1 AND p.is_active=1 
-        AND cp.category_slug IN ('php', 'nodejs', 'python', 'java')
+        AND cp.category_slug IN ('php', 'nodejs', 'python', 'java', 'azuriom')
         ORDER BY p.sort_order, p.id
     ");
 
@@ -164,8 +171,8 @@ function tierStyle(string $t): array {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Offres Web - OrinHeberge | PHP, Node.js, Python, Java</title>
-    <meta name="description" content="Hébergement web haute performance pour PHP, Node.js, Python et Java. Déployez vos applications en quelques clics.">
+    <title>Offres Web - OrinHeberge | PHP, Node.js, Python, Java, Azuriom</title>
+    <meta name="description" content="Hébergement web haute performance pour PHP, Node.js, Python, Java et Azuriom. Déployez vos applications en quelques clics.">
     <link rel="icon" type="image/png" href="/favicon.ico">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -270,7 +277,7 @@ function tierStyle(string $t): array {
 
     <!-- NAVIGATION RAPIDE PAR TECHNOLOGIE (LIENS DIRECTS) -->
     <section class="max-w-7xl mx-auto px-6 pb-12">
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
             <?php foreach ($web_subcategories as $key => $tech): ?>
             <a href="/offres/web/<?php echo $tech['folder']; ?>/" class="tech-card-link group bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10">
                 <div class="w-14 h-14 rounded-xl bg-gradient-to-r <?php echo $tech['color']; ?> flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform">
