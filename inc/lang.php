@@ -810,3 +810,304 @@ $translations['client.no_recent_activity'] = [
     'en' => 'No recent activity to display.',
     'de' => 'Keine aktuellen Aktivitäten anzuzeigen.'
 ];
+
+<?php
+// ==========================================
+// NAVIGATION & UI GÉNÉRALE
+// ==========================================
+$translations['client.quick_access'] = [
+    'fr' => 'Accès rapide',
+    'en' => 'Quick access',
+    'de' => 'Schnellzugriff'
+];
+
+$translations['categories.explore'] = [
+    'fr' => 'Découvrir',
+    'en' => 'Explore',
+    'de' => 'Entdecken'
+];
+
+$translations['categories.explore_title'] = [
+    'fr' => 'Explorez nos univers',
+    'en' => 'Explore our universes',
+    'de' => 'Entdecken Sie unsere Welten'
+];
+
+$translations['categories.explore_desc'] = [
+    'fr' => 'Choisissez votre domaine et découvrez les services adaptés à vos besoins.',
+    'en' => 'Choose your domain and discover services tailored to your needs.',
+    'de' => 'Wählen Sie Ihren Bereich und entdecken Sie maßgeschneiderte Dienste.'
+];
+
+// ==========================================
+// MACRO-CATÉGORIES
+// ==========================================
+$translations['categories.gaming.title'] = [
+    'fr' => 'Gaming',
+    'en' => 'Gaming',
+    'de' => 'Gaming'
+];
+
+$translations['categories.gaming.description'] = [
+    'fr' => 'Serveurs haute performance pour vos jeux multijoueurs préférés.',
+    'en' => 'High-performance servers for your favorite multiplayer games.',
+    'de' => 'Hochleistungsserver für Ihre Lieblings-Multiplayer-Spiele.'
+];
+
+$translations['categories.gaming.subtitle'] = [
+    'fr' => 'Minecraft, FiveM, Terraria et plus encore.',
+    'en' => 'Minecraft, FiveM, Terraria and more.',
+    'de' => 'Minecraft, FiveM, Terraria und mehr.'
+];
+
+$translations['categories.web.title'] = [
+    'fr' => 'Web & Applications',
+    'en' => 'Web & Apps',
+    'de' => 'Web & Apps'
+];
+
+$translations['categories.web.description'] = [
+    'fr' => 'Hébergement robuste pour vos sites web et applications backend.',
+    'en' => 'Robust hosting for your websites and backend applications.',
+    'de' => 'Robustes Hosting für Ihre Websites und Backend-Anwendungen.'
+];
+
+$translations['categories.web.subtitle'] = [
+    'fr' => 'PHP, Node.js, Python et Java.',
+    'en' => 'PHP, Node.js, Python and Java.',
+    'de' => 'PHP, Node.js, Python und Java.'
+];
+
+$translations['categories.database.title'] = [
+    'fr' => 'Bases de données',
+    'en' => 'Databases',
+    'de' => 'Datenbanken'
+];
+
+$translations['categories.database.description'] = [
+    'fr' => 'Solutions de bases de données managées, sécurisées et rapides.',
+    'en' => 'Managed, secure, and fast database solutions.',
+    'de' => 'Verwaltete, sichere und schnelle Datenbanklösungen.'
+];
+
+$translations['categories.database.subtitle'] = [
+    'fr' => 'MySQL, PostgreSQL et MongoDB.',
+    'en' => 'MySQL, PostgreSQL and MongoDB.',
+    'de' => 'MySQL, PostgreSQL und MongoDB.'
+];
+
+$translations['categories.storage.title'] = [
+    'fr' => 'Stockage',
+    'en' => 'Storage',
+    'de' => 'Speicher'
+];
+
+$translations['categories.storage.description'] = [
+    'fr' => 'Solutions de stockage de fichiers et de sauvegarde dans le cloud.',
+    'en' => 'Cloud file storage and backup solutions.',
+    'de' => 'Cloud-Dateispeicher- und Backup-Lösungen.'
+];
+
+$translations['categories.storage.subtitle'] = [
+    'fr' => 'Fichiers, Backups et CDN.',
+    'en' => 'Files, Backups and CDN.',
+    'de' => 'Dateien, Backups und CDN.'
+];
+
+// ==========================================
+// OFFRES & FILTRES
+// ==========================================
+$translations['offers.title'] = [
+    'fr' => 'Nos Offres',
+    'en' => 'Our Offers',
+    'de' => 'Unsere Angebote'
+];
+
+$translations['offers.subtitle'] = [
+    'fr' => 'Des solutions performantes, sécurisées et adaptées à tous vos projets.',
+    'en' => 'High-performance, secure solutions tailored to all your projects.',
+    'de' => 'Hochleistungs-, sichere Lösungen für alle Ihre Projekte.'
+];
+
+$translations['offers.badge'] = [
+    'fr' => 'Nos Solutions',
+    'en' => 'Our Solutions',
+    'de' => 'Unsere Lösungen'
+];
+
+$translations['offers.tab.all'] = [
+    'fr' => 'Tout voir',
+    'en' => 'View all',
+    'de' => 'Alle anzeigen'
+];
+
+// ==========================================
+// TIERS (NIVEAUX D'OFFRES)
+// ==========================================
+$translations['tier.free.title'] = [
+    'fr' => 'Gratuit',
+    'en' => 'Free',
+    'de' => 'Kostenlos'
+];
+$translations['tier.free.subtitle'] = [
+    'fr' => 'Pour découvrir nos services sans aucun engagement.',
+    'en' => 'To discover our services with no commitment.',
+    'de' => 'Um unsere Dienste unverbindlich zu entdecken.'
+];
+$translations['tier.free.label'] = [
+    'fr' => 'Starter',
+    'en' => 'Starter',
+    'de' => 'Starter'
+];
+
+$translations['tier.basic.title'] = [
+    'fr' => 'Basique',
+    'en' => 'Basic',
+    'de' => 'Basis'
+];
+$translations['tier.basic.subtitle'] = [
+    'fr' => 'Idéal pour les petits projets personnels et les tests.',
+    'en' => 'Ideal for small personal projects and testing.',
+    'de' => 'Ideal für kleine persönliche Projekte und Tests.'
+];
+$translations['tier.basic.label'] = [
+    'fr' => 'Essentiel',
+    'en' => 'Essential',
+    'de' => 'Essenziell'
+];
+
+$translations['tier.medium.title'] = [
+    'fr' => 'Intermédiaire',
+    'en' => 'Medium',
+    'de' => 'Mittel'
+];
+$translations['tier.medium.subtitle'] = [
+    'fr' => 'Le meilleur rapport qualité/prix pour grandir.',
+    'en' => 'The best value for money to grow.',
+    'de' => 'Das beste Preis-Leistungs-Verhältnis zum Wachsen.'
+];
+$translations['tier.medium.label'] = [
+    'fr' => 'Avancé',
+    'en' => 'Advanced',
+    'de' => 'Fortgeschritten'
+];
+
+$translations['tier.premium.title'] = [
+    'fr' => 'Premium',
+    'en' => 'Premium',
+    'de' => 'Premium'
+];
+$translations['tier.premium.subtitle'] = [
+    'fr' => 'Pour les projets exigeants et les communautés actives.',
+    'en' => 'For demanding projects and active communities.',
+    'de' => 'Für anspruchsvolle Projekte und aktive Communities.'
+];
+$translations['tier.premium.label'] = [
+    'fr' => 'Pro',
+    'en' => 'Pro',
+    'de' => 'Pro'
+];
+
+$translations['tier.mythic.title'] = [
+    'fr' => 'Mythique',
+    'en' => 'Mythic',
+    'de' => 'Mythisch'
+];
+$translations['tier.mythic.subtitle'] = [
+    'fr' => 'La puissance ultime sans aucun compromis.',
+    'en' => 'Ultimate power with absolutely no compromises.',
+    'de' => 'Ultimative Leistung ohne Kompromisse.'
+];
+$translations['tier.mythic.label'] = [
+    'fr' => 'Élite',
+    'en' => 'Elite',
+    'de' => 'Elite'
+];
+
+// ==========================================
+// BOUTONS & ACTIONS
+// ==========================================
+$translations['btn.deploy'] = [
+    'fr' => 'Déployer',
+    'en' => 'Deploy',
+    'de' => 'Bereitstellen'
+];
+
+$translations['btn.buy'] = [
+    'fr' => 'Commander',
+    'en' => 'Order',
+    'de' => 'Bestellen'
+];
+
+$translations['btn.login_to_buy'] = [
+    'fr' => 'Se connecter',
+    'en' => 'Log in',
+    'de' => 'Anmelden'
+];
+
+// ==========================================
+// PÉRIODES DE FACTURATION
+// ==========================================
+$translations['offers.period.free'] = [
+    'fr' => 'Gratuit',
+    'en' => 'Free',
+    'de' => 'Kostenlos'
+];
+
+$translations['offers.period.month'] = [
+    'fr' => '/ mois',
+    'en' => '/ month',
+    'de' => '/ Monat'
+];
+
+// ==========================================
+// SERVICES COMPLÉMENTAIRES
+// ==========================================
+$translations['categories.additional_services'] = [
+    'fr' => 'Services complémentaires',
+    'en' => 'Additional services',
+    'de' => 'Zusatzdienste'
+];
+
+$translations['categories.additional_description'] = [
+    'fr' => 'Optimisez votre infrastructure avec nos services additionnels.',
+    'en' => 'Optimize your infrastructure with our additional services.',
+    'de' => 'Optimieren Sie Ihre Infrastruktur mit unseren Zusatzdiensten.'
+];
+
+$translations['categories.databases'] = [
+    'fr' => 'Bases de données',
+    'en' => 'Databases',
+    'de' => 'Datenbanken'
+];
+
+$translations['categories.databases_desc'] = [
+    'fr' => 'MySQL, PostgreSQL & MongoDB managés.',
+    'en' => 'Managed MySQL, PostgreSQL & MongoDB.',
+    'de' => 'Verwaltete MySQL, PostgreSQL & MongoDB.'
+];
+
+$translations['categories.storage'] = [
+    'fr' => 'Stockage Objet',
+    'en' => 'Object Storage',
+    'de' => 'Objektspeicher'
+];
+
+$translations['categories.storage_desc'] = [
+    'fr' => 'Compatible S3 pour vos sauvegardes.',
+    'en' => 'S3 compatible for your backups.',
+    'de' => 'S3-kompatibel für Ihre Backups.'
+];
+
+$translations['categories.security'] = [
+    'fr' => 'Sécurité',
+    'en' => 'Security',
+    'de' => 'Sicherheit'
+];
+
+$translations['categories.security_desc'] = [
+    'fr' => 'Protection DDoS incluse sur toutes les offres.',
+    'en' => 'DDoS protection included on all offers.',
+    'de' => 'DDoS-Schutz in allen Angeboten enthalten.'
+];
+
