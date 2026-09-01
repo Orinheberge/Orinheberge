@@ -614,3 +614,199 @@ $translations['cookies.s3.text']  = ['fr' => 'Aucun cookie publicitaire ou de ci
 
 $translations['cookies.s4.title'] = ['fr' => 'Gestion des cookies', 'en' => 'Managing cookies', 'de' => 'Cookie-Verwaltung'];
 $translations['cookies.s4.text']  = ['fr' => 'Vous pouvez configurer ou bloquer les cookies directement depuis les options de votre navigateur web. Attention, la désactivation complète des cookies peut restreindre l\'accès à l\'espace client.', 'en' => 'You can configure or block cookies directly through your web browser settings. Please note that disabling essential cookies may limit access to your client area.', 'de' => 'Sie können Cookies direkt über die Einstellungen Ihres Webbrowsers konfigurieren oder blockieren. Bitte beachten Sie, dass die Deaktivierung essentieller Cookies den Zugriff auf Ihren Kundenbereich einschränken kann.'];
+
+// --- Traductions : Tableau de Bord Client (Dashboard) ---
+
+$translations['client.dashboard'] = [
+    'fr' => 'Tableau de bord',
+    'en' => 'Dashboard',
+    'de' => 'Übersicht'
+];
+
+$translations['client.welcome'] = [
+    'fr' => 'Bienvenue',
+    'en' => 'Welcome',
+    'de' => 'Willkommen'
+];
+
+$translations['client.dashboard_subtitle'] = [
+    'fr' => 'Voici un aperçu de vos services et activités récentes.',
+    'en' => 'Here is an overview of your services and recent activities.',
+    'de' => 'Hier ist eine Übersicht Ihrer Dienste und aktuellen Aktivitäten.'
+];
+
+$translations['client.view_profile'] = [
+    'fr' => 'Voir le profil',
+    'en' => 'View profile',
+    'de' => 'Profil ansehen'
+];
+
+// --- Statistiques ---
+
+$translations['client.services'] = [
+    'fr' => 'Services',
+    'en' => 'Services',
+    'de' => 'Dienste'
+];
+
+$translations['client.total_deployed'] = [
+    'fr' => 'Total déployés',
+    'en' => 'Total deployed',
+    'de' => 'Gesamt bereitgestellt'
+];
+
+$translations['client.active'] = [
+    'fr' => 'Actifs',
+    'en' => 'Active',
+    'de' => 'Aktiv'
+];
+
+$translations['client.online'] = [
+    'fr' => 'En ligne',
+    'en' => 'Online',
+    'de' => 'Online'
+];
+
+$translations['client.support'] = [
+    'fr' => 'Support',
+    'en' => 'Support',
+    'de' => 'Support'
+];
+
+$translations['client.open_tickets'] = [
+    'fr' => 'Tickets ouverts',
+    'en' => 'Open tickets',
+    'de' => 'Offene Tickets'
+];
+
+$translations['client.monthly_cost'] = [
+    'fr' => 'Coût mensuel',
+    'en' => 'Monthly cost',
+    'de' => 'Monatliche Kosten'
+];
+
+$translations['client.per_month'] = [
+    'fr' => 'Par mois',
+    'en' => 'Per month',
+    'de' => 'Pro Monat'
+];
+
+// --- Section Services ---
+
+$translations['client.my_services'] = [
+    'fr' => 'Mes services',
+    'en' => 'My services',
+    'de' => 'Meine Dienste'
+];
+
+$translations['client.manage_all'] = [
+    'fr' => 'Tout gérer',
+    'en' => 'Manage all',
+    'de' => 'Alle verwalten'
+];
+
+$translations['client.no_services'] = [
+    'fr' => 'Aucun service actif',
+    'en' => 'No active services',
+    'de' => 'Keine aktiven Dienste'
+];
+
+$translations['client.deploy_first_server'] = [
+    'fr' => 'Déployez votre premier serveur dès maintenant.',
+    'en' => 'Deploy your first server right now.',
+    'de' => 'Stellen Sie jetzt Ihren ersten Server bereit.'
+];
+
+$translations['client.view_offers'] = [
+    'fr' => 'Voir les offres',
+    'en' => 'View offers',
+    'de' => 'Angebote ansehen'
+];
+
+$translations['client.view_more_services'] = [
+    'fr' => 'Voir {count} service(s) de plus',
+    'en' => 'View {count} more service(s)',
+    'de' => '{count} weitere(n) Dienst(e) anzeigen'
+];
+
+// --- Statuts des services ---
+
+$translations['client.status_active'] = [
+    'fr' => 'Actif',
+    'en' => 'Active',
+    'de' => 'Aktiv'
+];
+
+$translations['client.status_suspended'] = [
+    'fr' => 'Suspendu',
+    'en' => 'Suspended',
+    'de' => 'Ausgesetzt'
+];
+
+$translations['client.status_expired'] = [
+    'fr' => 'Expiré',
+    'en' => 'Expired',
+    'de' => 'Abgelaufen'
+];
+
+$translations['client.status_free'] = [
+    'fr' => 'Gratuit',
+    'en' => 'Free',
+    'de' => 'Kostenlos'
+];
+
+$translations['client.status_pending'] = [
+    'fr' => 'En attente',
+    'en' => 'Pending',
+    'de' => 'Ausstehend'
+];
+
+// --- Accès Rapide & Activité ---
+
+$translations['client.quick_access'] = [
+    'fr' => 'Accès rapide',
+    'en' => 'Quick access',
+    'de' => 'Schnellzugriff'
+];
+
+$translations['client.browse_offers'] = [
+    'fr' => 'Nos offres',
+    'en' => 'Our offers',
+    'de' => 'Unsere Angebote'
+];
+
+$translations['client.plans_pricing'] = [
+    'fr' => 'Plans et tarifs',
+    'en' => 'Plans & pricing',
+    'de' => 'Pläne & Preise'
+];
+
+$translations['client.open_ticket'] = [
+    'fr' => 'Ouvrir un ticket',
+    'en' => 'Open a ticket',
+    'de' => 'Ticket eröffnen'
+];
+
+$translations['client.billing'] = [
+    'fr' => 'Facturation',
+    'en' => 'Billing',
+    'de' => 'Rechnungswesen'
+];
+
+$translations['client.invoices_receipts'] = [
+    'fr' => 'Factures et reçus',
+    'en' => 'Invoices & receipts',
+    'de' => 'Rechnungen & Quittungen'
+];
+
+$translations['client.recent_activity'] = [
+    'fr' => 'Activité récente',
+    'en' => 'Recent activity',
+    'de' => 'Letzte Aktivitäten'
+];
+
+$translations['client.no_recent_activity'] = [
+    'fr' => 'Aucune activité récente à afficher.',
+    'en' => 'No recent activity to display.',
+    'de' => 'Keine aktuellen Aktivitäten anzuzeigen.'
+];
