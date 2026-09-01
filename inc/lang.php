@@ -1159,3 +1159,78 @@ $translations['categories.gaming.hytale.description'] = [
     'en' => 'Get ready for Hytale with our dedicated servers.',
     'de' => 'Bereiten Sie sich mit unseren dedizierten Servern auf Hytale vor.'
 ];
+
+// ==========================================
+// CATÉGORIES WEB & APPLICATIONS
+// ==========================================
+$translations['categories.web.title'] = [
+    'fr' => 'Web & Applications',
+    'en' => 'Web & Applications',
+    'de' => 'Web & Anwendungen'
+];
+
+$translations['categories.web.description'] = [
+    'fr' => 'Hébergement haute performance pour vos sites web et applications backend.',
+    'en' => 'High-performance hosting for your websites and backend applications.',
+    'de' => 'Hochleistungs-Hosting für Ihre Websites und Backend-Anwendungen.'
+];
+
+$translations['categories.web.php.title'] = [
+    'fr' => 'PHP',
+    'en' => 'PHP',
+    'de' => 'PHP'
+];
+
+$translations['categories.web.php.description'] = [
+    'fr' => 'Hébergement PHP optimisé avec les dernières versions et extensions.',
+    'en' => 'Optimized PHP hosting with the latest versions and extensions.',
+    'de' => 'Optimiertes PHP-Hosting mit den neuesten Versionen und Erweiterungen.'
+];
+
+$translations['categories.web.nodejs.title'] = [
+    'fr' => 'Node.js',
+    'en' => 'Node.js',
+    'de' => 'Node.js'
+];
+
+$translations['categories.web.nodejs.description'] = [
+    'fr' => 'Serveurs Node.js performants pour vos applications temps réel.',
+    'en' => 'High-performance Node.js servers for your real-time applications.',
+    'de' => 'Hochleistungs-Node.js-Server für Ihre Echtzeit-Anwendungen.'
+];
+
+$translations['categories.web.python.title'] = [
+    'fr' => 'Python',
+    'en' => 'Python',
+    'de' => 'Python'
+];
+
+$translations['categories.web.python.description'] = [
+    'fr' => 'Hébergement Python pour Django, Flask et vos bots.',
+    'en' => 'Python hosting for Django, Flask and your bots.',
+    'de' => 'Python-Hosting für Django, Flask und Ihre Bots.'
+];
+
+$translations['categories.web.java.title'] = [
+    'fr' => 'Java',
+    'en' => 'Java',
+    'de' => 'Java'
+];
+
+$translations['categories.web.java.description'] = [
+    'fr' => 'Hébergement Java pour Spring Boot, applications et serveurs.',
+    'en' => 'Java hosting for Spring Boot, applications and servers.',
+    'de' => 'Java-Hosting für Spring Boot, Anwendungen und Server.'
+];
+
+$translations['categories.web.azuriom.title'] = [
+    'fr' => 'Azuriom',
+    'en' => 'Azuriom',
+    'de' => 'Azuriom'
+];
+
+$translations['categories.web.azuriom.description'] = [
+    'fr' => 'Hébergement optimisé pour le CMS Azuriom.',
+    'en' => 'Optimized hosting for the Azuriom CMS.',
+    'de' => 'Optimiertes Hosting für das Azuriom-CMS.'
+];

@@ -279,7 +279,7 @@ function tierStyle(string $t): array {
     <section class="max-w-7xl mx-auto px-6 pb-12">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
             <?php foreach ($web_subcategories as $key => $tech): ?>
-            <a href="/offres/web/<?php echo $tech['folder']; ?>/" class="tech-card-link group bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10">
+            <a href="/offres/Web-&-Applications/<?php echo $tech['folder']; ?>/" class="tech-card-link group bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10">
                 <div class="w-14 h-14 rounded-xl bg-gradient-to-r <?php echo $tech['color']; ?> flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform">
                     <i class="<?php echo $tech['icon']; ?> text-2xl text-white"></i>
                 </div>
