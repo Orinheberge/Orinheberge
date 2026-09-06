@@ -1,11 +1,10 @@
 <?php
 declare(strict_types=1);
-require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/lang.php';
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
 session_start();
-
+require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/lang.php';
 /*
 |--------------------------------------------------------------------------
 | SECURITY & INIT
