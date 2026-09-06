@@ -174,6 +174,7 @@ function tierStyle(string $t): array {
     <title>Offres Web - OrinHeberge | PHP, Node.js, Python, Java, Azuriom</title>
     <meta name="description" content="Hébergement web haute performance pour PHP, Node.js, Python, Java et Azuriom. Déployez vos applications en quelques clics.">
     <link rel="icon" type="image/png" href="/favicon.ico">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/devicon/devicon@v2.15.1/devicon.min.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     

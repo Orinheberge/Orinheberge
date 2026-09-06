@@ -1,6 +1,7 @@
 <?php
 // notifications include: outputs the bell button and polling JS for announcements
 ?>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/devicon/devicon@v2.15.1/devicon.min.css">
 <link href="/assets/css/notifications.css?v=<?php echo filemtime($_SERVER['DOCUMENT_ROOT'] . '/inc/notifications.css'); ?>" rel="stylesheet">
 <div id="notificationRoot" class="relative">
     <button id="notifBtn" class="glass px-3 py-2 rounded-full text-xs flex items-center gap-2 hover:bg-white/5 transition relative">

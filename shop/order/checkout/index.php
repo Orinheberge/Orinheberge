@@ -69,6 +69,7 @@ $return_url = $scheme . '://' . $_SERVER['HTTP_HOST'] . '/shop/order/success/';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/devicon/devicon@v2.15.1/devicon.min.css">
     <title>Paiement Sécurisé | OrinHeberge</title>
     <script src="https://js.stripe.com/v3/"></script>
     <script src="https://cdn.tailwindcss.com"></script>

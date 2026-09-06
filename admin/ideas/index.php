@@ -99,6 +99,8 @@ $active_nav = 'ideas';
 include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_layout.php';
 ?>
 
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/devicon/devicon@v2.15.1/devicon.min.css">
+
 <div class="main-content">
   <div class="topbar flex items-center justify-between p-4 border-b border-white/10">
     <div class="flex items-center gap-3">

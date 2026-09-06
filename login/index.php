@@ -20,6 +20,7 @@ $errorMessages = [
     <meta charset="UTF-8">
     <title><?php echo t('login.title'); ?> - OrinHeberge</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/devicon/devicon@v2.15.1/devicon.min.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         body { background: radial-gradient(circle at top left, #1e293b, #020617); }

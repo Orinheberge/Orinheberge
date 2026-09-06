@@ -53,6 +53,7 @@ $_SESSION['current_renewal_order_id'] = $order_row_id;
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Renouvellement — <?= htmlspecialchars($order['service_name']) ?> | OrinHeberge</title>
     <link rel="icon" type="image/png" href="/favicon.png">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/devicon/devicon@v2.15.1/devicon.min.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>

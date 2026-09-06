@@ -18,6 +18,7 @@ $tokenValid = $validation['valid'] ?? false;
     <link rel="icon" type="image/png" href="https://heberge.orinstone.deepstone.fr/favicon.ico">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/devicon/devicon@v2.15.1/devicon.min.css">
     <style>
         body { background: radial-gradient(circle at top left, #1e293b, #020617); }
         .glass { background: rgba(255,255,255,0.03); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }

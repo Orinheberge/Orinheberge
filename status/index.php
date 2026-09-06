@@ -164,6 +164,7 @@ function timeAgo($datetime, $lang) {
     <meta name="keywords" content="statut serveur, monitoring, état des services, uptime, disponibilité, OrinHeberge status, monitoring VPS, état Minecraft">
     <meta name="author" content="OrinHeberge">
     <meta name="robots" content="index, follow">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/devicon/devicon@v2.15.1/devicon.min.css">
     <link rel="canonical" href="https://heberge.orinstone.deepstone.fr/status/">
 
     <!-- Open Graph / Facebook -->

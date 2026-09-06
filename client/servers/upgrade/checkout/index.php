@@ -141,6 +141,7 @@ $disk_t = $new_product['disk'] >= 1024 ? number_format($new_product['disk']/1024
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Paiement upgrade — <?= htmlspecialchars($server['service_name']) ?> | OrinHeberge</title>
     <script src="https://js.stripe.com/v3/"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/devicon/devicon@v2.15.1/devicon.min.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>

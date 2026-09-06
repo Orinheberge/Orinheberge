@@ -163,7 +163,7 @@ include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_layout.php';
 ?>
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/devicon/devicon@v2.15.1/devicon.min.css">
 <div class="main-content p-6 bg-[#0d1117] min-h-screen text-gray-100">
   <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 pb-6 border-b border-white/[0.05]">
     <div class="flex items-center gap-3">

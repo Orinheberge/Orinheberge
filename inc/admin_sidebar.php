@@ -52,6 +52,7 @@ $_critical_maintenance = $pdo->query("
 
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/devicon/devicon@v2.15.1/devicon.min.css">
 <link href="/assets/css/admin_sidebar.css" rel="stylesheet">
 
 
