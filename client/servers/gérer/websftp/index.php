@@ -1,4 +1,6 @@
 <?php
+declare(strict_types=1);
+require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/lang.php';
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
@@ -6,7 +8,7 @@ session_start();
 
 /*
 |--------------------------------------------------------------------------
-| SECURITY
+| SECURITY & INIT
 |--------------------------------------------------------------------------
 */
 
@@ -15,11 +17,11 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
-if (!isset($_GET['uuid'])) {
+$uuid = $_GET['uuid'] ?? null;
+if (!$uuid) {
+    http_response_code(400);
     die("UUID manquant");
 }
-
-$uuid = $_GET['uuid'];
 
 /*
 |--------------------------------------------------------------------------
@@ -33,25 +35,31 @@ try {
         "root",
         "1504",
         [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES   => false,
         ]
     );
-} catch(PDOException $e) {
-    die($e->getMessage());
+} catch (PDOException $e) {
+    http_response_code(500);
+    die("Erreur critique BDD.");
 }
 
-// Récupération de la configuration (Panel URL et API Key) depuis la BDD
+// Récupération config
 $cfg = [];
-foreach ($pdo->query('SELECT `key`, `value` FROM settings') as $row) {
-    $cfg[$row['key']] = $row['value'];
+try {
+    foreach ($pdo->query('SELECT `key`, `value` FROM settings') as $row) {
+        $cfg[$row['key']] = $row['value'];
+    }
+} catch (Exception $e) {
+    $cfg = [];
 }
 
 $panel   = $cfg['panel_url'] ?? 'https://panel.orinstone.deepstone.fr';
-$api_key = $cfg['api_key_client'] ?? ''; // Clé API liée à la database
+$api_key = $cfg['api_key_client'] ?? '';
 
 if (empty($api_key)) {
-    die("Erreur de configuration : Clé API manquante dans la base de données.");
+    die("Configuration API manquante.");
 }
 
 $headers = [
@@ -62,289 +70,213 @@ $headers = [
 
 /*
 |--------------------------------------------------------------------------
-| SERVER CHECK
+| SERVER VERIFICATION
 |--------------------------------------------------------------------------
 */
 
-$stmt = $pdo->prepare("
-    SELECT *
-    FROM orders
-    WHERE user_id = ?
-    AND uuid = ?
-");
-
-$stmt->execute([
-    $_SESSION['user_id'],
-    $uuid
-]);
-
-$server = $stmt->fetch(PDO::FETCH_ASSOC);
+$stmt = $pdo->prepare("SELECT * FROM orders WHERE user_id = ? AND uuid = ? LIMIT 1");
+$stmt->execute([$_SESSION['user_id'], $uuid]);
+$server = $stmt->fetch();
 
 if (!$server) {
-    die("Serveur introuvable");
+    http_response_code(403);
+    die("Accès refusé ou serveur introuvable.");
 }
 
-$short = substr($uuid, 0, 8);
+$short     = substr($uuid, 0, 8);
 $directory = $_GET['dir'] ?? "/";
 
 /*
 |--------------------------------------------------------------------------
-| CREATE FOLDER
+| ACTIONS (POST/GET)
 |--------------------------------------------------------------------------
 */
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_folder'])) {
-    $folder = trim($_POST['folder_name']);
+$redirectUrl = "?uuid=" . urlencode($uuid) . "&dir=" . urlencode($directory);
 
+// 1. Create Folder
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'create_folder') {
+    $folder = trim($_POST['folder_name'] ?? '');
     if ($folder !== "") {
         $ch = curl_init();
         curl_setopt_array($ch, [
-            CURLOPT_URL => $panel . "/api/client/servers/" . $short . "/files/create-folder",
+            CURLOPT_URL => "$panel/api/client/servers/$short/files/create-folder",
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => json_encode([
-                "root" => $directory,
-                "name" => $folder
-            ]),
+            CURLOPT_POSTFIELDS => json_encode(["root" => $directory, "name" => $folder]),
             CURLOPT_HTTPHEADER => $headers
         ]);
         curl_exec($ch);
+        curl_close($ch);
     }
-
-    header("Location: ?uuid=$uuid&dir=" . urlencode($directory));
+    header("Location: $redirectUrl");
     exit();
 }
 
-/*
-|--------------------------------------------------------------------------
-| DELETE FILE
-|--------------------------------------------------------------------------
-*/
-
+// 2. Delete File
 if (isset($_GET['delete'])) {
     $target = $_GET['delete'];
-
     $ch = curl_init();
     curl_setopt_array($ch, [
-        CURLOPT_URL => $panel . "/api/client/servers/" . $short . "/files/delete",
+        CURLOPT_URL => "$panel/api/client/servers/$short/files/delete",
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_POST => true,
         CURLOPT_POSTFIELDS => json_encode([
             "root" => dirname($target),
-            "files" => [
-                basename($target)
-            ]
+            "files" => [basename($target)]
         ]),
         CURLOPT_HTTPHEADER => $headers
     ]);
     curl_exec($ch);
-
-    header("Location: ?uuid=$uuid&dir=" . urlencode($directory));
+    curl_close($ch);
+    header("Location: $redirectUrl");
     exit();
 }
 
-/*
-|--------------------------------------------------------------------------
-| RENAME
-|--------------------------------------------------------------------------
-*/
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rename_file'])) {
-    $from = $_POST['old_name'];
-    $to = trim($_POST['new_name']);
-
-    if ($to !== "") {
+// 3. Rename File
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'rename') {
+    $from = $_POST['old_name'] ?? '';
+    $to   = trim($_POST['new_name'] ?? '');
+    if ($to !== "" && $from !== "") {
         $ch = curl_init();
         curl_setopt_array($ch, [
-            CURLOPT_URL => $panel . "/api/client/servers/" . $short . "/files/rename",
+            CURLOPT_URL => "$panel/api/client/servers/$short/files/rename",
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_POST => true,
             CURLOPT_POSTFIELDS => json_encode([
                 "root" => dirname($from),
-                "files" => [
-                    [
-                        "from" => basename($from),
-                        "to" => $to
-                    ]
-                ]
+                "files" => [["from" => basename($from), "to" => $to]]
             ]),
             CURLOPT_HTTPHEADER => $headers
         ]);
         curl_exec($ch);
+        curl_close($ch);
     }
-
-    header("Location: ?uuid=$uuid&dir=" . urlencode($directory));
+    header("Location: $redirectUrl");
     exit();
 }
 
-/*
-|--------------------------------------------------------------------------
-| SAVE FILE
-|--------------------------------------------------------------------------
-*/
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_file'])) {
-    $file = $_POST['file_path'];
-    $content = $_POST['content'];
-
-    $ch = curl_init();
-    curl_setopt_array($ch, [
-        CURLOPT_URL => $panel . "/api/client/servers/" . $short . "/files/write?file=" . urlencode($file),
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_CUSTOMREQUEST => "POST",
-        CURLOPT_POSTFIELDS => $content,
-        CURLOPT_HTTPHEADER => [
-            "Authorization: Bearer $api_key",
-            "Content-Type: text/plain",
-            "Accept: application/vnd.pterodactyl.v1+json"
-        ]
-    ]);
-    curl_exec($ch);
-
-    header("Location: ?uuid=$uuid&dir=" . urlencode(dirname($file)));
+// 4. Save File Content
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'save_file') {
+    $file    = $_POST['file_path'] ?? '';
+    $content = $_POST['content'] ?? '';
+    
+    if ($file) {
+        $ch = curl_init();
+        curl_setopt_array($ch, [
+            CURLOPT_URL => "$panel/api/client/servers/$short/files/write?file=" . urlencode($file),
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_CUSTOMREQUEST => "POST",
+            CURLOPT_POSTFIELDS => $content,
+            CURLOPT_HTTPHEADER => [
+                "Authorization: Bearer $api_key",
+                "Content-Type: text/plain",
+                "Accept: application/vnd.pterodactyl.v1+json"
+            ]
+        ]);
+        curl_exec($ch);
+        curl_close($ch);
+    }
+    header("Location: ?uuid=" . urlencode($uuid) . "&dir=" . urlencode(dirname($file)));
     exit();
 }
 
-/*
-|--------------------------------------------------------------------------
-| UPLOAD
-|--------------------------------------------------------------------------
-*/
-
+// 5. Upload File
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['upload_file'])) {
+    // Step 1: Get Signed URL
     $ch = curl_init();
     curl_setopt_array($ch, [
-        CURLOPT_URL => $panel . "/api/client/servers/" . $short . "/files/upload",
+        CURLOPT_URL => "$panel/api/client/servers/$short/files/upload",
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_HTTPHEADER => $headers
     ]);
-
-    $uploadData = json_decode(curl_exec($ch), true);
-
+    $response = curl_exec($ch);
+    curl_close($ch);
+    
+    $uploadData = json_decode($response, true);
+    
     if (isset($uploadData['attributes']['url'])) {
         $uploadUrl = $uploadData['attributes']['url'];
-
-        $file = new CURLFile(
+        $fileObj   = new CURLFile(
             $_FILES['upload_file']['tmp_name'],
             $_FILES['upload_file']['type'],
             $_FILES['upload_file']['name']
         );
 
-        $post = [
-            "files" => $file
-        ];
-
+        // Step 2: Upload to Signed URL
         $up = curl_init();
         curl_setopt_array($up, [
             CURLOPT_URL => $uploadUrl . "&directory=" . urlencode($directory),
             CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => $post,
+            CURLOPT_POSTFIELDS => ["files" => $fileObj],
             CURLOPT_RETURNTRANSFER => true
         ]);
         curl_exec($up);
+        curl_close($up);
     }
-
-    header("Location: ?uuid=$uuid&dir=" . urlencode($directory));
+    header("Location: $redirectUrl");
     exit();
 }
 
 /*
 |--------------------------------------------------------------------------
-| FILE CONTENT
+| DATA FETCHING
 |--------------------------------------------------------------------------
 */
 
 $fileContent = "";
+$editFile    = $_GET['edit'] ?? null;
 
-if (isset($_GET['edit'])) {
-    $file = $_GET['edit'];
-
+// Fetch File Content for Editor
+if ($editFile) {
     $ch = curl_init();
     curl_setopt_array($ch, [
-        CURLOPT_URL => $panel . "/api/client/servers/" . $short . "/files/contents?file=" . urlencode($file),
+        CURLOPT_URL => "$panel/api/client/servers/$short/files/contents?file=" . urlencode($editFile),
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_HTTPHEADER => $headers
     ]);
     $fileContent = curl_exec($ch);
+    curl_close($ch);
 }
 
-/*
-|--------------------------------------------------------------------------
-| FILE LIST
-|--------------------------------------------------------------------------
-*/
-
+// Fetch File List
 $ch = curl_init();
 curl_setopt_array($ch, [
-    CURLOPT_URL => $panel . "/api/client/servers/" . $short . "/files/list?directory=" . urlencode($directory),
+    CURLOPT_URL => "$panel/api/client/servers/$short/files/list?directory=" . urlencode($directory),
     CURLOPT_RETURNTRANSFER => true,
     CURLOPT_HTTPHEADER => $headers
 ]);
 $response = curl_exec($ch);
+curl_close($ch);
 
-$data = json_decode($response, true);
+$data  = json_decode($response, true);
+$files = $data['data'] ?? [];
 
-/*
-|--------------------------------------------------------------------------
-| CODEMIRROR MODE
-|--------------------------------------------------------------------------
-*/
+// Determine CodeMirror Mode
+$extension = strtolower(pathinfo($editFile ?? '', PATHINFO_EXTENSION));
+$modeMap = [
+    'js' => 'javascript', 'html' => 'htmlmixed', 'htm' => 'htmlmixed',
+    'css' => 'css', 'php' => 'application/x-httpd-php', 'json' => 'application/json',
+    'yml' => 'yaml', 'yaml' => 'yaml', 'xml' => 'xml', 'toml' => 'toml',
+    'sh' => 'shell', 'bash' => 'shell'
+];
+$mode = $modeMap[$extension] ?? 'text/plain';
 
-$editFile = $_GET['edit'] ?? '';
-$extension = strtolower(pathinfo($editFile, PATHINFO_EXTENSION));
-$mode = "text/plain";
-
-switch($extension){
-    case "js":
-        $mode = "javascript";
-        break;
-    case "html":
-    case "htm":
-        $mode = "htmlmixed";
-        break;
-    case "css":
-        $mode = "css";
-        break;
-    case "php":
-        $mode = "application/x-httpd-php";
-        break;
-    case "json":
-        $mode = "application/json";
-        break;
-    case "yml":
-    case "yaml":
-        $mode = "yaml";
-        break;
-    case "properties":
-        $mode = "properties";
-        break;
-    case "xml":
-        $mode = "xml";
-        break;
-    case "toml":
-        $mode = "toml";
-        break;
-    case "sh":
-    case "bash":
-        $mode = "shell";
-        break;
-    default:
-        $mode = "text/plain";
-}
 ?>
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebSFTP | OrinHeberge</title>
+    <title>Gestionnaire de Fichiers - <?= htmlspecialchars($server['service_name']) ?></title>
     
-    <link class="rounded-full" rel="icon" type="image/png" href="https://heberge.orinstone.deepstone.fr/favicon.ico">
-    
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- CodeMirror -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
@@ -353,202 +285,231 @@ switch($extension){
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/htmlmixed/htmlmixed.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/php/php.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/yaml/yaml.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/properties/properties.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/toml/toml.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/shell/shell.min.js"></script>
 
     <style>
-        body {
-            background: radial-gradient(circle at top left, #1e293b, #020617);
-            scroll-behavior: smooth;
-        }
-        .glass {
-            background: rgba(255,255,255,0.04);
-            backdrop-filter: blur(14px);
-            border: 1px solid rgba(255,255,255,0.08);
-        }
-        .gradient-text {
-            background: linear-gradient(90deg, #38bdf8, #818cf8);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        .mobile-menu {
-            display: none;
-        }
-        .mobile-menu.active {
-            display: block;
-        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #1f2937; }
+        ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #6b7280; }
+        
         .CodeMirror {
-            height: 650px;
-            border-radius: 16px;
+            height: 600px;
+            border-radius: 0.5rem;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
             font-size: 14px;
-            border: 1px solid rgba(255,255,255,.08);
+        }
+        
+        /* Glass Effect Utilities */
+        .glass-panel {
+            background: rgba(31, 41, 55, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(75, 85, 99, 0.4);
         }
     </style>
-	
-	<link rel="manifest" href="/manifest.json">
-
-<script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js')
-        .then(reg => console.log('Service Worker enregistré avec succès ! Scope:', reg.scope))
-        .catch(err => console.log('Échec de l\'enregistrement du Service Worker:', err));
-    });
-  }
-</script>
 </head>
 
-<body class="text-gray-200 font-sans min-h-screen flex flex-col justify-between">
+<body class="bg-gray-900 text-gray-100 font-sans antialiased min-h-screen flex flex-col">
 
-    <!-- Inclusion de la Sidebar -->
+    <!-- Sidebar Inclusion -->
     <?php 
     try {
         if (file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php')) {
             include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php';
         }
     } catch (Throwable $e) {
-        echo '<div style="background:#ef4444;color:white;padding:20px;">❌ Sidebar error : ' . htmlspecialchars($e->getMessage()) . '</div>';
+        echo '<div class="bg-red-600 text-white p-4">Sidebar Error</div>';
     }
     ?>
 
-    <div class="max-w-7xl mx-auto py-10 px-6 flex-grow w-full">
-        <div class="flex justify-between items-center mb-8">
-            <div>
-                <h1 class="text-4xl font-black text-sky-400">WebSFTP</h1>
-                <p class="text-gray-400 text-sm mt-1">
-                    <?= htmlspecialchars($server['service_name']) ?>
-                </p>
-            </div>
-            <a href="/client/servers/" class="bg-sky-600 hover:bg-sky-500 px-5 py-2 rounded-xl font-bold transition">
-                Retour
-            </a>
-        </div>
-
-        <div class="glass rounded-2xl p-6 mb-5">
-            <div class="text-sm text-gray-300 mb-4 font-mono">
-                📂 <?= htmlspecialchars($directory) ?>
+    <!-- Main Content Area -->
+    <main class="flex-1 p-4 md:p-8 overflow-y-auto">
+        
+        <!-- Header & Breadcrumb -->
+        <div class="mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <h1 class="text-2xl font-bold text-white flex items-center gap-3">
+                    <i class="fas fa-folder-tree text-blue-500"></i>
+                    Gestionnaire de Fichiers
+                </h1>
+                <a href="/client/servers/" class="text-sm text-gray-400 hover:text-white transition flex items-center gap-2">
+                    <i class="fas fa-arrow-left"></i> Retour aux serveurs
+                </a>
             </div>
 
-            <form method="POST" enctype="multipart/form-data" class="flex flex-wrap items-center gap-3">
-                <input type="file" name="upload_file" required class="text-sm block text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-white/5 file:text-white hover:file:bg-white/10 file:transition">
-                <button class="bg-emerald-600 hover:bg-emerald-500 px-4 py-2 rounded-xl text-sm font-bold transition">
-                    Upload
-                </button>
-            </form>
-
-            <form method="POST" class="mt-4 flex gap-3">
-                <input type="text" name="folder_name" placeholder="Nom du dossier" required class="bg-black/40 border border-white/10 px-4 py-2 rounded-xl text-sm w-full focus:outline-none focus:border-sky-500">
-                <button name="create_folder" class="bg-sky-600 hover:bg-sky-500 px-4 py-2 rounded-xl text-sm font-bold transition whitespace-nowrap">
-                    Créer dossier
-                </button>
-            </form>
+            <!-- Breadcrumb Navigation -->
+            <nav class="flex items-center text-sm text-gray-400 bg-gray-800/50 p-3 rounded-lg border border-gray-700 overflow-x-auto whitespace-nowrap">
+                <a href="?uuid=<?= urlencode($uuid) ?>&dir=/" class="hover:text-blue-400 transition"><i class="fas fa-home"></i></a>
+                <?php 
+                $parts = explode('/', trim($directory, '/'));
+                $pathBuild = "";
+                foreach($parts as $part): 
+                    if(empty($part)) continue;
+                    $pathBuild .= "/" . $part;
+                ?>
+                    <span class="mx-2 text-gray-600">/</span>
+                    <a href="?uuid=<?= urlencode($uuid) ?>&dir=<?= urlencode($pathBuild) ?>" class="hover:text-blue-400 transition truncate max-w-[150px]">
+                        <?= htmlspecialchars($part) ?>
+                    </a>
+                <?php endforeach; ?>
+            </nav>
         </div>
 
-        <div class="glass rounded-2xl overflow-hidden">
-            <?php
-            if (!isset($data['data'])) {
-                echo '<div class="p-6 text-red-400">Impossible de charger les fichiers du serveur.</div>';
-            } else {
-                foreach ($data['data'] as $file) {
-                    $attr = $file['attributes'];
-                    $name = $attr['name'];
-                    $isFile = $attr['is_file'];
-                    $size = $attr['size'];
-                    $path = rtrim($directory, '/') . '/' . $name;
-
-                    echo '<div class="flex flex-wrap items-center justify-between p-4 border-b border-white/5 hover:bg-white/5 transition gap-4">';
-                        echo '<div class="flex items-center gap-3">';
-                            if ($isFile) {
-                                echo '<span>📄</span>';
-                                echo '<a href="?uuid=' . urlencode($uuid) . '&dir=' . urlencode($directory) . '&edit=' . urlencode($path) . '" class="hover:text-sky-400 font-medium transition">' . htmlspecialchars($name) . '</a>';
-                            } else {
-                                echo '<span>📁</span>';
-                                echo '<a href="?uuid=' . urlencode($uuid) . '&dir=' . urlencode($path) . '" class="hover:text-sky-400 font-medium transition">' . htmlspecialchars($name) . '</a>';
-                            }
-                        echo '</div>';
-
-                        echo '<div class="flex items-center gap-3 ml-auto flex-wrap sm:flex-nowrap">';
-                            echo '<div class="text-xs text-gray-500 min-w-[70px] text-right">';
-                                if ($isFile) {
-                                    echo round($size / 1024, 2) . ' KB';
-                                } else {
-                                    echo 'Dossier';
-                                }
-                            echo '</div>';
-
-                            echo '<form method="POST" class="flex gap-2">';
-                                echo '<input type="hidden" name="old_name" value="' . htmlspecialchars($path) . '">';
-                                echo '<input type="text" name="new_name" placeholder="Renommer" required class="bg-black/30 border border-white/5 px-2 py-1 rounded text-xs w-28 focus:outline-none focus:border-yellow-500">';
-                                echo '<button name="rename_file" class="bg-yellow-600/80 hover:bg-yellow-500 px-2 py-1 rounded text-xs font-bold transition">Rename</button>';
-                            echo '</form>';
-
-                            echo '<a href="?uuid=' . urlencode($uuid) . '&dir=' . urlencode($directory) . '&delete=' . urlencode($path) . '" onclick="return confirm(\'Supprimer définitivement ?\')" class="bg-red-600/80 hover:bg-red-500 px-2 py-1 rounded text-xs font-bold transition">Delete</a>';
-                        echo '</div>';
-                    echo '</div>';
-                }
-            }
-            ?>
-        </div>
-
-        <?php if(isset($_GET['edit'])): ?>
-            <div class="glass rounded-2xl p-5 mt-6 animate-fadeIn">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-2xl font-black text-sky-400">Éditeur de Code</h2>
-                    <div class="text-xs font-mono bg-black/30 px-3 py-1.5 rounded-lg text-gray-400">
-                        <?= htmlspecialchars(basename($_GET['edit'])) ?>
+        <!-- Toolbar: Upload & Create -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            <!-- Upload Box -->
+            <div class="glass-panel p-4 rounded-xl col-span-2">
+                <form method="POST" enctype="multipart/form-data" class="flex items-center gap-4">
+                    <div class="flex-1 relative">
+                        <input type="file" name="upload_file" id="fileInput" class="hidden" onchange="this.parentElement.querySelector('span').innerText = this.files[0]?.name || 'Aucun fichier choisi'" required>
+                        <label for="fileInput" class="cursor-pointer flex items-center justify-center w-full h-12 px-4 border-2 border-dashed border-gray-600 rounded-lg hover:border-blue-500 hover:bg-gray-800/50 transition group">
+                            <span class="text-gray-400 group-hover:text-gray-200 text-sm truncate">Cliquer pour sélectionner un fichier...</span>
+                            <i class="fas fa-cloud-upload-alt ml-2 text-gray-500 group-hover:text-blue-400"></i>
+                        </label>
                     </div>
-                </div>
-
-                <form method="POST">
-                    <input type="hidden" name="file_path" value="<?= htmlspecialchars($_GET['edit']) ?>">
-                    <textarea id="editor" name="content"><?= htmlspecialchars($fileContent) ?></textarea>
-
-                    <div class="flex gap-3 mt-4">
-                        <button name="save_file" class="bg-emerald-600 hover:bg-emerald-500 px-5 py-2 rounded-xl font-bold transition">
-                            💾 Sauvegarder
-                        </button>
-                        <a href="?uuid=<?= urlencode($uuid) ?>&dir=<?= urlencode($directory) ?>" class="bg-red-600 hover:bg-red-500 px-5 py-2 rounded-xl font-bold transition">
-                            Fermer
-                        </a>
-                    </div>
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-lg font-medium transition shadow-lg shadow-blue-900/20">
+                        Uploader
+                    </button>
                 </form>
             </div>
 
-            <script>
-                const editor = CodeMirror.fromTextArea(
-                    document.getElementById("editor"),
-                    {
-                        mode: "<?= $mode ?>",
-                        theme: "material-darker",
-                        lineNumbers: true,
-                        lineWrapping: false,
-                        indentUnit: 4,
-                        tabSize: 4,
-                        autoCloseTags: true,
-                        matchBrackets: true,
-                        styleActiveLine: true
-                    }
-                );
-            </script>
-        <?php endif; ?>
-    </div>
+            <!-- Create Folder Box -->
+            <div class="glass-panel p-4 rounded-xl">
+                <form method="POST" class="flex gap-2 h-full">
+                    <input type="hidden" name="action" value="create_folder">
+                    <input type="text" name="folder_name" placeholder="Nom du dossier" required class="flex-1 bg-gray-900 border border-gray-700 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                    <button type="submit" class="bg-gray-700 hover:bg-gray-600 text-white px-4 rounded-lg transition" title="Créer le dossier">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
 
-    <!-- Inclusion du footer externe -->
+        <!-- File List -->
+        <div class="glass-panel rounded-xl overflow-hidden shadow-xl">
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-400">
+                    <thead class="text-xs text-gray-300 uppercase bg-gray-800/80 border-b border-gray-700">
+                        <tr>
+                            <th scope="col" class="px-6 py-4">Nom</th>
+                            <th scope="col" class="px-6 py-4 text-right">Taille</th>
+                            <th scope="col" class="px-6 py-4 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-700/50">
+                        <?php if (empty($files)): ?>
+                            <tr>
+                                <td colspan="3" class="px-6 py-8 text-center text-gray-500">
+                                    <i class="fas fa-folder-open text-4xl mb-3 opacity-20"></i>
+                                    <p>Ce dossier est vide.</p>
+                                </td>
+                            </tr>
+                        <?php else: ?>
+                            <?php foreach ($files as $file): 
+                                $attr = $file['attributes'];
+                                $name = $attr['name'];
+                                $isFile = (bool) $attr['is_file'];
+                                $size = $attr['size'];
+                                $path = rtrim($directory, '/') . '/' . $name;
+                                
+                                // Skip parent directory link if it's the root logic handled by breadcrumb usually, but keeping simple here
+                                if ($name === '..') continue;
+                            ?>
+                            <tr class="bg-transparent hover:bg-gray-800/40 transition group">
+                                <td class="px-6 py-4 font-medium text-white flex items-center gap-3">
+                                    <?php if ($isFile): ?>
+                                        <i class="fas fa-file-code text-blue-400 text-lg"></i>
+                                    <?php else: ?>
+                                        <i class="fas fa-folder text-yellow-400 text-lg"></i>
+                                    <?php endif; ?>
+                                    
+                                    <a href="<?= $isFile 
+                                        ? "?uuid=".urlencode($uuid)."&dir=".urlencode($directory)."&edit=".urlencode($path) 
+                                        : "?uuid=".urlencode($uuid)."&dir=".urlencode($path) 
+                                    ?>" class="hover:text-blue-400 transition truncate max-w-[300px] block">
+                                        <?= htmlspecialchars($name) ?>
+                                    </a>
+                                </td>
+                                <td class="px-6 py-4 text-right font-mono text-xs">
+                                    <?= $isFile ? round($size / 1024, 2) . ' KB' : '-' ?>
+                                </td>
+                                <td class="px-6 py-4 text-right">
+                                    <div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        
+                                        <!-- Rename Button (Triggers small JS prompt or inline form - simplified here to inline form hidden by default) -->
+                                        <form method="POST" class="flex items-center gap-1" onsubmit="return confirm('Renommer ce fichier ?')">
+                                            <input type="hidden" name="action" value="rename">
+                                            <input type="hidden" name="old_name" value="<?= htmlspecialchars($path) ?>">
+                                            <input type="text" name="new_name" value="<?= htmlspecialchars($name) ?>" class="bg-gray-900 border border-gray-600 text-white text-xs rounded px-2 py-1 w-24 focus:border-blue-500 outline-none">
+                                            <button type="submit" class="text-gray-400 hover:text-yellow-400 p-1"><i class="fas fa-pen"></i></button>
+                                        </form>
+
+                                        <!-- Delete Button -->
+                                        <a href="?uuid=<?= urlencode($uuid) ?>&dir=<?= urlencode($directory) ?>&delete=<?= urlencode($path) ?>" 
+                                           onclick="return confirm('Êtes-vous sûr de vouloir supprimer définitivement cet élément ?')"
+                                           class="text-gray-400 hover:text-red-500 p-1 transition">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Code Editor Section -->
+        <?php if ($editFile): ?>
+        <div class="mt-8 animate-fade-in-up">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                    <i class="fas fa-code text-purple-400"></i>
+                    Édition : <span class="text-gray-400 font-normal"><?= htmlspecialchars(basename($editFile)) ?></span>
+                </h2>
+                <a href="?uuid=<?= urlencode($uuid) ?>&dir=<?= urlencode($directory) ?>" class="text-sm text-red-400 hover:text-red-300 font-medium">
+                    <i class="fas fa-times"></i> Fermer l'éditeur
+                </a>
+            </div>
+
+            <div class="glass-panel p-1 rounded-xl shadow-2xl border-blue-500/20">
+                <form method="POST">
+                    <input type="hidden" name="action" value="save_file">
+                    <input type="hidden" name="file_path" value="<?= htmlspecialchars($editFile) ?>">
+                    
+                    <textarea id="codeEditor" name="content"><?= htmlspecialchars($fileContent) ?></textarea>
+                    
+                    <div class="p-4 flex justify-end bg-gray-800/50 rounded-b-lg border-t border-gray-700 mt-1">
+                        <button type="submit" class="bg-green-600 hover:bg-green-500 text-white px-6 py-2 rounded-lg font-bold transition flex items-center gap-2 shadow-lg shadow-green-900/20">
+                            <i class="fas fa-save"></i> Sauvegarder les modifications
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <script>
+            var editor = CodeMirror.fromTextArea(document.getElementById("codeEditor"), {
+                mode: "<?= $mode ?>",
+                theme: "dracula",
+                lineNumbers: true,
+                autoCloseBrackets: true,
+                matchBrackets: true,
+                lineWrapping: true,
+                indentUnit: 4,
+                tabSize: 4,
+                indentWithTabs: false
+            });
+        </script>
+        <?php endif; ?>
+
+    </main>
+
+    <!-- Footer Inclusion -->
     <?php include $_SERVER['DOCUMENT_ROOT'] . '/inc/footer.php'; ?>
 
-    <div class="fixed bottom-6 right-6 z-50">
-        <a href="https://heberge.orinstone.deepstone.fr/discord/" target="_blank" class="bg-[#5865F2] hover:bg-[#4752C4] transition text-white px-5 py-3.5 rounded-full font-bold flex items-center gap-2 shadow-2xl hover:scale-105 transform duration-200">
-            <i class="fab fa-discord text-xl"></i>
-            <span class="hidden sm:inline text-sm">Besoin d'aide ? Discord</span>
-        </a>
-    </div>
-
-    <script>
-        function toggleMenu() {
-            const menu = document.getElementById('mobileMenu');
-            menu.classList.toggle('active');
-        }
-    </script>
 </body>
 </html>
