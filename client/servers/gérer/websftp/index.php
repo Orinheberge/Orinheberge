@@ -1,16 +1,26 @@
 <?php
 declare(strict_types=1);
+
+// Inclusion des dépendances initiales
+require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/lang.php';
+
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
-session_start();
-require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/lang.php';
+/*
+|--------------------------------------------------------------------------
+| SESSION SAFE START
+|--------------------------------------------------------------------------
+*/
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 /*
 |--------------------------------------------------------------------------
 | SECURITY & INIT
 |--------------------------------------------------------------------------
 */
-
 if (!isset($_SESSION['user_id'])) {
     header("Location: /login/");
     exit();
@@ -27,7 +37,6 @@ if (!$uuid) {
 | DATABASE & CONFIG
 |--------------------------------------------------------------------------
 */
-
 try {
     $pdo = new PDO(
         "mysql:host=localhost;dbname=s43_orinheberge;charset=utf8mb4",
@@ -44,7 +53,6 @@ try {
     die("Erreur critique BDD.");
 }
 
-// Récupération config
 $cfg = [];
 try {
     foreach ($pdo->query('SELECT `key`, `value` FROM settings') as $row) {
@@ -72,7 +80,6 @@ $headers = [
 | SERVER VERIFICATION
 |--------------------------------------------------------------------------
 */
-
 $stmt = $pdo->prepare("SELECT * FROM orders WHERE user_id = ? AND uuid = ? LIMIT 1");
 $stmt->execute([$_SESSION['user_id'], $uuid]);
 $server = $stmt->fetch();
@@ -90,7 +97,6 @@ $directory = $_GET['dir'] ?? "/";
 | ACTIONS (POST/GET)
 |--------------------------------------------------------------------------
 */
-
 $redirectUrl = "?uuid=" . urlencode($uuid) . "&dir=" . urlencode($directory);
 
 // 1. Create Folder
@@ -182,7 +188,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
 // 5. Upload File
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['upload_file'])) {
-    // Step 1: Get Signed URL
     $ch = curl_init();
     curl_setopt_array($ch, [
         CURLOPT_URL => "$panel/api/client/servers/$short/files/upload",
@@ -202,7 +207,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['upload_file'])) {
             $_FILES['upload_file']['name']
         );
 
-        // Step 2: Upload to Signed URL
         $up = curl_init();
         curl_setopt_array($up, [
             CURLOPT_URL => $uploadUrl . "&directory=" . urlencode($directory),
@@ -217,16 +221,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['upload_file'])) {
     exit();
 }
 
+// 6. Compress to Tar.gz (Nouveau)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'compress') {
+    // Par défaut, on archive le dossier courant. 
+    // Pour archiver un fichier spécifique, il faudrait ajouter un input hidden avec le chemin.
+    // Ici, on archive tout le contenu du $directory
+    $archiveName = "archive_" . date('Y-m-d_H-i-s') . ".tar.gz";
+    
+    $ch = curl_init();
+    curl_setopt_array($ch, [
+        CURLOPT_URL => "$panel/api/client/servers/$short/files/compress",
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => json_encode([
+            "root" => $directory,
+            "files" => ["."] // "." signifie tout le contenu du dossier root spécifié
+        ]),
+        CURLOPT_HTTPHEADER => $headers
+    ]);
+    
+    $res = curl_exec($ch);
+    curl_close($ch);
+    
+    // L'API renomme souvent automatiquement, mais on peut vérifier la réponse si besoin.
+    // Pour simplifier, on redirige juste pour voir le nouveau fichier apparaître.
+    header("Location: $redirectUrl");
+    exit();
+}
+
 /*
 |--------------------------------------------------------------------------
 | DATA FETCHING
 |--------------------------------------------------------------------------
 */
-
 $fileContent = "";
 $editFile    = $_GET['edit'] ?? null;
 
-// Fetch File Content for Editor
 if ($editFile) {
     $ch = curl_init();
     curl_setopt_array($ch, [
@@ -238,7 +268,6 @@ if ($editFile) {
     curl_close($ch);
 }
 
-// Fetch File List
 $ch = curl_init();
 curl_setopt_array($ch, [
     CURLOPT_URL => "$panel/api/client/servers/$short/files/list?directory=" . urlencode($directory),
@@ -251,7 +280,6 @@ curl_close($ch);
 $data  = json_decode($response, true);
 $files = $data['data'] ?? [];
 
-// Determine CodeMirror Mode
 $extension = strtolower(pathinfo($editFile ?? '', PATHINFO_EXTENSION));
 $modeMap = [
     'js' => 'javascript', 'html' => 'htmlmixed', 'htm' => 'htmlmixed',
@@ -269,11 +297,8 @@ $mode = $modeMap[$extension] ?? 'text/plain';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestionnaire de Fichiers - <?= htmlspecialchars($server['service_name']) ?></title>
     
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- CodeMirror -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
     
@@ -288,7 +313,6 @@ $mode = $modeMap[$extension] ?? 'text/plain';
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/shell/shell.min.js"></script>
 
     <style>
-        /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: #1f2937; }
         ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
@@ -301,7 +325,6 @@ $mode = $modeMap[$extension] ?? 'text/plain';
             font-size: 14px;
         }
         
-        /* Glass Effect Utilities */
         .glass-panel {
             background: rgba(31, 41, 55, 0.7);
             backdrop-filter: blur(10px);
@@ -312,7 +335,7 @@ $mode = $modeMap[$extension] ?? 'text/plain';
 
 <body class="bg-gray-900 text-gray-100 font-sans antialiased min-h-screen flex flex-col">
 
-    <!-- Sidebar Inclusion -->
+    <!-- Sidebar -->
     <?php 
     try {
         if (file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php')) {
@@ -323,10 +346,10 @@ $mode = $modeMap[$extension] ?? 'text/plain';
     }
     ?>
 
-    <!-- Main Content Area -->
-    <main class="flex-1 p-4 md:p-8 overflow-y-auto">
+    <!-- Main Content (Flex grow to push footer down) -->
+    <main class="flex-1 p-4 md:p-8 overflow-y-auto w-full">
         
-        <!-- Header & Breadcrumb -->
+        <!-- Header -->
         <div class="mb-6">
             <div class="flex items-center justify-between mb-4">
                 <h1 class="text-2xl font-bold text-white flex items-center gap-3">
@@ -338,7 +361,7 @@ $mode = $modeMap[$extension] ?? 'text/plain';
                 </a>
             </div>
 
-            <!-- Breadcrumb Navigation -->
+            <!-- Breadcrumb -->
             <nav class="flex items-center text-sm text-gray-400 bg-gray-800/50 p-3 rounded-lg border border-gray-700 overflow-x-auto whitespace-nowrap">
                 <a href="?uuid=<?= urlencode($uuid) ?>&dir=/" class="hover:text-blue-400 transition"><i class="fas fa-home"></i></a>
                 <?php 
@@ -356,38 +379,49 @@ $mode = $modeMap[$extension] ?? 'text/plain';
             </nav>
         </div>
 
-        <!-- Toolbar: Upload & Create -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-            <!-- Upload Box -->
-            <div class="glass-panel p-4 rounded-xl col-span-2">
+        <!-- Toolbar -->
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">
+            <!-- Upload -->
+            <div class="glass-panel p-4 rounded-xl lg:col-span-2">
                 <form method="POST" enctype="multipart/form-data" class="flex items-center gap-4">
                     <div class="flex-1 relative">
                         <input type="file" name="upload_file" id="fileInput" class="hidden" onchange="this.parentElement.querySelector('span').innerText = this.files[0]?.name || 'Aucun fichier choisi'" required>
-                        <label for="fileInput" class="cursor-pointer flex items-center justify-center w-full h-12 px-4 border-2 border-dashed border-gray-600 rounded-lg hover:border-blue-500 hover:bg-gray-800/50 transition group">
-                            <span class="text-gray-400 group-hover:text-gray-200 text-sm truncate">Cliquer pour sélectionner un fichier...</span>
+                        <label for="fileInput" class="cursor-pointer flex items-center justify-center w-full h-10 px-4 border-2 border-dashed border-gray-600 rounded-lg hover:border-blue-500 hover:bg-gray-800/50 transition group">
+                            <span class="text-gray-400 group-hover:text-gray-200 text-sm truncate">Uploader un fichier...</span>
                             <i class="fas fa-cloud-upload-alt ml-2 text-gray-500 group-hover:text-blue-400"></i>
                         </label>
                     </div>
-                    <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-lg font-medium transition shadow-lg shadow-blue-900/20">
-                        Uploader
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-medium transition shadow-lg shadow-blue-900/20">
+                        Envoyer
                     </button>
                 </form>
             </div>
 
-            <!-- Create Folder Box -->
+            <!-- Create Folder -->
             <div class="glass-panel p-4 rounded-xl">
                 <form method="POST" class="flex gap-2 h-full">
                     <input type="hidden" name="action" value="create_folder">
                     <input type="text" name="folder_name" placeholder="Nom du dossier" required class="flex-1 bg-gray-900 border border-gray-700 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
-                    <button type="submit" class="bg-gray-700 hover:bg-gray-600 text-white px-4 rounded-lg transition" title="Créer le dossier">
+                    <button type="submit" class="bg-gray-700 hover:bg-gray-600 text-white px-3 rounded-lg transition" title="Créer le dossier">
                         <i class="fas fa-plus"></i>
+                    </button>
+                </form>
+            </div>
+
+            <!-- Compress (Nouveau) -->
+            <div class="glass-panel p-4 rounded-xl flex items-center justify-between">
+                <span class="text-sm text-gray-400">Archiver le dossier</span>
+                <form method="POST">
+                    <input type="hidden" name="action" value="compress">
+                    <button type="submit" class="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg font-medium transition shadow-lg shadow-purple-900/20 flex items-center gap-2">
+                        <i class="fas fa-file-archive"></i> Créer .tar.gz
                     </button>
                 </form>
             </div>
         </div>
 
         <!-- File List -->
-        <div class="glass-panel rounded-xl overflow-hidden shadow-xl">
+        <div class="glass-panel rounded-xl overflow-hidden shadow-xl mb-8">
             <div class="overflow-x-auto">
                 <table class="w-full text-sm text-left text-gray-400">
                     <thead class="text-xs text-gray-300 uppercase bg-gray-800/80 border-b border-gray-700">
@@ -413,7 +447,6 @@ $mode = $modeMap[$extension] ?? 'text/plain';
                                 $size = $attr['size'];
                                 $path = rtrim($directory, '/') . '/' . $name;
                                 
-                                // Skip parent directory link if it's the root logic handled by breadcrumb usually, but keeping simple here
                                 if ($name === '..') continue;
                             ?>
                             <tr class="bg-transparent hover:bg-gray-800/40 transition group">
@@ -435,9 +468,18 @@ $mode = $modeMap[$extension] ?? 'text/plain';
                                     <?= $isFile ? round($size / 1024, 2) . ' KB' : '-' ?>
                                 </td>
                                 <td class="px-6 py-4 text-right">
-                                    <div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <div class="flex items-center justify-end gap-2 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
                                         
-                                        <!-- Rename Button (Triggers small JS prompt or inline form - simplified here to inline form hidden by default) -->
+                                        <!-- Download (Nouveau) -->
+                                        <?php if ($isFile): ?>
+                                        <a href="<?= "$panel/api/client/servers/$short/files/download?file=" . urlencode($path) ?>" 
+                                           target="_blank"
+                                           class="text-gray-400 hover:text-green-400 p-1 transition" title="Télécharger">
+                                            <i class="fas fa-download"></i>
+                                        </a>
+                                        <?php endif; ?>
+
+                                        <!-- Rename -->
                                         <form method="POST" class="flex items-center gap-1" onsubmit="return confirm('Renommer ce fichier ?')">
                                             <input type="hidden" name="action" value="rename">
                                             <input type="hidden" name="old_name" value="<?= htmlspecialchars($path) ?>">
@@ -445,10 +487,10 @@ $mode = $modeMap[$extension] ?? 'text/plain';
                                             <button type="submit" class="text-gray-400 hover:text-yellow-400 p-1"><i class="fas fa-pen"></i></button>
                                         </form>
 
-                                        <!-- Delete Button -->
+                                        <!-- Delete -->
                                         <a href="?uuid=<?= urlencode($uuid) ?>&dir=<?= urlencode($directory) ?>&delete=<?= urlencode($path) ?>" 
                                            onclick="return confirm('Êtes-vous sûr de vouloir supprimer définitivement cet élément ?')"
-                                           class="text-gray-400 hover:text-red-500 p-1 transition">
+                                           class="text-gray-400 hover:text-red-500 p-1 transition" title="Supprimer">
                                             <i class="fas fa-trash"></i>
                                         </a>
                                     </div>
@@ -507,7 +549,7 @@ $mode = $modeMap[$extension] ?? 'text/plain';
 
     </main>
 
-    <!-- Footer Inclusion -->
+    <!-- Footer (Hors du main pour rester en bas de page) -->
     <?php include $_SERVER['DOCUMENT_ROOT'] . '/inc/footer.php'; ?>
 
 </body>
