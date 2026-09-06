@@ -1,5 +1,4 @@
 <?php
-
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
@@ -22,25 +21,9 @@ if (!isset($_GET['uuid'])) {
 
 $uuid = $_GET['uuid'];
 
-$panel = "https://panel.orinstone.deepstone.fr";
-
 /*
 |--------------------------------------------------------------------------
-| API KEY
-|--------------------------------------------------------------------------
-*/
-
-$api_key = "ptlc_MfJSOUID0bnTgFCmm5VvYMML2jKUUA5RFZ2n2MeZCSU";
-
-$headers = [
-    "Authorization: Bearer $api_key",
-    "Accept: application/vnd.pterodactyl.v1+json",
-    "Content-Type: application/json"
-];
-
-/*
-|--------------------------------------------------------------------------
-| DATABASE
+| DATABASE & CONFIG
 |--------------------------------------------------------------------------
 */
 
@@ -50,12 +33,32 @@ try {
         "root",
         "1504",
         [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
         ]
     );
 } catch(PDOException $e) {
     die($e->getMessage());
 }
+
+// Récupération de la configuration (Panel URL et API Key) depuis la BDD
+$cfg = [];
+foreach ($pdo->query('SELECT `key`, `value` FROM settings') as $row) {
+    $cfg[$row['key']] = $row['value'];
+}
+
+$panel   = $cfg['panel_url'] ?? 'https://panel.orinstone.deepstone.fr';
+$api_key = $cfg['api_key_client'] ?? ''; // Clé API liée à la database
+
+if (empty($api_key)) {
+    die("Erreur de configuration : Clé API manquante dans la base de données.");
+}
+
+$headers = [
+    "Authorization: Bearer $api_key",
+    "Accept: application/vnd.pterodactyl.v1+json",
+    "Content-Type: application/json"
+];
 
 /*
 |--------------------------------------------------------------------------
@@ -328,9 +331,6 @@ switch($extension){
     default:
         $mode = "text/plain";
 }
-
-
-
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -401,161 +401,16 @@ switch($extension){
 
 <body class="text-gray-200 font-sans min-h-screen flex flex-col justify-between">
 
-    <nav class="sticky top-0 z-50 glass p-5 border-b border-white/5">
-        <div class="max-w-7xl mx-auto flex justify-between items-center gap-4">
-            
-            <h1 class="text-3xl font-black gradient-text tracking-tight shrink-0">
-                <a href="/">OrinHeberge</a>
-            </h1>
-
-            <div class="hidden md:flex items-center gap-3 whitespace-nowrap">
-                <a href="/" class="bg-sky-600/20 hover:bg-sky-600 border border-sky-500/30 text-sky-400 hover:text-white px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium shadow-md shadow-sky-900/20">
-                    <i class="fas fa-home"></i> Accueil
-                </a>
-                <a href="/client/servers/" class="bg-slate-600/20 hover:bg-slate-600 border border-slate-500/30 text-slate-400 hover:text-white px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium shadow-md shadow-slate-900/20">
-                    <i class="fas fa-server"></i> Mes serveurs
-                </a>
-                <a href="/shop/" class="bg-amber-600/20 hover:bg-amber-600 border border-amber-500/30 text-amber-400 hover:text-white px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium shadow-md shadow-amber-900/20">
-                    <i class="fas fa-tags"></i> Offres
-                </a>
-                <a href="/support/" class="bg-purple-600/20 hover:bg-purple-600 border border-purple-500/30 text-purple-400 hover:text-white px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium shadow-md shadow-purple-900/20">
-                    <i class="fas fa-headset"></i> Support
-                </a>
-
-                <?php if(isset($_SESSION['user_id'])): ?>
-                    <?php include $_SERVER['DOCUMENT_ROOT'] . '/inc/notifications.php'; ?>
-                    
-                    <a href="/profil/" class="text-gray-300 hover:text-sky-400 font-bold flex items-center gap-2.5 transition bg-white/5 hover:bg-white/10 px-4 py-2 rounded-full border border-white/5 focus:outline-none text-xs">
-                        <?php if(!empty($_SESSION['avatar']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/' . $_SESSION['avatar'])): ?>
-                            <img src="/<?php echo htmlspecialchars($_SESSION['avatar']); ?>" alt="Avatar" class="w-5 h-5 rounded-full object-cover border border-sky-500/30 shrink-0">
-                        <?php else: ?>
-                            <i class="fas fa-user-circle text-lg text-sky-400 shrink-0 flex items-center justify-center"></i>
-                        <?php endif; ?>
-                        <span class="block"><?php echo htmlspecialchars($_SESSION['username'] ?? 'Mon Profil'); ?></span>
-                    </a>
-
-                    <a href="/logout/" class="bg-red-600/10 hover:bg-red-600 border border-red-500/20 text-red-400 hover:text-white px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium">
-                        <i class="fas fa-sign-out-alt"></i> Déconnexion
-                    </a>
-                <?php else: ?>
-                    <a href="/login/" class="bg-slate-600/20 hover:bg-slate-600 border border-slate-500/30 text-slate-400 hover:text-white px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium">
-                        <i class="fas fa-sign-in-alt"></i> Connexion
-                    </a>
-                    <a href="/register/" class="bg-slate-600/20 hover:bg-slate-600 border border-slate-500/30 text-slate-400 hover:text-white px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium">
-                        <i class="fas fa-user-plus"></i> Inscription
-                    </a>
-                <?php endif; ?>
-            </div>
-
-            <div class="hidden lg:flex gap-2.5 items-center shrink-0">
-                <?php if(isset($_SESSION['is_admin']) && $_SESSION['is_admin']): ?>
-                    <a href="/support/admin_tickets/" class="bg-rose-600/20 hover:bg-rose-600 border border-rose-500/30 text-rose-400 hover:text-white px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium shadow-md shadow-rose-900/20 whitespace-nowrap">
-                        <i class="fas fa-unlock-keyhole"></i> Gérer les tickets (Admin)
-                    </a>
-                <?php endif; ?>
-
-                <a href="/status/" class="bg-emerald-600/20 hover:bg-emerald-600 border border-emerald-500/30 text-emerald-400 hover:text-white px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium shadow-md shadow-emerald-900/20 whitespace-nowrap">
-                    <i class="fas fa-signal"></i> Statut
-                </a>
-
-                <a href="https://php.orinstone.deepstone.fr" class="glass text-gray-300 hover:text-white hover:bg-white/10 px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium border border-white/5 whitespace-nowrap">
-                    <i class="fas fa-database text-sky-400"></i> phpMyAdmin
-                </a>
-                
-                <a href="https://panel.orinstone.deepstone.fr" class="bg-sky-600 hover:bg-sky-500 px-4 py-2 rounded-full text-xs flex items-center gap-2 transition font-medium shadow-md shadow-sky-900/20 whitespace-nowrap text-white">
-                    <i class="fas fa-cogs"></i> Panel
-                </a>
-
-                <div class="relative inline-block text-left group">
-                    <button type="button" class="inline-flex items-center gap-2 bg-white/5 border border-white/10 hover:border-sky-500/50 rounded-full px-3 py-1.5 text-xs font-semibold text-gray-200 transition focus:outline-none">
-                        <img src="https://flagcdn.com/w20/fr.png" id="current-flag" alt="Français" class="w-4 h-auto rounded-sm object-contain">
-                        <span id="current-lang-text">FR</span>
-                        <i class="fas fa-chevron-down text-[10px] text-gray-400 group-hover:text-sky-400 transition duration-200"></i>
-                    </button>
-                    <div class="absolute right-0 mt-2 w-36 rounded-xl glass border border-white/10 shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 overflow-hidden">
-                        <div class="py-1">
-                            <a href="?lang=fr" onclick="changeLanguage('fr', 'FR', 'https://flagcdn.com/w20/fr.png', event)" class="flex items-center gap-3 px-4 py-2 text-xs text-gray-300 hover:bg-sky-600/20 hover:text-white transition">
-                                <img src="https://flagcdn.com/w20/fr.png" alt="Français" class="w-4 h-auto rounded-sm">
-                                <span>Français</span>
-                            </a>
-                            <a href="?lang=en" onclick="changeLanguage('en', 'EN', 'https://flagcdn.com/w20/gb.png', event)" class="flex items-center gap-3 px-4 py-2 text-xs text-gray-300 hover:bg-sky-600/20 hover:text-white transition">
-                                <img src="https://flagcdn.com/w20/gb.png" alt="English" class="w-4 h-auto rounded-sm">
-                                <span>English</span>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <button onclick="toggleMenu()" class="md:hidden text-2xl text-gray-400 hover:text-white transition shrink-0">
-                <i class="fas fa-bars"></i>
-            </button>
-        </div>
-
-        <div id="mobileMenu" class="md:hidden mt-4 px-4 space-y-3 glass rounded-2xl p-4 hidden">
-            <a href="/" class="bg-sky-600/20 border border-sky-500/30 text-sky-400 block py-2 px-4 rounded-xl flex items-center gap-2 text-sm font-medium"><i class="fas fa-home w-5 text-center"></i> Accueil</a>
-            <a href="/client/servers/" class="bg-white/[0.02] border border-white/5 text-gray-300 block py-2 px-4 rounded-xl flex items-center gap-2 text-sm font-medium"><i class="fas fa-server w-5 text-center"></i> Mes serveurs</a>
-            <a href="/shop/" class="bg-white/[0.02] border border-white/5 text-gray-300 block py-2 px-4 rounded-xl flex items-center gap-2 text-sm font-medium"><i class="fas fa-tags w-5 text-center"></i> Offres</a>
-            <a href="/support/" class="bg-white/[0.02] border border-white/5 text-gray-300 block py-2 px-4 rounded-xl flex items-center gap-2 text-sm font-medium"><i class="fas fa-headset w-5 text-center"></i> Support</a>
-            <a href="/status/" class="bg-emerald-600/20 border border-emerald-500/30 text-emerald-400 block py-2 px-4 rounded-xl flex items-center gap-2 text-sm font-medium"><i class="fas fa-signal w-5 text-center"></i> Statut</a>
-            
-            <?php if(isset($_SESSION['is_admin']) && $_SESSION['is_admin']): ?>
-                <a href="/support/admin_tickets/" class="bg-rose-600/20 border border-rose-500/30 text-rose-400 block py-2 px-4 rounded-xl flex items-center gap-2 text-sm font-semibold"><i class="fas fa-unlock-keyhole w-5 text-center"></i> Gérer les tickets</a>
-            <?php endif; ?>
-
-            <hr class="border-white/10">
-
-            <?php if(isset($_SESSION['user_id'])): ?>
-                <a href="/profil/" class="bg-white/5 text-gray-200 block py-2 px-4 rounded-xl flex items-center gap-2.5 text-sm font-bold border border-white/5">
-                    <?php if(!empty($_SESSION['avatar']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/' . $_SESSION['avatar'])): ?>
-                        <img src="/<?php echo htmlspecialchars($_SESSION['avatar']); ?>" alt="Avatar" class="w-5 h-5 rounded-full object-cover border border-sky-500/30 shrink-0">
-                    <?php else: ?>
-                        <i class="fas fa-user-circle text-lg text-sky-400 shrink-0"></i>
-                    <?php endif; ?>
-                    <span><?php echo htmlspecialchars($_SESSION['username'] ?? 'Mon Profil'); ?></span>
-                </a>
-                <a href="/logout/" class="bg-red-600/10 border border-red-500/20 text-red-400 block py-2 px-4 rounded-xl flex items-center gap-2 text-sm font-medium">
-                    <i class="fas fa-sign-out-alt w-5 text-center"></i> Déconnexion
-                </a>
-            <?php else: ?>
-                <a href="/login/" class="bg-white/5 text-gray-300 block py-2 px-4 rounded-xl flex items-center gap-2 text-sm font-medium border border-white/5"><i class="fas fa-sign-in-alt w-5 text-center"></i> Connexion</a>
-                <a href="/register/" class="bg-white/5 text-gray-300 block py-2 px-4 rounded-xl flex items-center gap-2 text-sm font-medium border border-white/5"><i class="fas fa-user-plus w-5 text-center"></i> Inscription</a>
-            <?php endif; ?>
-
-            <hr class="border-white/10">
-
-            <div class="grid grid-cols-2 gap-2 pt-1">
-                <a href="https://php.orinstone.deepstone.fr" class="glass text-gray-300 px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 justify-center border border-white/5 font-medium">
-                    <i class="fas fa-database text-sky-400"></i> phpMyAdmin
-                </a>
-                <a href="https://panel.orinstone.deepstone.fr" class="bg-sky-600 text-white px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 justify-center font-medium">
-                    <i class="fas fa-cogs"></i> Panel
-                </a>
-            </div>
-
-            <div class="relative inline-block text-left group w-full pt-1">
-                <button type="button" class="inline-flex items-center justify-between w-full gap-2 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-semibold text-gray-200 transition focus:outline-none">
-                    <div class="flex items-center gap-2">
-                        <img src="https://flagcdn.com/w20/fr.png" alt="Français" class="w-5 h-auto rounded-sm object-contain">
-                        <span>FR</span>
-                    </div>
-                    <i class="fas fa-chevron-down text-xs text-gray-400 group-hover:text-sky-400 transition duration-200"></i>
-                </button>
-                <div class="absolute right-0 mt-2 w-full rounded-xl glass border border-white/10 shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 overflow-hidden">
-                    <div class="py-1">
-                        <a href="?lang=fr" onclick="changeLanguage('fr', 'FR', 'https://flagcdn.com/w20/fr.png', event)" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 hover:bg-sky-600/20 hover:text-white transition">
-                            <img src="https://flagcdn.com/w20/fr.png" alt="Français" class="w-5 h-auto rounded-sm">
-                            <span>Français</span>
-                        </a>
-                        <a href="?lang=en" onclick="changeLanguage('en', 'EN', 'https://flagcdn.com/w20/gb.png', event)" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 hover:bg-sky-600/20 hover:text-white transition">
-                            <img src="https://flagcdn.com/w20/gb.png" alt="English" class="w-5 h-auto rounded-sm">
-                            <span>English</span>
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </nav>
+    <!-- Inclusion de la Sidebar -->
+    <?php 
+    try {
+        if (file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php')) {
+            include $_SERVER['DOCUMENT_ROOT'] . '/inc/clients_sidebar.php';
+        }
+    } catch (Throwable $e) {
+        echo '<div style="background:#ef4444;color:white;padding:20px;">❌ Sidebar error : ' . htmlspecialchars($e->getMessage()) . '</div>';
+    }
+    ?>
 
     <div class="max-w-7xl mx-auto py-10 px-6 flex-grow w-full">
         <div class="flex justify-between items-center mb-8">
@@ -679,76 +534,8 @@ switch($extension){
         <?php endif; ?>
     </div>
 
-   <footer class="w-full bg-[#05070d] text-gray-400 py-12 px-6 border-t border-white/5 font-sans">
-    <div class="max-w-7xl mx-auto">
-        
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-10">
-            
-            <div class="flex flex-col gap-4">
-                <h3 class="text-white font-bold text-base tracking-wide">Navigation</h3>
-                <div class="flex flex-col gap-2.5 text-sm">
-                    <a href="/" class="hover:text-sky-400 transition">Accueil</a>
-                    <a href="/client/servers/" class="hover:text-sky-400 transition">Mes serveurs</a>
-                    <a href="/shop/" class="hover:text-sky-400 transition">Offres</a>
-                    <a href="/support/" class="hover:text-sky-400 transition">Support</a>
-                </div>
-            </div>
-
-            <div class="flex flex-col gap-4">
-                <h3 class="text-white font-bold text-base tracking-wide">Notre Réseau</h3>
-                <div class="flex flex-col gap-2.5 text-sm">
-                    <a href="/discord/" class="hover:text-sky-400 transition">Notre Discord</a>
-                    <a href="https://status.deepstone.fr/" class="hover:text-sky-400 transition">Statut des Services</a>
-                </div>
-            </div>
-
-            <div class="flex flex-col gap-4">
-                <h3 class="text-white font-bold text-base tracking-wide">Liens Utiles</h3>
-                <div class="flex flex-col gap-2.5 text-sm">
-                    <a href="https://php.orinstone.deepstone.fr" class="hover:text-sky-400 transition">phpMyAdmin</a>
-                    <a href="https://panel.orinstone.deepstone.fr" class="hover:text-sky-400 transition">Panel</a>
-                </div>
-            </div>
-
-            <div class="flex flex-col justify-end gap-3 items-start md:items-end">
-                <span class="text-xs text-gray-400 font-semibold tracking-wider uppercase">Moyens de Paiements Acceptés</span>
-                <div class="flex items-center gap-3 bg-white/[0.02] border border-white/5 p-3 rounded-xl">
-                    <img src="https://azurhosts.com/assets/images/logos/psrl/card-icons/card_cb.svg" alt="CB" class="h-8 object-contain" />
-                    <img src="https://azurhosts.com/assets/images/logos/psrl/card-icons/card_visa.svg" alt="Visa" class="h-8 object-contain" />
-                    <img src="https://azurhosts.com/assets/images/logos/psrl/card-icons/card_mastercard.svg" alt="Mastercard" class="h-8 object-contain" />
-                    <img src="https://azurhosts.com/assets/images/logos/psrl/card-icons/card_paypal.svg" alt="PayPal" class="h-8 object-contain" />
-                </div>
-            </div>
-
-        </div>
-
-        <hr class="border-white/10 mb-8">
-
-     <div class="flex flex-col md:flex-row items-start justify-between gap-6 text-xs text-gray-500">
-            
-            <div class="flex items-center gap-2">
-                <span class="text-2xl font-black tracking-tighter text-white">Orin<span class="text-sky-500">Heberge</span></span>
-            </div>
-
-            <div class="flex flex-col gap-2 md:text-left">
-                <div class="flex flex-wrap gap-x-4 gap-y-1 text-gray-400 font-medium">
-                    <a href="/mentions-legales/" class="hover:text-sky-400 transition">Mentions Légales</a>
-                    <span class="text-white/10">|</span>
-                    <a href="/cgu/" class="hover:text-sky-400 transition">Conditions Générales d'Utilisation</a>
-                    <span class="text-white/10">|</span>
-                    <a href="/politique-confidentialite/" class="hover:text-sky-400 transition">Politique de Confidentialité</a>
-                </div>
-                <div class="flex flex-col gap-0.5">
-                    <div>© 2026-2029 OrinHeberge — Infrastructure OrinStone. Tous droits réservés.</div>
-                    <div class="text-[10px] text-gray-600 mt-1">
-                        Propulsé par <span class="text-sky-500/70 font-medium hover:text-sky-400 transition">Orinstone Studio</span>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-    </div>
-</footer>
+    <!-- Inclusion du footer externe -->
+    <?php include $_SERVER['DOCUMENT_ROOT'] . '/inc/footer.php'; ?>
 
     <div class="fixed bottom-6 right-6 z-50">
         <a href="https://heberge.orinstone.deepstone.fr/discord/" target="_blank" class="bg-[#5865F2] hover:bg-[#4752C4] transition text-white px-5 py-3.5 rounded-full font-bold flex items-center gap-2 shadow-2xl hover:scale-105 transform duration-200">
