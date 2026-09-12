@@ -445,7 +445,7 @@ $active_nav = 'community';
         <!-- ═══════════════════════════════════════════ -->
         <!-- 📋 SIDEBAR CANAUX + USERS ONLINE -->
         <!-- ═══════════════════════════════════════════ -->
-        <aside id="chatSidebar" class="chat-sidebar-mobile lg:w-64 shrink-0 bg-[#0b0f17] lg:rounded-xl border-r lg:border border-white/5">
+        <aside id="chatSidebar" class="chat-sidebar-mobile lg:w-64 shrink-0 bg-[#0b0f17] lg:rounded-xl border-r lg:border border-white/5 flex flex-col">
             <div class="p-4 h-full flex flex-col overflow-hidden">
                 
                 <!-- Header sidebar (mobile only) -->
@@ -463,18 +463,15 @@ $active_nav = 'community';
                 <div class="lg:hidden swipe-indicator"></div>
                 
                 <h2 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 px-1">
-                    <i class="fas fa-hashtag mr-1.5"></i><?php echo t('chat.channels'); ?>
+                    <i class="fas fa-server mr-1.5"></i>Serveurs & Canaux
                 </h2>
-                <div class="space-y-1 mb-4">
-                    <button class="channel-btn active w-full text-left px-3 py-2.5 rounded-lg bg-sky-600/20 text-sky-400 border border-sky-500/30 transition hover:bg-sky-600/30 text-sm font-medium" data-channel="general">
-                        <i class="fas fa-hashtag mr-2 text-xs"></i><?php echo t('chat.channel_general'); ?>
-                    </button>
-                    <button class="channel-btn w-full text-left px-3 py-2.5 rounded-lg text-gray-400 hover:bg-white/5 hover:text-white transition text-sm" data-channel="support">
-                        <i class="fas fa-headset mr-2 text-xs"></i><?php echo t('chat.channel_support'); ?>
-                    </button>
-                    <button class="channel-btn w-full text-left px-3 py-2.5 rounded-lg text-gray-400 hover:bg-white/5 hover:text-white transition text-sm" data-channel="offtopic">
-                        <i class="fas fa-comments mr-2 text-xs"></i><?php echo t('chat.channel_offtopic'); ?>
-                    </button>
+                
+                <!-- CONTENEUR DYNAMIQUE DES SERVEURS/CANAUX -->
+                <div id="channelsList" class="flex-1 overflow-y-auto custom-scrollbar pr-1 -mx-1 px-1 mb-4">
+                    <!-- Rempli dynamiquement par ChatApp.renderSidebar() -->
+                    <div class="text-center text-gray-500 py-4">
+                        <i class="fas fa-spinner fa-spin"></i>
+                    </div>
                 </div>
 
                 <hr class="border-white/10 mb-4">
@@ -486,7 +483,7 @@ $active_nav = 'community';
                     </h2>
                     <span id="onlineCount" class="text-[10px] bg-sky-500/20 text-sky-400 px-2 py-0.5 rounded-full font-bold">0</span>
                 </div>
-                <div id="onlineUsers" class="space-y-0.5 text-sm flex-1 overflow-y-auto custom-scrollbar pr-1 -mx-1 px-1">
+                <div id="onlineUsers" class="space-y-0.5 text-sm flex-1 overflow-y-auto custom-scrollbar pr-1 -mx-1 px-1 max-h-[30vh]">
                     <!-- Rempli par JS -->
                 </div>
             </div>
@@ -508,10 +505,10 @@ $active_nav = 'community';
                 <div class="flex-1 min-w-0">
                     <h1 class="text-base lg:text-xl font-bold flex items-center gap-2 truncate">
                         <i class="fas fa-hashtag text-sky-400 shrink-0"></i>
-                        <span id="currentChannelName" class="truncate"><?php echo t('chat.channel_general'); ?></span>
+                        <span id="currentChannelName" class="truncate">Chargement...</span>
                     </h1>
                     <p class="text-[11px] lg:text-xs text-gray-500 mt-0.5 truncate hidden sm:block" id="channelDescription">
-                        <?php echo t('chat.channel_general_desc'); ?>
+                        Sélectionnez un canal
                     </p>
                 </div>
                 
@@ -645,12 +642,13 @@ $active_nav = 'community';
         if (overlay) overlay.addEventListener('click', closeSidebar);
         
         // Fermer sidebar quand on change de canal (mobile)
-        document.querySelectorAll('.channel-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                if (window.innerWidth < 1024) {
-                    setTimeout(closeSidebar, 150);
-                }
-            });
+        // Utilisation de la délégation d'événements pour capturer les boutons dynamiques
+        document.getElementById('channelsList').addEventListener('click', (e) => {
+            // Vérifie si l'élément cliqué ou son parent est un bouton de canal
+            const btn = e.target.closest('.channel-btn');
+            if (btn && window.innerWidth < 1024) {
+                setTimeout(closeSidebar, 150);
+            }
         });
         
         // Swipe to open (depuis le bord gauche)

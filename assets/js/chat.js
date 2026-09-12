@@ -43,6 +43,7 @@ const ChatApp = {
         EMOJIS:  '/api/message/get_emojis.php',
         ONLINE:  '/api/message/get_online.php',
         DELETE:  '/api/message/delete_message.php',
+        CREATE_SERVER: '/api/message/server_create.php',
         REACT:   '/api/message/react_message.php',
         PIN:     '/api/message/pin_message.php',
         PINNED:  '/api/message/get_pinned_messages.php',
@@ -270,6 +271,7 @@ const ChatApp = {
             await this.loadCustomEmojis();
             await this.loadMessages();
             await this.loadPinnedMessages();
+            await this.loadServersAndChannels();
             this.startPolling();
             this.startOnlinePolling();
             this.startTypingCheck();
@@ -279,6 +281,141 @@ const ChatApp = {
             console.log('[Chat] ✅ Initialisation terminée');
         } catch (error) {
             console.error('[Chat] ❌ Erreur initialisation:', error);
+        }
+    },
+
+        // ═══════════════════════════════════════════
+    // 🖥️ GESTION DES SERVEURS & CANAUX DYNAMIQUES
+    // ═══════════════════════════════════════════
+    
+    async loadServersAndChannels() {
+        try {
+            const response = await fetch(this.API.SERVERS);
+            const data = await response.json();
+            
+            if (data.success && data.servers.length > 0) {
+                this.renderSidebar(data.servers);
+                
+                // Si aucun serveur n'est sélectionné, on prend le premier par défaut
+                if (!this.currentServerId) {
+                    const firstServer = data.servers[0];
+                    const firstChannel = firstServer.channels[0];
+                    this.switchContext(firstServer.id, firstChannel.name);
+                }
+            } else {
+                // Aucun serveur : afficher un message ou rediriger vers la création
+                document.getElementById('channelsList').innerHTML = `
+                    <div class="text-center p-4">
+                        <p class="text-xs text-gray-500 mb-3">Vous n'êtes dans aucun serveur.</p>
+                        <button onclick="ChatApp.openCreateServerModal()" class="w-full py-2 bg-sky-600 hover:bg-sky-500 text-white text-xs rounded-lg transition">
+                            <i class="fas fa-plus mr-1"></i> Créer un serveur
+                        </button>
+                    </div>
+                `;
+            }
+        } catch (error) {
+            console.error('[Chat] ❌ Erreur chargement serveurs:', error);
+        }
+    },
+
+    renderSidebar(servers) {
+        const container = document.getElementById('channelsList');
+        if (!container) return;
+
+        container.innerHTML = servers.map(server => `
+            <div class="mb-4">
+                <div class="flex items-center justify-between px-2 mb-2">
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider truncate" title="${this.escapeHtml(server.name)}">
+                        ${this.escapeHtml(server.name)}
+                    </h3>
+                    ${server.is_owner ? `<i class="fas fa-crown text-amber-400 text-xs" title="Propriétaire"></i>` : ''}
+                </div>
+                <div class="space-y-1">
+                    ${server.channels.map(channel => `
+                        <button 
+                            class="channel-btn w-full text-left px-3 py-2 rounded-lg text-sm transition flex items-center gap-2 ${this.currentServerId == server.id && this.currentChannel === channel.name ? 'bg-sky-600/20 text-sky-400 border border-sky-500/30' : 'text-gray-400 hover:bg-white/5 hover:text-white'}"
+                            data-server-id="${server.id}"
+                            data-channel="${channel.name}"
+                            onclick="ChatApp.switchContext(${server.id}, '${channel.name}', this)"
+                        >
+                            <i class="fas fa-hashtag text-xs opacity-70"></i>
+                            <span class="truncate">${this.escapeHtml(channel.name)}</span>
+                        </button>
+                    `).join('')}
+                </div>
+            </div>
+        `).join('') + `
+            <button onclick="ChatApp.openCreateServerModal()" class="w-full mt-4 py-2.5 border border-dashed border-white/10 text-gray-500 hover:text-white hover:border-white/30 hover:bg-white/5 rounded-lg text-sm transition flex items-center justify-center gap-2">
+                <i class="fas fa-plus"></i> Nouveau serveur
+            </button>
+        `;
+    },
+
+    switchContext(serverId, channelName, btnElement = null) {
+        console.log(`[Chat] 🔀 Changement de contexte: Serveur ${serverId}, Canal ${channelName}`);
+        
+        this.currentServerId = serverId;
+        this.currentChannel = channelName;
+        this.lastMessageId = 0; // Reset pour recharger l'historique
+        
+        // Mise à jour visuelle des boutons
+        document.querySelectorAll('.channel-btn').forEach(btn => {
+            btn.classList.remove('active', 'bg-sky-600/20', 'text-sky-400', 'border', 'border-sky-500/30');
+            btn.classList.add('text-gray-400');
+        });
+        
+        if (btnElement) {
+            btnElement.classList.add('active', 'bg-sky-600/20', 'text-sky-400', 'border', 'border-sky-500/30');
+            btnElement.classList.remove('text-gray-400');
+        }
+
+        // Mise à jour du header
+        const nameEl = document.getElementById('currentChannelName');
+        if (nameEl) nameEl.textContent = channelName;
+
+        // Rechargement des données
+        document.getElementById('messagesContainer').innerHTML = `
+            <div class="text-center text-gray-500 py-8">
+                <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                <p>Chargement des messages...</p>
+            </div>
+        `;
+        
+        this.loadMessages();
+        this.loadPinnedMessages();
+        
+        // Fermer la sidebar sur mobile après sélection
+        if (window.innerWidth < 1024) {
+            document.getElementById('chatSidebar')?.classList.remove('open');
+            document.getElementById('mobileSidebarOverlay')?.classList.remove('active');
+        }
+    },
+
+    async openCreateServerModal() {
+        // Simple prompt pour l'exemple, à remplacer par une vraie modale HTML si vous en avez une
+        const name = prompt("Nom du serveur :");
+        if (!name) return;
+        const description = prompt("Description (optionnel) :") || "";
+
+        try {
+            const response = await fetch(this.API.CREATE_SERVER, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, description })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                console.log('[Chat] ✅ Serveur créé:', data.server);
+                await this.loadServersAndChannels(); // Recharger la sidebar
+                this.switchContext(data.server.id, 'general'); // Aller sur le nouveau serveur
+            } else {
+                alert('Erreur : ' + (data.error || 'Inconnue'));
+            }
+        } catch (error) {
+            console.error('[Chat] ❌ Erreur création serveur:', error);
+            alert('Erreur de connexion lors de la création du serveur.');
         }
     },
 
@@ -1295,13 +1432,14 @@ const ChatApp = {
             return;
         }
         
-        try {
+       try {
             const response = await fetch(this.API.SEND, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    message: message,
-                    channel: this.currentChannel
+                    server_id: this.currentServerId, // NOUVEAU : contexte du serveur
+                    channel: this.currentChannel,
+                    message: message
                 })
             });
             
@@ -1504,6 +1642,8 @@ const ChatApp = {
         }
     }
 };
+
+
 
 // ═══════════════════════════════════════════
 // 🚀 DÉMARRAGE
