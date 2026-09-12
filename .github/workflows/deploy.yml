@@ -109,7 +109,7 @@ jobs:
         env:
           SSH_PASS: ${{ secrets.SSH_PASSWORD }}
         run: |
-          sshpass -p "$SSH_PASS" ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 root@5.48.143.126 << 'REMOTE'
+          sshpass -p "$SSH_PASS" ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 root@5.48.143.126 << 'EOF_BACKUP'
           set -e
           BACKUP_DIR="/var/backups/orinheberge"
           TIMESTAMP=$(date +%Y%m%d_%H%M%S)
@@ -129,7 +129,7 @@ jobs:
           # Garder seulement 5 derniers backups
           cd "$BACKUP_DIR"
           ls -t backup_*.tar.gz 2>/dev/null | tail -n +6 | xargs -r rm --
-          REMOTE
+          EOF_BACKUP
 
       - name: Deploy via rsync
         env:
@@ -162,14 +162,21 @@ jobs:
           SHA: ${{ needs.validate.outputs.commit_sha }}
           COMMIT_MSG: ${{ needs.validate.outputs.commit_msg }}
           ACTOR: ${{ github.actor }}
+          RELEASE_DIR: ${{ env.RELEASE_DIR }}
         run: |
-          sshpass -p "$SSH_PASS" ssh -o StrictHostKeyChecking=no \
-            root@5.48.143.126 bash -s <<REMOTE
+          # On crée un script temporaire sur le serveur pour éviter les problèmes d'échappement heredoc
+          sshpass -p "$SSH_PASS" ssh -o StrictHostKeyChecking=no root@5.48.143.126 "cat > /tmp/deploy_script.sh" << 'EOF_SCRIPT'
+          #!/bin/bash
           set -e
-          RELEASE_DIR="$RELEASE_DIR"
-          LIVE_DIR="/var/www/orinheberge"
           
-          cd "\$RELEASE_DIR"
+          RELEASE_DIR="$1"
+          LIVE_DIR="/var/www/orinheberge"
+          VERSION="$2"
+          SHA="$3"
+          COMMIT_MSG="$4"
+          ACTOR="$5"
+          
+          cd "$RELEASE_DIR"
           
           echo "📦 Installation dépendances..."
           if [ -f composer.json ]; then
@@ -179,50 +186,50 @@ jobs:
           
           # Préserver fichiers persistants depuis l'ancienne version
           OLD_DIR=""
-          if [ -L "\$LIVE_DIR" ]; then
-            OLD_DIR=\$(readlink "\$LIVE_DIR")
-          elif [ -d "\$LIVE_DIR" ]; then
-            OLD_DIR="\$LIVE_DIR"
+          if [ -L "$LIVE_DIR" ]; then
+            OLD_DIR=$(readlink "$LIVE_DIR")
+          elif [ -d "$LIVE_DIR" ]; then
+            OLD_DIR="$LIVE_DIR"
           fi
           
-          if [ -n "\$OLD_DIR" ] && [ -d "\$OLD_DIR" ]; then
-            echo "🔒 Préservation données depuis \$OLD_DIR..."
-            [ -f "\$OLD_DIR/.env" ] && cp "\$OLD_DIR/.env" .env
-            [ -d "\$OLD_DIR/inc/uploads/avatars" ] && rsync -a "\$OLD_DIR/inc/uploads/avatars/" inc/uploads/avatars/ 2>/dev/null || true
-            [ -d "\$OLD_DIR/api/reviews" ] && rsync -a "\$OLD_DIR/api/reviews/" api/reviews/ 2>/dev/null || true
+          if [ -n "$OLD_DIR" ] && [ -d "$OLD_DIR" ]; then
+            echo "🔒 Préservation données depuis $OLD_DIR..."
+            [ -f "$OLD_DIR/.env" ] && cp "$OLD_DIR/.env" .env
+            [ -d "$OLD_DIR/inc/uploads/avatars" ] && rsync -a "$OLD_DIR/inc/uploads/avatars/" inc/uploads/avatars/ 2>/dev/null || true
+            [ -d "$OLD_DIR/api/reviews" ] && rsync -a "$OLD_DIR/api/reviews/" api/reviews/ 2>/dev/null || true
           fi
           
           # Fichier de version
-          cat > version.json <<EOF
+          cat > version.json <<EOF_VER
           {
             "version": "$VERSION",
             "commit": "$SHA",
             "deployed_at": "$(date -Iseconds)"
           }
-          EOF
+          EOF_VER
           
           # Permissions
-          chown -R www-data:www-data "\$RELEASE_DIR"
-          chmod -R 755 "\$RELEASE_DIR"
-          chmod -R 775 "\$RELEASE_DIR/inc/uploads/" 2>/dev/null || true
+          chown -R www-data:www-data "$RELEASE_DIR"
+          chmod -R 755 "$RELEASE_DIR"
+          chmod -R 775 "$RELEASE_DIR/inc/uploads/" 2>/dev/null || true
           
           # Switch atomique via symlink
           echo "🔄 Switch atomique..."
-          if [ -L "\$LIVE_DIR" ]; then
-            ln -sfn "\$RELEASE_DIR" "\${LIVE_DIR}.new"
-            mv -T "\${LIVE_DIR}.new" "\$LIVE_DIR"
-          elif [ -d "\$LIVE_DIR" ]; then
-            BACKUP_OLD="/var/www/orinheberge_legacy_\$(date +%Y%m%d_%H%M%S)"
-            mv "\$LIVE_DIR" "\$BACKUP_OLD"
-            ln -sfn "\$RELEASE_DIR" "\$LIVE_DIR"
-            echo "📁 Legacy sauvegardé: \$BACKUP_OLD"
+          if [ -L "$LIVE_DIR" ]; then
+            ln -sfn "$RELEASE_DIR" "${LIVE_DIR}.new"
+            mv -T "${LIVE_DIR}.new" "$LIVE_DIR"
+          elif [ -d "$LIVE_DIR" ]; then
+            BACKUP_OLD="/var/www/orinheberge_legacy_$(date +%Y%m%d_%H%M%S)"
+            mv "$LIVE_DIR" "$BACKUP_OLD"
+            ln -sfn "$RELEASE_DIR" "$LIVE_DIR"
+            echo "📁 Legacy sauvegardé: $BACKUP_OLD"
           else
-            ln -sfn "\$RELEASE_DIR" "\$LIVE_DIR"
+            ln -sfn "$RELEASE_DIR" "$LIVE_DIR"
           fi
           
           # Recharger services
           for svc in php8.4-fpm php8.3-fpm php8.2-fpm nginx apache2; do
-              systemctl is-active --quiet "\$svc" 2>/dev/null && systemctl reload "\$svc" && echo "✅ \$svc rechargé" || true
+              systemctl is-active --quiet "$svc" 2>/dev/null && systemctl reload "$svc" && echo "✅ $svc rechargé" || true
           done
           
           # ═══════════════════════════════════════════
@@ -230,29 +237,33 @@ jobs:
           # ═══════════════════════════════════════════
           echo "🔔 Création de la notification système..."
           
-          # Échappement des caractères spéciaux pour SQL (guillemets simples)
+          # Échappement des guillemets simples pour SQL
           ESCAPED_MSG=$(echo "$COMMIT_MSG" | sed "s/'/''/g")
           ESCAPED_ACTOR=$(echo "$ACTOR" | sed "s/'/''/g")
           
-          mysql -u root s43_orinheberge -p"1504" <<SQL
+          mysql -u root s43_orinheberge -p"1504" <<EOF_SQL
           INSERT INTO notifications (user_id, title, message, link, type, meta, created_at)
           VALUES (
             1, 
             'Déploiement effectué', 
             'Version ${VERSION} déployée par ${ESCAPED_ACTOR}. Message: ${ESCAPED_MSG}', 
-            '/admin/deployments', 
+            '/admin/deployments/', 
             'system_deploy', 
             JSON_OBJECT('commit', '${SHA}', 'version', '${VERSION}'), 
             NOW()
           );
-          SQL
+          EOF_SQL
           
           # Cleanup anciens releases (garder 5 derniers)
           cd /var/www/releases
           ls -dt release_* 2>/dev/null | tail -n +6 | xargs -r rm -rf --
           
           echo "✅ Déploiement terminé : $VERSION ($SHA)"
-          REMOTE
+          EOF_SCRIPT
+
+          # On rend le script exécutable et on l'exécute avec les arguments
+          sshpass -p "$SSH_PASS" ssh -o StrictHostKeyChecking=no root@5.48.143.126 \
+            "chmod +x /tmp/deploy_script.sh && bash /tmp/deploy_script.sh '$RELEASE_DIR' '$VERSION' '$SHA' '$COMMIT_MSG' '$ACTOR'"
 
       - name: Health check
         run: |
