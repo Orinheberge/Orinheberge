@@ -100,6 +100,10 @@ $_critical_maintenance = $pdo->query("
     <a href="/admin/nodes/" class="nav-item <?= $active_nav === 'nodes' ? 'active' : '' ?>">
       <i class="fas fa-network-wired icon"></i> Nodes
     </a>
+    <a href="/admin/deployments/" class="nav-item <?= $active_nav === 'deployments' ? 'active' : '' ?>">
+    <i class="fas fa-rocket"></i>
+    <span>Déploiements</span>
+    </a>
 
     <a href="/admin/eggs/" class="nav-item <?= $active_nav === 'eggs' ? 'active' : '' ?>">
       <i class="fas fa-egg icon"></i> Eggs

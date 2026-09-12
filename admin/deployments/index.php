@@ -1,67 +1,90 @@
 <?php
-/**
- * Page d'historique des déploiements - Admin Only
- * Stack: Tailwind + FontAwesome + Custom CSS
- */
-
-// ═══════════════════════════════════════════
-// 1. CONFIGURATION & CONNEXION BDD
-// ═══════════════════════════════════════════
-// Adaptez ce chemin vers votre fichier qui contient la variable $pdo
-require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/config.php';
-
-// Fallback si pas de config centralisé (à adapter si nécessaire)
-/*if (!isset($pdo)) {
-    try {
-        $pdo = new PDO(
-            "mysql:host=localhost;dbname=s43_orinheberge;charset=utf8mb4",
-            'root', 
-            '1504', 
-            [
-                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                PDO::ATTR_EMULATE_PREPARES => false,
-            ]
-        );
-    } catch (PDOException $e) {
-        die("Erreur critique : Connexion BDD impossible.");
-    }
-}*/
-
+ini_set('display_errors', 1); error_reporting(E_ALL);
 session_start();
 
-// ═══════════════════════════════════════════
-// 2. SÉCURITÉ (Votre code exact)
-// ═══════════════════════════════════════════
-if (!isset($_SESSION['user_id'])) { 
-    header('Location: /login/'); 
-    exit(); 
-}
+if (!isset($_SESSION['user_id'])) { header('Location: /login/'); exit(); }
 
-$stmt = $pdo->prepare('SELECT id, pseudo, firstname, lastname, email, avatar, is_admin FROM users WHERE id=? LIMIT 1');
+
+require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/config.php';
+
+
+$stmt = $pdo->prepare('SELECT id,pseudo,firstname,avatar,is_admin FROM users WHERE id=? LIMIT 1');
 $stmt->execute([$_SESSION['user_id']]);
 $admin = $stmt->fetch();
 
-if (!$admin || !$admin['is_admin']) {
-    http_response_code(403);
-    die('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>403</title><script src="https://cdn.tailwindcss.com"></script></head><body class="bg-[#0b0f19] text-white flex items-center justify-center h-screen"><div class="text-center"><div class="text-7xl font-black text-red-500 mb-4">403</div><p class="text-gray-400 text-lg mb-6">Accès refusé.</p><a href="/" class="bg-sky-600 hover:bg-sky-500 px-6 py-3 rounded-xl font-bold text-sm">Retour</a></div></body></html>');
+if (!$admin || !$admin['is_admin']) { http_response_code(403); die('403 Forbidden'); }
+
+// Générer un token CSRF pour sécuriser les POST
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
-// ═══════════════════════════════════════════
-// 3. LOGIQUE MÉTIER
-// ═══════════════════════════════════════════
+$flash = '';
+$message_type = '';
 
+// ── Pagination ──────────────────────────────────────────────
 $page = max(1, (int)($_GET['page'] ?? 1));
 $per_page = 15;
 $offset = ($page - 1) * $per_page;
 
 try {
-    // Total
     $stmt = $pdo->query("SELECT COUNT(*) FROM notifications WHERE type = 'system_deploy'");
     $total = (int)$stmt->fetchColumn();
     $total_pages = max(1, ceil($total / $per_page));
+} catch (PDOException $e) {
+    $total = 0;
+    $total_pages = 1;
+}
 
-    // Données
+// ── Actions POST ──────────────────────────────────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Vérification CSRF
+    if (!hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'] ?? '')) {
+        http_response_code(403);
+        die('Token CSRF invalide.');
+    }
+
+    $action = $_POST['action'] ?? '';
+
+    if ($action === 'mark_read') {
+        $id = (int)($_POST['id'] ?? 0);
+        if ($id > 0) {
+            $pdo->prepare('UPDATE notifications SET is_read = 1 WHERE id = ? AND type = "system_deploy"')->execute([$id]);
+            $flash = '<div class="bg-sky-500/15 text-sky-400 border border-sky-500/25 p-3 rounded-xl text-sm mb-4"><i class="fas fa-check-circle mr-2"></i>Déploiement marqué comme lu.</div>';
+        }
+    }
+
+    if ($action === 'mark_all_read') {
+        $pdo->exec("UPDATE notifications SET is_read = 1 WHERE type = 'system_deploy' AND is_read = 0");
+        $flash = '<div class="bg-green-500/15 text-green-400 border border-green-500/25 p-3 rounded-xl text-sm mb-4"><i class="fas fa-check-double mr-2"></i>Tous les déploiements ont été marqués comme lus.</div>';
+    }
+
+    if ($action === 'delete') {
+        $id = (int)($_POST['id'] ?? 0);
+        if ($id > 0) {
+            $pdo->prepare('DELETE FROM notifications WHERE id = ? AND type = "system_deploy"')->execute([$id]);
+            $flash = '<div class="bg-red-500/15 text-red-400 border border-red-500/25 p-3 rounded-xl text-sm mb-4"><i class="fas fa-trash mr-2"></i>Déploiement supprimé.</div>';
+        }
+    }
+
+    if ($action === 'clear_all') {
+        $pdo->exec("DELETE FROM notifications WHERE type = 'system_deploy'");
+        $flash = '<div class="bg-red-500/15 text-red-400 border border-red-500/25 p-3 rounded-xl text-sm mb-4"><i class="fas fa-broom mr-2"></i>Historique entièrement vidé.</div>';
+    }
+
+    // Régénérer le token CSRF après un POST
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
+// ── Chargement des données ──────────────────────────────────
+$unread_count = 0;
+$latest_version = '-';
+$deployments = [];
+
+try {
+    $stmt_unread = $pdo->query("SELECT COUNT(*) FROM notifications WHERE type = 'system_deploy' AND is_read = 0");
+    $unread_count = (int)$stmt_unread->fetchColumn();
+
     $stmt = $pdo->prepare("
         SELECT id, title, message, link, is_read, meta, created_at
         FROM notifications
@@ -74,310 +97,253 @@ try {
     $stmt->execute();
     $deployments = $stmt->fetchAll();
 
+    if (!empty($deployments)) {
+        $first_meta = json_decode($deployments[0]['meta'], true);
+        if (isset($first_meta['version'])) {
+            $latest_version = $first_meta['version'];
+        }
+    }
 } catch (PDOException $e) {
-    $deployments = [];
-    $error_log = $e->getMessage();
+    $flash = '<div class="bg-red-500/15 text-red-400 border border-red-500/25 p-3 rounded-xl text-sm mb-4"><i class="fas fa-exclamation-triangle mr-2"></i>Erreur chargement : ' . htmlspecialchars($e->getMessage()) . '</div>';
 }
 
-// Actions POST
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
-    if ($_POST['action'] === 'mark_read' && !empty($_POST['id'])) {
-        $stmt = $pdo->prepare("UPDATE notifications SET is_read = 1 WHERE id = ?");
-        $stmt->execute([(int)$_POST['id']]);
-        header('Location: /admin/deployments/');
-        exit;
-    }
-    if ($_POST['action'] === 'mark_all_read') {
-        $pdo->exec("UPDATE notifications SET is_read = 1 WHERE type = 'system_deploy'");
-        header('Location: /admin/deployments/');
-        exit;
-    }
-}
-
-// Helpers
+// ── Helpers ──────────────────────────────────────────────────
 function timeAgo($datetime) {
+    if (empty($datetime)) return '-';
     $now = new DateTime();
     $ago = new DateTime($datetime);
     $diff = $now->diff($ago);
-    if ($diff->d > 0) return $diff->d . "j";
-    if ($diff->h > 0) return $diff->h . "h";
-    if ($diff->i > 0) return $diff->i . "min";
-    return "maintenant";
+    if ($diff->y > 0) return 'il y a ' . $diff->y . ' an' . ($diff->y > 1 ? 's' : '');
+    if ($diff->m > 0) return 'il y a ' . $diff->m . ' mois';
+    if ($diff->d > 0) return 'il y a ' . $diff->d . ' jour' . ($diff->d > 1 ? 's' : '');
+    if ($diff->h > 0) return 'il y a ' . $diff->h . 'h';
+    if ($diff->i > 0) return 'il y a ' . $diff->i . 'min';
+    return 'à l\'instant';
 }
 
 function extractMeta($json) {
     $data = json_decode($json, true);
     return $data ?: ['commit' => 'unknown', 'version' => '0.0.0'];
 }
+
+$active_nav = 'deployments';
+include $_SERVER['DOCUMENT_ROOT'] . '/inc/admin_layout.php';
 ?>
-<!DOCTYPE html>
-<html lang="fr" class="dark">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Déploiements | Admin Dashboard</title>
-    
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 
-    <!-- Custom CSS -->
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #0b0f19;
-            background-image: 
-                radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.1) 0px, transparent 50%),
-                radial-gradient(at 100% 0%, rgba(139, 92, 246, 0.15) 0px, transparent 50%);
-            background-attachment: fixed;
-            color: #e2e8f0;
-        }
-
-        /* Glassmorphism Card */
-        .glass-card {
-            background: rgba(30, 41, 59, 0.7);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-        }
-
-        .glass-card:hover {
-            border-color: rgba(56, 189, 248, 0.3);
-            box-shadow: 0 0 20px rgba(56, 189, 248, 0.1);
-            transform: translateY(-2px);
-        }
-
-        /* Scrollbar Custom */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #0f172a; }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #475569; }
-
-        /* Animations */
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-in {
-            animation: fadeIn 0.4s ease-out forwards;
-        }
-        
-        .badge-glow {
-            box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
-        }
-    </style>
-</head>
-<body class="min-h-screen pb-10">
-
-    <!-- Navbar simple -->
-    <nav class="border-b border-slate-800 bg-slate-900/50 backdrop-blur-md sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between h-16">
-                <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-sky-500 to-violet-600 flex items-center justify-center text-white font-bold shadow-lg shadow-sky-500/20">
-                        <i class="fa-solid fa-rocket"></i>
-                    </div>
-                    <span class="font-bold text-xl tracking-tight text-white">Admin<span class="text-sky-400">Panel</span></span>
-                </div>
-                <div class="flex items-center gap-4">
-                    <a href="/admin/" class="text-slate-400 hover:text-white transition-colors text-sm font-medium">
-                        <i class="fa-solid fa-arrow-left mr-2"></i>Dashboard
-                    </a>
-                    <div class="h-8 w-px bg-slate-700"></div>
-                    <div class="flex items-center gap-2">
-                        <img src="<?= htmlspecialchars($admin['avatar'] ?? 'https://ui-avatars.com/api/?name='.urlencode($admin['pseudo'])) ?>" class="w-8 h-8 rounded-full border border-slate-600" alt="Avatar">
-                        <span class="text-sm font-medium text-slate-200"><?= htmlspecialchars($admin['pseudo']) ?></span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </nav>
-
-    <main class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 mt-10">
-        
-        <!-- Header Section -->
-        <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8 animate-fade-in">
+<div class="main-content">
+    <div class="topbar">
+        <div class="flex items-center gap-3">
+            <button id="adminSidebarToggle" class="md:hidden text-gray-400 hover:text-white text-lg w-8" aria-label="Ouvrir le menu admin">
+                <i class="fas fa-bars"></i>
+            </button>
             <div>
-                <h1 class="text-3xl font-bold text-white mb-2">Historique des déploiements</h1>
-                <p class="text-slate-400">Suivi automatisé des mises en production et versions.</p>
+                <div class="text-sm font-bold text-white flex items-center gap-2">
+                    <i class="fas fa-rocket text-purple-400 text-xs"></i> Déploiements
+                </div>
+                <div class="text-xs text-gray-500">
+                    <?= $total ?> entrée(s) • <?= $unread_count ?> non lue(s)
+                </div>
             </div>
-            <div class="flex gap-3">
-                <?php if($total > 0): ?>
-                <form method="POST">
-                    <input type="hidden" name="action" value="mark_all_read">
-                    <button type="submit" class="group relative px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg border border-slate-700 transition-all text-sm font-medium overflow-hidden">
-                        <span class="relative z-10 flex items-center gap-2">
-                            <i class="fa-solid fa-check-double text-emerald-400 group-hover:scale-110 transition-transform"></i>
-                            Tout marquer lu
-                        </span>
-                    </button>
-                </form>
-                <?php endif; ?>
-                <button onclick="window.location.reload()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 transition-all text-sm">
-                    <i class="fa-solid fa-sync-alt mr-2"></i> Actualiser
+        </div>
+    </div>
+
+    <div class="content">
+        <?= $flash ?>
+
+        <!-- Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="card p-5 flex items-center gap-4">
+                <div class="w-12 h-12 rounded-xl bg-sky-500/10 flex items-center justify-center text-sky-400 text-xl shrink-0">
+                    <i class="fas fa-server"></i>
+                </div>
+                <div>
+                    <div class="text-xs text-gray-400 uppercase font-semibold tracking-wider">Total Deploys</div>
+                    <div class="text-2xl font-bold text-white"><?= $total ?></div>
+                </div>
+            </div>
+
+            <div class="card p-5 flex items-center gap-4">
+                <div class="w-12 h-12 rounded-xl bg-violet-500/10 flex items-center justify-center text-violet-400 text-xl shrink-0">
+                    <i class="fas fa-code-branch"></i>
+                </div>
+                <div>
+                    <div class="text-xs text-gray-400 uppercase font-semibold tracking-wider">Version Actuelle</div>
+                    <div class="text-xl font-bold text-white font-mono"><?= htmlspecialchars($latest_version) ?></div>
+                </div>
+            </div>
+
+            <div class="card p-5 flex items-center gap-4">
+                <div class="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-400 text-xl shrink-0">
+                    <i class="fas fa-bell"></i>
+                </div>
+                <div>
+                    <div class="text-xs text-gray-400 uppercase font-semibold tracking-wider">Non lus</div>
+                    <div class="text-2xl font-bold text-white"><?= $unread_count ?></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions globales -->
+        <?php if ($total > 0): ?>
+        <div class="flex flex-wrap gap-3 mb-6">
+            <form method="POST" class="inline">
+                <input type="hidden" name="action" value="mark_all_read">
+                <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+                <button type="submit" class="btn bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-xs font-medium transition">
+                    <i class="fas fa-check-double mr-1"></i> Tout marquer comme lu
                 </button>
-            </div>
+            </form>
+            <form method="POST" class="inline" onsubmit="return confirm('Voulez-vous vraiment supprimer tout l\'historique des déploiements ?');">
+                <input type="hidden" name="action" value="clear_all">
+                <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+                <button type="submit" class="btn bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 px-4 py-2 rounded-lg text-xs font-medium transition">
+                    <i class="fas fa-trash mr-1"></i> Vider l'historique
+                </button>
+            </form>
         </div>
+        <?php endif; ?>
 
-        <!-- Stats Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 animate-fade-in" style="animation-delay: 0.1s;">
-            <!-- Stat 1 -->
-            <div class="glass-card p-5 rounded-xl flex items-center gap-4">
-                <div class="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400 text-xl">
-                    <i class="fa-solid fa-server"></i>
+        <!-- Liste des déploiements -->
+        <?php if (empty($deployments)): ?>
+            <div class="card p-10 text-center">
+                <div class="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-500 text-2xl">
+                    <i class="fas fa-box-open"></i>
                 </div>
-                <div>
-                    <p class="text-slate-400 text-xs uppercase font-semibold tracking-wider">Total Deploys</p>
-                    <p class="text-2xl font-bold text-white"><?= $total ?></p>
-                </div>
+                <h3 class="text-lg font-bold text-white mb-2">Aucun déploiement</h3>
+                <p class="text-sm text-gray-400">Les déploiements effectués via GitHub Actions apparaîtront automatiquement ici.</p>
             </div>
-            
-            <!-- Stat 2 -->
-            <div class="glass-card p-5 rounded-xl flex items-center gap-4">
-                <div class="w-12 h-12 rounded-full bg-violet-500/10 flex items-center justify-center text-violet-400 text-xl">
-                    <i class="fa-solid fa-code-branch"></i>
-                </div>
-                <div>
-                    <p class="text-slate-400 text-xs uppercase font-semibold tracking-wider">Version Actuelle</p>
-                    <p class="text-2xl font-bold text-white">
-                        <?= !empty($deployments) ? htmlspecialchars(extractMeta($deployments[0]['meta'])['version']) : '-' ?>
-                    </p>
-                </div>
-            </div>
-
-            <!-- Stat 3 -->
-            <div class="glass-card p-5 rounded-xl flex items-center gap-4">
-                <div class="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-400 text-xl">
-                    <i class="fa-solid fa-clock-rotate-left"></i>
-                </div>
-                <div>
-                    <p class="text-slate-400 text-xs uppercase font-semibold tracking-wider">Dernier Activity</p>
-                    <p class="text-lg font-bold text-white">
-                        <?= !empty($deployments) ? timeAgo($deployments[0]['created_at']) : '-' ?>
-                    </p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Timeline List -->
-        <div class="space-y-4">
-            <?php if (empty($deployments)): ?>
-                <div class="glass-card rounded-xl p-10 text-center animate-fade-in">
-                    <div class="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-500 text-2xl">
-                        <i class="fa-solid fa-box-open"></i>
-                    </div>
-                    <h3 class="text-xl font-bold text-white mb-2">Aucun historique</h3>
-                    <p class="text-slate-400 max-w-md mx-auto">Les déploiements effectués via le pipeline CI/CD apparaîtront automatiquement ici.</p>
-                </div>
-            <?php else: ?>
-                <?php foreach ($deployments as $index => $deploy): 
+        <?php else: ?>
+            <div class="grid grid-cols-1 gap-3">
+                <?php foreach ($deployments as $deploy):
                     $meta = extractMeta($deploy['meta']);
                     $isUnread = !$deploy['is_read'];
                 ?>
-                <div class="glass-card rounded-xl p-6 relative group animate-fade-in transition-all duration-300 hover:-translate-y-1" style="animation-delay: <?= ($index * 0.05) + 0.2 ?>s;">
-                    
-                    <!-- Indicateur Non-Lu -->
-                    <?php if($isUnread): ?>
-                        <div class="absolute top-6 right-6">
-                            <span class="flex h-3 w-3">
-                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
-                                <span class="relative inline-flex rounded-full h-3 w-3 bg-sky-500"></span>
-                            </span>
-                        </div>
-                    <?php endif; ?>
-
-                    <div class="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-4">
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-slate-700 to-slate-800 border border-slate-600 flex items-center justify-center text-slate-300 shadow-inner">
-                                <i class="fa-solid fa-rocket"></i>
+                <div class="card overflow-hidden <?= $isUnread ? 'border-l-4 border-l-sky-500' : '' ?>">
+                    <div class="p-5">
+                        <div class="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-3">
+                            <div class="flex items-start gap-3 flex-1">
+                                <div class="w-10 h-10 rounded-xl <?= $isUnread ? 'bg-sky-500/15 text-sky-400' : 'bg-white/5 text-gray-400' ?> flex items-center justify-center text-lg shrink-0">
+                                    <i class="fas fa-rocket"></i>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <div class="font-bold text-white text-sm"><?= htmlspecialchars($deploy['title']) ?></div>
+                                        <?php if ($isUnread): ?>
+                                            <span class="badge badge-blue text-[10px]"><i class="fas fa-circle text-[6px]"></i> Nouveau</span>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="flex items-center gap-2 text-[11px] text-gray-500 mt-1 flex-wrap">
+                                        <span><i class="far fa-calendar mr-1"></i><?= date('d/m/Y à H:i', strtotime($deploy['created_at'])) ?></span>
+                                        <span class="w-1 h-1 bg-gray-600 rounded-full"></span>
+                                        <span><?= timeAgo($deploy['created_at']) ?></span>
+                                    </div>
+                                </div>
                             </div>
-                            <div>
-                                <h3 class="text-lg font-bold text-white leading-tight"><?= htmlspecialchars($deploy['title']) ?></h3>
-                                <div class="flex items-center gap-2 text-xs text-slate-400 mt-1">
-                                    <span><i class="fa-regular fa-calendar mr-1"></i> <?= date('d M Y, H:i', strtotime($deploy['created_at'])) ?></span>
-                                    <span class="w-1 h-1 bg-slate-600 rounded-full"></span>
-                                    <span><?= timeAgo($deploy['created_at']) ?></span>
+
+                            <div class="flex items-center gap-2 shrink-0">
+                                <span class="badge badge-blue text-[10px] font-mono">
+                                    <i class="fas fa-tag mr-1"></i><?= htmlspecialchars($meta['version']) ?>
+                                </span>
+                                <span class="badge badge-gray text-[10px] font-mono">
+                                    <i class="fas fa-code-commit mr-1"></i><?= htmlspecialchars(substr($meta['commit'], 0, 7)) ?>
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="bg-black/20 rounded-lg p-3 border border-white/[0.03] mb-4 font-mono text-xs text-gray-300">
+                            <div class="flex items-start gap-2">
+                                <i class="fas fa-terminal text-gray-500 mt-0.5"></i>
+                                <div class="break-all flex-1">
+                                    <?= nl2br(htmlspecialchars($deploy['message'])) ?>
                                 </div>
                             </div>
                         </div>
-                        
-                        <div class="flex items-center gap-2">
-                            <span class="px-3 py-1 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/20 text-xs font-mono font-bold badge-glow">
-                                <?= htmlspecialchars($meta['version']) ?>
-                            </span>
-                            <span class="px-3 py-1 rounded-full bg-violet-500/10 text-violet-400 border border-violet-500/20 text-xs font-mono">
-                                <i class="fa-solid fa-code-commit mr-1 opacity-70"></i><?= htmlspecialchars(substr($meta['commit'], 0, 7)) ?>
-                            </span>
-                        </div>
-                    </div>
 
-                    <!-- Message Body -->
-                    <div class="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50 mb-4 font-mono text-sm text-slate-300">
-                        <div class="flex items-start gap-3">
-                            <i class="fa-solid fa-terminal text-slate-500 mt-1"></i>
-                            <div class="break-all">
-                                <?= nl2br(htmlspecialchars($deploy['message'])) ?>
+                        <div class="flex items-center justify-between pt-3 border-t border-white/[0.05]">
+                            <div class="text-[11px] text-gray-500">
+                                ID #<?= $deploy['id'] ?>
+                                <?php if (!empty($meta['commit'])): ?>
+                                    • <a href="https://github.com" target="_blank" class="hover:text-sky-400 transition">
+                                        <i class="fab fa-github mr-1"></i>Voir commit
+                                    </a>
+                                <?php endif; ?>
+                            </div>
+
+                            <div class="flex items-center gap-2">
+                                <?php if ($isUnread): ?>
+                                    <form method="POST" class="inline">
+                                        <input type="hidden" name="action" value="mark_read">
+                                        <input type="hidden" name="id" value="<?= $deploy['id'] ?>">
+                                        <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+                                        <button type="submit" class="text-[11px] text-sky-400 hover:text-sky-300 font-medium transition">
+                                            <i class="fas fa-check mr-1"></i>Marquer comme lu
+                                        </button>
+                                    </form>
+                                <?php else: ?>
+                                    <span class="text-[11px] text-emerald-500/70 font-medium">
+                                        <i class="fas fa-check-circle mr-1"></i>Lu
+                                    </span>
+                                <?php endif; ?>
+
+                                <form method="POST" class="inline" onsubmit="return confirm('Supprimer ce déploiement ?');">
+                                    <input type="hidden" name="action" value="delete">
+                                    <input type="hidden" name="id" value="<?= $deploy['id'] ?>">
+                                    <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+                                    <button type="submit" class="text-[11px] text-red-400 hover:text-red-300 font-medium transition">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
                             </div>
                         </div>
                     </div>
-
-                    <!-- Footer Actions -->
-                    <div class="flex items-center justify-between pt-2 border-t border-slate-700/50">
-                        <div class="text-xs text-slate-500">
-                            ID: #<?= $deploy['id'] ?> • Type: system_deploy
-                        </div>
-                        
-                        <?php if($isUnread): ?>
-                            <form method="POST">
-                                <input type="hidden" name="action" value="mark_read">
-                                <input type="hidden" name="id" value="<?= $deploy['id'] ?>">
-                                <button type="submit" class="text-xs font-medium text-sky-400 hover:text-sky-300 flex items-center gap-1 transition-colors">
-                                    <i class="fa-solid fa-check"></i> Marquer comme lu
-                                </button>
-                            </form>
-                        <?php else: ?>
-                            <span class="text-xs font-medium text-emerald-500/70 flex items-center gap-1">
-                                <i class="fa-solid fa-check-circle"></i> Lu
-                            </span>
-                        <?php endif; ?>
-                    </div>
                 </div>
                 <?php endforeach; ?>
-            <?php endif; ?>
-        </div>
-
-        <!-- Pagination -->
-        <?php if ($total_pages > 1): ?>
-            <div class="mt-8 flex justify-center animate-fade-in">
-                <nav class="flex items-center gap-2">
-                    <?php if ($page > 1): ?>
-                        <a href="?page=<?= $page - 1 ?>" class="w-10 h-10 flex items-center justify-center rounded-lg bg-slate-800 border border-slate-700 text-slate-400 hover:text-white hover:border-sky-500 transition-all">
-                            <i class="fa-solid fa-chevron-left"></i>
-                        </a>
-                    <?php endif; ?>
-
-                    <?php for ($i = max(1, $page - 2); $i <= min($total_pages, $page + 2); $i++): ?>
-                        <a href="?page=<?= $i ?>" class="w-10 h-10 flex items-center justify-center rounded-lg border transition-all font-medium <?= $i == $page ? 'bg-sky-600 border-sky-500 text-white shadow-lg shadow-sky-500/20' : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700 hover:text-white' ?>">
-                            <?= $i ?>
-                        </a>
-                    <?php endfor; ?>
-
-                    <?php if ($page < $total_pages): ?>
-                        <a href="?page=<?= $page + 1 ?>" class="w-10 h-10 flex items-center justify-center rounded-lg bg-slate-800 border border-slate-700 text-slate-400 hover:text-white hover:border-sky-500 transition-all">
-                            <i class="fa-solid fa-chevron-right"></i>
-                        </a>
-                    <?php endif; ?>
-                </nav>
             </div>
+
+            <!-- Pagination -->
+            <?php if ($total_pages > 1): ?>
+                <div class="mt-6 flex justify-center">
+                    <nav class="flex items-center gap-1">
+                        <?php if ($page > 1): ?>
+                            <a href="?page=<?= $page - 1 ?>" class="w-9 h-9 flex items-center justify-center rounded-lg bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:border-sky-500/50 transition-all text-sm">
+                                <i class="fas fa-chevron-left"></i>
+                            </a>
+                        <?php endif; ?>
+
+                        <?php 
+                        $start = max(1, $page - 2);
+                        $end = min($total_pages, $page + 2);
+                        if ($start > 1): ?>
+                            <a href="?page=1" class="w-9 h-9 flex items-center justify-center rounded-lg bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:border-sky-500/50 transition-all text-sm">1</a>
+                            <?php if ($start > 2): ?>
+                                <span class="px-2 text-gray-500">...</span>
+                            <?php endif; ?>
+                        <?php endif; ?>
+
+                        <?php for ($i = $start; $i <= $end; $i++): ?>
+                            <a href="?page=<?= $i ?>" class="w-9 h-9 flex items-center justify-center rounded-lg border transition-all text-sm font-medium <?= $i == $page ? 'bg-sky-600 border-sky-500 text-white shadow-lg shadow-sky-500/20' : 'bg-white/5 border-white/10 text-gray-400 hover:text-white hover:border-sky-500/50' ?>">
+                                <?= $i ?>
+                            </a>
+                        <?php endfor; ?>
+
+                        <?php if ($end < $total_pages): ?>
+                            <?php if ($end < $total_pages - 1): ?>
+                                <span class="px-2 text-gray-500">...</span>
+                            <?php endif; ?>
+                            <a href="?page=<?= $total_pages ?>" class="w-9 h-9 flex items-center justify-center rounded-lg bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:border-sky-500/50 transition-all text-sm"><?= $total_pages ?></a>
+                        <?php endif; ?>
+
+                        <?php if ($page < $total_pages): ?>
+                            <a href="?page=<?= $page + 1 ?>" class="w-9 h-9 flex items-center justify-center rounded-lg bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:border-sky-500/50 transition-all text-sm">
+                                <i class="fas fa-chevron-right"></i>
+                            </a>
+                        <?php endif; ?>
+                    </nav>
+                </div>
+            <?php endif; ?>
         <?php endif; ?>
-
-    </main>
-
-</body>
-</html>
+    </div>
+</div>
+</body></html>

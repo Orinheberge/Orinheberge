@@ -3,16 +3,11 @@ ini_set('display_errors', 1); error_reporting(E_ALL);
 session_start();
 require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/lang.php';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/smtp.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/config.php';
 
 // ─── Sécurité admin ────────────────────────────────────────────────────────
 if (!isset($_SESSION['user_id'])) { header('Location: /login/'); exit(); }
 
-try {
-    $pdo = new PDO('mysql:host=localhost;dbname=s43_orinheberge;charset=utf8mb4', 'root', '1504', [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
-    ]);
-} catch (PDOException $e) { die('Erreur BDD.'); }
 
 $stmt = $pdo->prepare('SELECT id, pseudo, firstname, lastname, email, avatar, is_admin FROM users WHERE id=? LIMIT 1');
 $stmt->execute([$_SESSION['user_id']]);
