@@ -8,7 +8,7 @@
 // 1. CONFIGURATION & CONNEXION BDD
 // ═══════════════════════════════════════════
 // Adaptez ce chemin vers votre fichier qui contient la variable $pdo
-require_once __DIR__ . '/../inc/config.php'; 
+require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/config.php';
 
 // Fallback si pas de config centralisé (à adapter si nécessaire)
 /*if (!isset($pdo)) {
