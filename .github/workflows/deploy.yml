@@ -31,6 +31,12 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Fetch all tags explicitly
+        run: |
+          git fetch --tags --force
+          echo "🔍 Derniers tags disponibles sur le dépôt :"
+          git tag --sort=-version:refname | head -n 5
+
       - name: Set variables
         id: vars
         run: |
@@ -42,6 +48,12 @@ jobs:
         run: |
           LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
           LAST_TAG=${LAST_TAG#v}
+          
+          # Sécurité : si le tag n'est pas au format X.Y.Z, on réinitialise à 0.0.0
+          if [[ ! "$LAST_TAG" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            LAST_TAG="0.0.0"
+          fi
+          
           IFS='.' read -r MAJOR MINOR PATCH <<< "$LAST_TAG"
           
           COMMIT_MSG="${{ steps.vars.outputs.msg }}"
@@ -58,7 +70,7 @@ jobs:
           
           VERSION="v${MAJOR}.${MINOR}.${PATCH}"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "📦 Version: $VERSION (bump: $BUMP)"
+          echo "📦 Version calculée : $VERSION (depuis $LAST_TAG, bump: $BUMP)"
 
       - name: PHP Syntax Check
         run: |
@@ -143,11 +155,13 @@ jobs:
             ./ \
             root@5.48.143.126:$RELEASE_DIR/
 
-      - name: Post-deploy (composer, permissions, switch, reload)
+      - name: Post-deploy (composer, permissions, switch, reload, NOTIFY)
         env:
           SSH_PASS: ${{ secrets.SSH_PASSWORD }}
           VERSION: ${{ needs.validate.outputs.version }}
           SHA: ${{ needs.validate.outputs.commit_sha }}
+          COMMIT_MSG: ${{ needs.validate.outputs.commit_msg }}
+          ACTOR: ${{ github.actor }}
         run: |
           sshpass -p "$SSH_PASS" ssh -o StrictHostKeyChecking=no \
             root@5.48.143.126 bash -s <<REMOTE
@@ -211,6 +225,28 @@ jobs:
               systemctl is-active --quiet "\$svc" 2>/dev/null && systemctl reload "\$svc" && echo "✅ \$svc rechargé" || true
           done
           
+          # ═══════════════════════════════════════════
+          # NOUVEAU : Insertion de la notification en BDD
+          # ═══════════════════════════════════════════
+          echo "🔔 Création de la notification système..."
+          
+          # Échappement des caractères spéciaux pour SQL (guillemets simples)
+          ESCAPED_MSG=$(echo "$COMMIT_MSG" | sed "s/'/''/g")
+          ESCAPED_ACTOR=$(echo "$ACTOR" | sed "s/'/''/g")
+          
+          mysql -u root s43_orinheberge -p"1504" <<SQL
+          INSERT INTO notifications (user_id, title, message, link, type, meta, created_at)
+          VALUES (
+            1, 
+            'Déploiement effectué', 
+            'Version ${VERSION} déployée par ${ESCAPED_ACTOR}. Message: ${ESCAPED_MSG}', 
+            '/admin/deployments', 
+            'system_deploy', 
+            JSON_OBJECT('commit', '${SHA}', 'version', '${VERSION}'), 
+            NOW()
+          );
+          SQL
+          
           # Cleanup anciens releases (garder 5 derniers)
           cd /var/www/releases
           ls -dt release_* 2>/dev/null | tail -n +6 | xargs -r rm -rf --
@@ -247,13 +283,16 @@ jobs:
     needs: [validate, deploy]
     if: success()
     permissions:
-      contents: write  # Explicitly grant write access for releases
+      contents: write
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Fetch all tags explicitly
+        run: git fetch --tags --force
 
       - name: Generate changelog
         run: |
@@ -285,6 +324,7 @@ jobs:
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   # ═══════════════════════════════════════════
   # 4. NOTIFICATION DISCORD
   # ═══════════════════════════════════════════
